@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const QRCode = require('qrcode');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -21,15 +22,26 @@ app.use(express.json({ limit: '10mb' }));
 
 // In-memory db for simplicity. In production this should be a DB.
 const dbPath = path.join(__dirname, 'db.json');
+const residentsDbPath = path.join(__dirname, 'residents.json');
 let properties = [];
+let residents = [];
 
 if (fs.existsSync(dbPath)) {
   properties = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+}
+if (fs.existsSync(residentsDbPath)) {
+  residents = JSON.parse(fs.readFileSync(residentsDbPath, 'utf8'));
 }
 
 const saveDb = () => {
   fs.writeFileSync(dbPath, JSON.stringify(properties, null, 2));
 };
+const saveResidents = () => {
+  fs.writeFileSync(residentsDbPath, JSON.stringify(residents, null, 2));
+};
+
+// Generate a 6-char uppercase access code
+const generateAccessCode = () => crypto.randomBytes(3).toString('hex').toUpperCase();
 
 // Admin Routes
 app.post('/api/properties', async (req, res) => {
@@ -50,7 +62,9 @@ app.post('/api/properties', async (req, res) => {
     id,
     type,
     name,
-    units: type === 'collective' ? units.map(u => ({ id: uuidv4(), name: u.name })) : [{ id: uuidv4(), name: 'Principal' }],
+    units: type === 'collective'
+      ? units.map(u => ({ id: uuidv4(), name: u.name, accessCode: generateAccessCode() }))
+      : [{ id: uuidv4(), name: 'Principal', accessCode: generateAccessCode() }],
     qrCodeUrl: qrCodeDataUrl,
     url,
     createdAt: new Date().toISOString()
@@ -76,6 +90,55 @@ app.delete('/api/properties/:id', (req, res) => {
   properties = properties.filter(p => p.id !== req.params.id);
   saveDb();
   res.json({ success: true });
+});
+
+// === Resident Auth Routes ===
+
+// Register a resident to a unit using the access code
+app.post('/api/resident/register', (req, res) => {
+  const { email, accessCode } = req.body;
+  if (!email || !accessCode) return res.status(400).json({ error: 'E-mail e código de acesso são obrigatórios.' });
+
+  // Find the unit with this access code
+  let foundUnit = null;
+  let foundProperty = null;
+  for (const prop of properties) {
+    const unit = prop.units.find(u => u.accessCode === accessCode);
+    if (unit) { foundUnit = unit; foundProperty = prop; break; }
+  }
+  if (!foundUnit) return res.status(404).json({ error: 'Código de acesso inválido.' });
+
+  // Check if already registered
+  const existing = residents.find(r => r.email === email && r.unitId === foundUnit.id);
+  if (existing) return res.json({ unitId: foundUnit.id, unitName: foundUnit.name, propertyName: foundProperty.name, message: 'Já registrado.' });
+
+  residents.push({ email, unitId: foundUnit.id, unitName: foundUnit.name, propertyId: foundProperty.id, propertyName: foundProperty.name, createdAt: new Date().toISOString() });
+  saveResidents();
+  res.status(201).json({ unitId: foundUnit.id, unitName: foundUnit.name, propertyName: foundProperty.name });
+});
+
+// Login resident
+app.post('/api/resident/login', (req, res) => {
+  const { email, accessCode } = req.body;
+  if (!email || !accessCode) return res.status(400).json({ error: 'E-mail e código de acesso são obrigatórios.' });
+
+  // Find unit by access code
+  let foundUnit = null;
+  let foundProperty = null;
+  for (const prop of properties) {
+    const unit = prop.units.find(u => u.accessCode === accessCode);
+    if (unit) { foundUnit = unit; foundProperty = prop; break; }
+  }
+  if (!foundUnit) return res.status(401).json({ error: 'Código de acesso inválido.' });
+
+  // Auto-register on first login
+  const existing = residents.find(r => r.email === email && r.unitId === foundUnit.id);
+  if (!existing) {
+    residents.push({ email, unitId: foundUnit.id, unitName: foundUnit.name, propertyId: foundProperty.id, propertyName: foundProperty.name, createdAt: new Date().toISOString() });
+    saveResidents();
+  }
+
+  res.json({ unitId: foundUnit.id, unitName: foundUnit.name, propertyName: foundProperty.name });
 });
 
 // WebSockets for Real-time Signaling

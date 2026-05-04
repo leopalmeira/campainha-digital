@@ -200,6 +200,59 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Product Photo Section */}
+      <section style={{ padding: '100px 0', background: 'var(--bg-deep)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '800px', background: 'radial-gradient(circle, rgba(0, 229, 255, 0.06) 0%, transparent 60%)', zIndex: 0 }}></div>
+        <div className="container" style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 800, letterSpacing: '-1px', marginBottom: '16px' }}>
+              Veja como fica <span className="text-gradient">no muro da sua casa.</span>
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(16px, 2vw, 18px)', maxWidth: '650px', margin: '0 auto' }}>
+              Uma placa elegante, discreta e profissional. O visitante só precisa escanear para falar com você.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'center', maxWidth: '1000px', margin: '0 auto' }} className="hero-grid">
+            <div style={{ borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0, 0, 0, 0.4)' }}>
+              <img src="/placa-muro.jpg" alt="Placa Campainha Digital instalada no muro" style={{ width: '100%', height: 'auto', display: 'block' }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+              <div className="premium-card" style={{ padding: '24px', borderLeft: '4px solid #10B981' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <Lock size={24} color="#10B981" />
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Zero Dados Expostos</h3>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>
+                  Ao escanear o QR Code, <strong style={{ color: '#10B981' }}>nenhuma informação pessoal do morador é exibida</strong>. O visitante vê apenas a interface de chamada. Seu nome, telefone e endereço permanecem totalmente ocultos.
+                </p>
+              </div>
+
+              <div className="premium-card" style={{ padding: '24px', borderLeft: '4px solid var(--primary)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <EyeOff size={24} color="var(--primary)" />
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Privacidade Total</h3>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>
+                  O QR Code é criptografado e não contém dados pessoais. A conexão é anônima para o visitante — <strong style={{ color: 'var(--primary)' }}>apenas você decide se quer se identificar</strong>.
+                </p>
+              </div>
+
+              <div className="premium-card" style={{ padding: '24px', borderLeft: '4px solid #F59E0B' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <Shield size={24} color="#F59E0B" />
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Foto Automática do Visitante</h3>
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>
+                  Ao escanear, a câmera do visitante captura uma foto silenciosa. Você recebe a imagem no celular <strong style={{ color: '#F59E0B' }}>antes mesmo de decidir se quer atender</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Footer */}
       <section style={{ padding: '80px 0', borderTop: '1px solid var(--border-subtle)', background: 'radial-gradient(ellipse at bottom, rgba(0, 229, 255, 0.08) 0%, var(--bg-deep) 100%)' }}>
         <div className="container" style={{ textAlign: 'center' }}>

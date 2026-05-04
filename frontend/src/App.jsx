@@ -5,6 +5,7 @@ import AdminPanel from './pages/AdminPanel';
 import VisitorCall from './pages/VisitorCall';
 import ResidentDashboard from './pages/ResidentDashboard';
 import AuthPage from './pages/AuthPage';
+import ResidentLogin from './pages/ResidentLogin';
 
 import MasterAdminDashboard from './pages/MasterAdminDashboard';
 
@@ -14,6 +15,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/morador-login" element={<ResidentLogin />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/master-admin" element={<MasterAdminDashboard />} />
         <Route path="/chamada/:id" element={<VisitorCall />} />

@@ -258,22 +258,27 @@ export default function AdminPanel() {
                 
                 <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', marginTop: 'auto' }}>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '12px' }}>
-                    Acesso PWA dos Moradores:
+                    Acesso dos Moradores (Código + Login PWA):
                   </span>
                   
-                  <div style={{ maxHeight: '160px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
+                  <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
                     {p.units.map(u => (
                       <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-surface-elevated)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                            <span style={{ fontSize: '14px', fontWeight: 600 }}>{u.name || 'Proprietário'}</span>
-                           <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Pronto para instalar</span>
+                           <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                             Código: <span style={{ fontFamily: 'monospace', color: 'var(--primary)', fontWeight: 800, letterSpacing: '1px', fontSize: '13px', background: 'rgba(0,229,255,0.08)', padding: '2px 8px', borderRadius: '4px' }}>{u.accessCode || '------'}</span>
+                           </span>
                         </div>
-                        <a href={`/morador/${u.id}`} target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontSize: '12px', fontWeight: 700, background: 'rgba(16, 185, 129, 0.1)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          BAIXAR <ChevronRight size={14} />
-                        </a>
+                        <button onClick={() => { navigator.clipboard.writeText(u.accessCode || ''); alert(`Código ${u.accessCode} copiado!`); }} style={{ color: 'var(--primary)', textDecoration: 'none', fontSize: '11px', fontWeight: 700, background: 'rgba(0, 229, 255, 0.1)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', border: 'none', cursor: 'pointer' }}>
+                          COPIAR
+                        </button>
                       </div>
                     ))}
                   </div>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px', lineHeight: 1.4 }}>
+                    Envie o código ao morador. Ele acessa <strong style={{ color: 'var(--primary)' }}>/morador-login</strong> e digita o código + e-mail para receber chamadas.
+                  </p>
                 </div>
 
               </div>
