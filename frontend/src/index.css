@@ -38,6 +38,10 @@ body {
   padding: 0 24px;
 }
 
+.text-muted {
+  color: var(--text-muted);
+}
+
 .text-gradient {
   background: linear-gradient(135deg, #FFFFFF 0%, #94A3B8 100%);
   -webkit-background-clip: text;
@@ -48,6 +52,39 @@ body {
   background: linear-gradient(135deg, #00E5FF 0%, #0077FF 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* Glassmorphism & Inputs */
+.glass-panel {
+  background: rgba(10, 17, 31, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 24px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.input-glass {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 16px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 16px;
+  transition: var(--transition-fast);
+  outline: none;
+}
+
+.input-glass:focus {
+  border-color: var(--primary);
+  background: rgba(0, 229, 255, 0.05);
+  box-shadow: 0 0 0 4px rgba(0, 229, 255, 0.1);
+}
+
+.input-glass::placeholder {
+  color: rgba(148, 163, 184, 0.5);
 }
 
 /* Buttons */
@@ -79,6 +116,10 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 12px 40px var(--primary-glow);
   filter: brightness(1.1);
+}
+
+.btn-primary.w-full {
+  width: 100%;
 }
 
 .btn-secondary {
@@ -149,15 +190,30 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes float {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
   100% { transform: translateY(0px); }
 }
 
+@keyframes mesh-pulse {
+  0% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+  50% { transform: scale(1.5) rotate(180deg); opacity: 0.8; }
+  100% { transform: scale(1) rotate(360deg); opacity: 0.5; }
+}
+
 .animate-fade-up {
   animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   opacity: 0;
+}
+
+.fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
 }
 
 .delay-100 { animation-delay: 0.1s; }
