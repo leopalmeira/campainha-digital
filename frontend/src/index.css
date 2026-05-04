@@ -32,6 +32,7 @@ body {
 
 /* Utilities */
 .container {
+  width: 100%;
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 24px;
@@ -63,7 +64,15 @@ body {
   box-shadow: 0 8px 32px var(--primary-glow);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .btn-primary {
+    width: auto;
+  }
 }
 
 .btn-primary:hover {
@@ -83,6 +92,17 @@ body {
   cursor: pointer;
   transition: var(--transition-fast);
   backdrop-filter: blur(10px);
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .btn-secondary {
+    width: auto;
+  }
 }
 
 .btn-secondary:hover {
@@ -95,7 +115,7 @@ body {
   background: linear-gradient(180deg, rgba(10, 17, 31, 0.8) 0%, rgba(5, 11, 20, 0.9) 100%);
   border: 1px solid var(--border-subtle);
   border-radius: 24px;
-  padding: 40px;
+  padding: 32px;
   transition: var(--transition-smooth);
   position: relative;
   overflow: hidden;
@@ -131,7 +151,7 @@ body {
 
 @keyframes float {
   0% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+  50% { transform: translateY(-10px); }
   100% { transform: translateY(0px); }
 }
 
@@ -147,15 +167,25 @@ body {
 
 /* Phone Mockup */
 .iphone-mockup {
-  width: 320px;
-  height: 650px;
+  width: 100%;
+  max-width: 300px;
+  height: 600px;
   background: #000;
-  border-radius: 48px;
+  border-radius: 40px;
   border: 8px solid #1a2133;
   box-shadow: 0 0 0 2px #334155, 0 30px 60px rgba(0,0,0,0.6);
   position: relative;
   overflow: hidden;
   animation: float 6s ease-in-out infinite;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .iphone-mockup {
+    max-width: 320px;
+    height: 650px;
+    border-radius: 48px;
+  }
 }
 
 .iphone-notch {
@@ -163,33 +193,53 @@ body {
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 120px;
-  height: 30px;
+  width: 100px;
+  height: 25px;
   background: #1a2133;
   border-bottom-left-radius: 16px;
   border-bottom-right-radius: 16px;
   z-index: 10;
 }
 
+@media (min-width: 768px) {
+  .iphone-notch {
+    width: 120px;
+    height: 30px;
+  }
+}
+
 /* Comparison Table */
+.comparison-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .comparison-table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
-  margin-top: 40px;
 }
 
 .comparison-table th, .comparison-table td {
-  padding: 24px;
+  padding: 16px 24px;
   text-align: left;
   border-bottom: 1px solid var(--border-subtle);
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  .comparison-table th, .comparison-table td {
+    padding: 24px;
+    font-size: 16px;
+  }
 }
 
 .comparison-table th {
   font-weight: 600;
   color: var(--text-muted);
-  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 1px;
+  font-size: 12px;
 }
 
 .comparison-table td.highlight {
@@ -203,4 +253,29 @@ body {
 }
 .comparison-table tr:hover td.highlight {
   background: rgba(0, 229, 255, 0.08);
+}
+
+/* Layout overrides for mobile */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .hero-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+  }
+}
+
+.desktop-nav-links {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .desktop-nav-links {
+    display: flex;
+  }
 }
