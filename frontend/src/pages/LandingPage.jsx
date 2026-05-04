@@ -1,153 +1,212 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, EyeOff, Globe2, Camera, Zap, ArrowRight, UserCheck, Smartphone } from 'lucide-react';
+import { Shield, Smartphone, Zap, Clock, Check, X, ArrowRight, Video } from 'lucide-react';
 
 export default function LandingPage() {
-  const vantagens = [
-    {
-      icon: <Zap size={32} color="var(--accent-cyan)" />,
-      title: "Instalação Sem Fios",
-      desc: "Zero obras, zero cabos. Basta fixar a placa elegante de QR Code na parede e seu sistema já está funcionando imediatamente."
-    },
-    {
-      icon: <EyeOff size={32} color="var(--accent-cyan)" />,
-      title: "Monitoramento Oculto",
-      desc: "Veja quem está na sua porta em tempo real sem que o visitante saiba que está sendo observado ou ouvido."
-    },
-    {
-      icon: <Globe2 size={32} color="var(--accent-cyan)" />,
-      title: "Atendimento Remoto",
-      desc: "Não está em casa? Atenda a sua porta de qualquer lugar do mundo, direto da tela do seu smartphone como uma chamada de vídeo."
-    },
-    {
-      icon: <Camera size={32} color="var(--accent-cyan)" />,
-      title: "Captura Automática",
-      desc: "Registramos silenciosamente uma foto do rosto de cada pessoa que toca a campainha. Total rastreabilidade e segurança."
-    },
-    {
-      icon: <ShieldCheck size={32} color="var(--accent-cyan)" />,
-      title: "Custo-Benefício Imbatível",
-      desc: "Esqueça a manutenção cara de interfones velhos e com ruídos. Uma solução em nuvem, mais barata e infinitamente superior."
-    }
-  ];
-
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <header style={{ padding: '16px 24px', borderBottom: '1px solid var(--glass-border)', background: 'rgba(2, 6, 23, 0.8)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 0 }}>
+    <>
+      {/* Navigation */}
+      <nav style={{ position: 'fixed', top: 0, width: '100%', padding: '20px 0', zIndex: 100, background: 'rgba(5, 11, 20, 0.8)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--border-subtle)' }}>
+        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/logo.png" alt="Logo" style={{ width: '40px', height: '40px', borderRadius: '8px' }} onError={(e) => { e.target.onerror = null; e.target.src = 'https://i.imgur.com/your-logo.png'; }} />
-            <h2 className="text-gradient" style={{ fontSize: '20px', margin: 0 }}>Campainha-Digital</h2>
+            <img src="/logo.png" alt="Campainha Digital" style={{ width: '32px', height: '32px', borderRadius: '6px' }} onError={(e) => { e.target.onerror = null; e.target.src = 'https://i.imgur.com/your-logo.png'; }} />
+            <span style={{ fontWeight: 700, fontSize: '18px', letterSpacing: '-0.5px' }}>Campainha Digital</span>
           </div>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <Link to="/auth" style={{ textDecoration: 'none', color: 'var(--text-main)', fontWeight: 500, fontSize: '15px' }}>
-              Entrar
-            </Link>
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+            <a href="#features" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color='#fff'} onMouseOut={e => e.target.style.color='var(--text-muted)'}>Recursos</a>
+            <a href="#compare" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color='#fff'} onMouseOut={e => e.target.style.color='var(--text-muted)'}>Comparativo</a>
+            <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle)' }}></div>
+            <Link to="/auth" style={{ color: '#fff', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Entrar</Link>
             <Link to="/auth" style={{ textDecoration: 'none' }}>
-              <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '14px', borderRadius: '100px' }}>Cadastre-se</button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section style={{ padding: '100px 24px', textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '80vw', height: '80vw', maxWidth: '800px', maxHeight: '800px', background: 'radial-gradient(circle, rgba(6,182,212,0.15) 0%, rgba(0,0,0,0) 70%)', zIndex: -1 }}></div>
-
-        <div className="container" style={{ maxWidth: '900px', zIndex: 1 }}>
-          <div className="fade-in" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.3)', borderRadius: '100px', color: 'var(--accent-cyan)', fontSize: '14px', fontWeight: 600, marginBottom: '32px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-cyan)', display: 'inline-block' }} className="pulse-btn"></span>
-            A Nova Geração de Interfones
-          </div>
-          
-          <h1 className="fade-in" style={{ fontSize: 'clamp(40px, 6vw, 64px)', lineHeight: 1.1, marginBottom: '24px', letterSpacing: '-2px', animationDelay: '0.1s', opacity: 0, animationFillMode: 'forwards' }}>
-            Atenda sua porta de <br/><span className="text-gradient">Qualquer Lugar do Mundo.</span>
-          </h1>
-          
-          <p className="text-muted fade-in" style={{ fontSize: 'clamp(18px, 2vw, 22px)', marginBottom: '40px', lineHeight: 1.6, maxWidth: '700px', margin: '0 auto 40px', animationDelay: '0.2s', opacity: 0, animationFillMode: 'forwards' }}>
-            Substitua seu interfone antigo, ruidoso e com fios por uma placa inteligente e minimalista de QR Code. Instalação em 1 minuto, segurança 24h.
-          </p>
-          
-          <div className="fade-in" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', animationDelay: '0.3s', opacity: 0, animationFillMode: 'forwards' }}>
-            <Link to="/auth" style={{ textDecoration: 'none' }}>
-              <button className="btn-primary" style={{ padding: '18px 40px', fontSize: '18px', borderRadius: '12px' }}>
-                Criar Conta Grátis <ArrowRight size={20} />
+              <button style={{ background: 'var(--text-main)', color: 'var(--bg-deep)', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={e => e.target.style.transform='translateY(-2px)'} onMouseOut={e => e.target.style.transform='translateY(0)'}>
+                Começar Agora
               </button>
             </Link>
           </div>
         </div>
-      </section>
+      </nav>
 
-      {/* Como Funciona Section */}
-      <section style={{ padding: '100px 24px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-            <h2 style={{ fontSize: '36px', marginBottom: '16px' }}>Como a mágica acontece?</h2>
-            <p className="text-muted" style={{ fontSize: '18px' }}>Em 3 passos simples você transforma a segurança do seu imóvel.</p>
+      {/* Hero Section */}
+      <section style={{ paddingTop: '160px', paddingBottom: '100px', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: '-20%', left: '50%', transform: 'translateX(-50%)', width: '1000px', height: '1000px', background: 'radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 60%)', zIndex: -1 }}></div>
+
+        <div className="container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'center' }}>
+          <div style={{ zIndex: 1 }}>
+            <div className="animate-fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(0, 229, 255, 0.1)', border: '1px solid rgba(0, 229, 255, 0.2)', borderRadius: '100px', color: 'var(--primary)', fontSize: '14px', fontWeight: 600, marginBottom: '24px' }}>
+              <Zap size={16} /> O Fim dos Interfones Tradicionais
+            </div>
+            
+            <h1 className="animate-fade-up delay-100" style={{ fontSize: 'clamp(48px, 5vw, 64px)', lineHeight: 1.1, fontWeight: 800, letterSpacing: '-2px', marginBottom: '24px' }}>
+              Segurança de alto nível,<br />na palma da <span className="text-gradient-primary">sua mão.</span>
+            </h1>
+            
+            <p className="animate-fade-up delay-200" style={{ fontSize: '20px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '40px', maxWidth: '540px' }}>
+              Transforme a portaria do seu condomínio com uma placa inteligente de QR Code. Atenda visitantes de qualquer lugar do mundo com vídeo ao vivo. Sem fios, sem manutenção.
+            </p>
+            
+            <div className="animate-fade-up delay-300" style={{ display: 'flex', gap: '16px' }}>
+              <Link to="/auth" style={{ textDecoration: 'none' }}>
+                <button className="btn-primary">
+                  Criar Conta Gratuita <ArrowRight size={20} />
+                </button>
+              </Link>
+              <a href="#compare" style={{ textDecoration: 'none' }}>
+                <button className="btn-secondary">
+                  Ver Comparativo
+                </button>
+              </a>
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', position: 'relative' }}>
-            {[
-              { icon: <UserCheck size={40} />, title: '1. Crie sua Placa', desc: 'Acesse o painel e gere um QR Code exclusivo para sua casa ou condomínio.' },
-              { icon: <Smartphone size={40} />, title: '2. Visitante Escaneia', desc: 'O visitante aponta a câmera do celular, sem precisar baixar nenhum aplicativo.' },
-              { icon: <ShieldCheck size={40} />, title: '3. Você Atende', desc: 'O seu celular toca onde você estiver, exibindo a foto de quem está na porta.' }
-            ].map((step, idx) => (
-              <div key={idx} style={{ textAlign: 'center', padding: '32px', background: 'rgba(255,255,255,0.02)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ width: '80px', height: '80px', margin: '0 auto 24px', background: 'linear-gradient(135deg, var(--bg-dark), var(--bg-darker))', border: '1px solid var(--accent-cyan)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-cyan)', boxShadow: '0 8px 32px rgba(6, 182, 212, 0.2)' }}>
-                  {step.icon}
+          {/* Premium UI Mockup */}
+          <div className="animate-fade-up delay-400" style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: '10%', right: '10%', width: '150px', height: '150px', background: 'var(--primary)', filter: 'blur(100px)', opacity: 0.3, zIndex: -1 }}></div>
+            
+            <div className="iphone-mockup">
+              <div className="iphone-notch"></div>
+              {/* Fake App Screen */}
+              <div style={{ width: '100%', height: '100%', background: '#0A111F', display: 'flex', flexDirection: 'column' }}>
+                {/* Header */}
+                <div style={{ padding: '60px 24px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600 }}>Portaria Principal</span>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 10px #10B981' }}></div>
                 </div>
-                <h3 style={{ fontSize: '24px', marginBottom: '16px' }}>{step.title}</h3>
-                <p className="text-muted" style={{ lineHeight: 1.6 }}>{step.desc}</p>
+                {/* Video Area */}
+                <div style={{ flex: 1, margin: '0 16px', background: '#111A2C', borderRadius: '24px', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&q=80" alt="Visitante" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
+                  <div style={{ position: 'absolute', top: '16px', left: '16px', background: 'rgba(0,0,0,0.6)', padding: '6px 12px', borderRadius: '100px', fontSize: '12px', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#EF4444' }} /> Ao vivo
+                  </div>
+                  <div style={{ position: 'absolute', bottom: '24px', left: '0', width: '100%', display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(16, 185, 129, 0.4)' }}>
+                      <Video size={24} color="#000" />
+                    </div>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(239, 68, 68, 0.4)' }}>
+                      <X size={24} color="#fff" />
+                    </div>
+                  </div>
+                </div>
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
+                  Aguardando resposta...
+                </div>
               </div>
-            ))}
+            </div>
+            
+            {/* Floating QR Card */}
+            <div style={{ position: 'absolute', bottom: '10%', left: '-20%', background: 'rgba(17, 26, 44, 0.9)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)', padding: '20px', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', animation: 'float 5s ease-in-out infinite reverse' }}>
+              <div style={{ width: '64px', height: '64px', background: '#fff', padding: '4px', borderRadius: '12px' }}>
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=example" alt="QR" style={{ width: '100%', height: '100%' }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '14px' }}>Placa Inteligente</div>
+                <div style={{ fontSize: '12px', color: 'var(--primary)' }}>Pronta para uso</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Vantagens Section */}
-      <section style={{ padding: '100px 24px', background: 'linear-gradient(180deg, transparent, rgba(6, 182, 212, 0.05))' }}>
+      {/* Features Grid */}
+      <section id="features" style={{ padding: '100px 0', background: 'var(--bg-surface)' }}>
         <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-            <h2 style={{ fontSize: '36px', marginBottom: '16px' }}>Por que escolher a <span className="text-gradient">Campainha-Digital?</span></h2>
-            <p className="text-muted" style={{ fontSize: '18px' }}>As 5 grandes vantagens frente aos interfones tradicionais.</p>
+          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+            <h2 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '16px' }}>Tecnologia que <span className="text-gradient">redefine segurança.</span></h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '18px', maxWidth: '600px', margin: '0 auto' }}>Construído com os mesmos padrões de criptografia das maiores instituições financeiras.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-            {vantagens.map((vantagem, index) => (
-              <div key={index} className="glass-panel fade-in" style={{ padding: '40px', transition: 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', cursor: 'default', animationDelay: `${index * 0.1}s`, opacity: 0, animationFillMode: 'forwards' }} onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-10px)'} onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'rgba(6, 182, 212, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
-                  {vantagem.icon}
-                </div>
-                <h3 style={{ fontSize: '22px', marginBottom: '16px', letterSpacing: '-0.5px' }}>{vantagem.title}</h3>
-                <p className="text-muted" style={{ lineHeight: 1.6, fontSize: '16px' }}>{vantagem.desc}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <div className="premium-card">
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(0, 229, 255, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+                <Smartphone size={24} />
               </div>
-            ))}
+              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>Mobilidade Total</h3>
+              <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>O visitante toca, seu smartphone chama. Atenda a porta via vídeo estando no trabalho ou em viagem internacional.</p>
+            </div>
+            
+            <div className="premium-card">
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(0, 229, 255, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+                <Shield size={24} />
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>Monitoramento Furtivo</h3>
+              <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>Acesse a câmera instantaneamente sem que o visitante perceba. Você no controle total antes de iniciar o áudio.</p>
+            </div>
+
+            <div className="premium-card">
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(0, 229, 255, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+                <Clock size={24} />
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>Instalação em 60 Segundos</h3>
+              <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>Sem furadeiras, sem passar cabos, sem eletricista. Fixe a placa com fita dupla-face e ative no painel.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Call to Action Final */}
-      <section style={{ padding: '100px 24px', textAlign: 'center' }}>
-        <div className="glass-panel" style={{ maxWidth: '800px', margin: '0 auto', padding: '64px 32px', background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(6, 182, 212, 0.1))' }}>
-          <h2 style={{ fontSize: '40px', marginBottom: '24px', letterSpacing: '-1px' }}>Pronto para modernizar sua portaria?</h2>
-          <p className="text-muted" style={{ fontSize: '20px', marginBottom: '40px', maxWidth: '500px', margin: '0 auto 40px' }}>Junte-se ao futuro hoje mesmo. O cadastro leva menos de 1 minuto.</p>
+      {/* Comparison Section */}
+      <section id="compare" style={{ padding: '120px 0' }}>
+        <div className="container" style={{ maxWidth: '900px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+            <h2 style={{ fontSize: '36px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '16px' }}>Por que somos a <span className="text-gradient">escolha lógica?</span></h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '18px' }}>Compare os custos e benefícios ocultos das tecnologias do mercado.</p>
+          </div>
+
+          <div style={{ background: 'var(--bg-surface-elevated)', borderRadius: '24px', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+            <table className="comparison-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '40%' }}>Critério</th>
+                  <th style={{ width: '30%', textAlign: 'center' }}>Interfones Tradicionais</th>
+                  <th className="highlight" style={{ width: '30%', textAlign: 'center' }}>Campainha Digital</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Custo de Instalação</td>
+                  <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Alto (Obras e Cabos)</td>
+                  <td className="highlight" style={{ textAlign: 'center' }}>Zero (Imediato)</td>
+                </tr>
+                <tr>
+                  <td>Manutenção Anual</td>
+                  <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Constante (Rachaduras, Água)</td>
+                  <td className="highlight" style={{ textAlign: 'center' }}>Zero (Nuvem)</td>
+                </tr>
+                <tr>
+                  <td>Atendimento</td>
+                  <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Apenas dentro de casa</td>
+                  <td className="highlight" style={{ textAlign: 'center' }}>Global via Smartphone</td>
+                </tr>
+                <tr>
+                  <td>Identificação Visual</td>
+                  <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}><X size={20} color="#EF4444" style={{ display: 'inline-block', verticalAlign: 'middle' }} /></td>
+                  <td className="highlight" style={{ textAlign: 'center' }}><Check size={20} color="#10B981" style={{ display: 'inline-block', verticalAlign: 'middle' }} /> Câmera ao Vivo</td>
+                </tr>
+                <tr>
+                  <td>Registro de Visitantes</td>
+                  <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}><X size={20} color="#EF4444" style={{ display: 'inline-block', verticalAlign: 'middle' }} /></td>
+                  <td className="highlight" style={{ textAlign: 'center' }}><Check size={20} color="#10B981" style={{ display: 'inline-block', verticalAlign: 'middle' }} /> Captura Automática</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Footer */}
+      <section style={{ padding: '100px 0', borderTop: '1px solid var(--border-subtle)', background: 'radial-gradient(ellipse at bottom, rgba(0, 229, 255, 0.1) 0%, var(--bg-deep) 100%)' }}>
+        <div className="container" style={{ textAlign: 'center' }}>
+          <h2 style={{ fontSize: '48px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '24px' }}>Eleve o padrão do seu condomínio.</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '20px', marginBottom: '40px' }}>Inicie sua transição para a portaria digital hoje mesmo.</p>
           <Link to="/auth" style={{ textDecoration: 'none' }}>
-            <button className="btn-primary" style={{ padding: '18px 48px', fontSize: '20px', borderRadius: '12px' }}>
-              Criar Conta e Gerar QR Code
+            <button className="btn-primary" style={{ padding: '20px 48px', fontSize: '18px' }}>
+              Cadastrar Meu Condomínio <ArrowRight size={20} />
             </button>
           </Link>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer style={{ padding: '40px 24px', borderTop: '1px solid var(--glass-border)', textAlign: 'center', background: 'var(--bg-darker)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
-          <img src="/logo.png" alt="Logo" style={{ width: '24px', height: '24px', borderRadius: '4px' }} onError={(e) => { e.target.onerror = null; e.target.src = 'https://i.imgur.com/your-logo.png'; }} />
-          <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Campainha-Digital</span>
-        </div>
-        <p className="text-muted" style={{ fontSize: '14px' }}>© {new Date().getFullYear()} Campainha-Digital. Inovação em Segurança Residencial e Condominial.</p>
+      
+      <footer style={{ padding: '40px 0', textAlign: 'center', borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
+         <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>© {new Date().getFullYear()} Campainha Digital. O padrão em segurança patrimonial moderna.</p>
       </footer>
-    </div>
+    </>
   );
 }
