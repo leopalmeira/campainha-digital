@@ -6,6 +6,8 @@ import VisitorCall from './pages/VisitorCall';
 import ResidentDashboard from './pages/ResidentDashboard';
 import AuthPage from './pages/AuthPage';
 
+import MasterAdminDashboard from './pages/MasterAdminDashboard';
+
 function App() {
   return (
     <Router>
@@ -13,6 +15,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/master-admin" element={<MasterAdminDashboard />} />
         <Route path="/chamada/:id" element={<VisitorCall />} />
         <Route path="/morador/:id" element={<ResidentDashboard />} />
         <Route path="*" element={<Navigate to="/" />} />
