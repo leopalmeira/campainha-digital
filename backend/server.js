@@ -163,8 +163,8 @@ io.on('connection', (socket) => {
   });
   
   // Resident answers call
-  socket.on('answer_call', ({ visitorSocketId }) => {
-    io.to(visitorSocketId).emit('call_answered', { residentSocketId: socket.id });
+  socket.on('answer_call', ({ visitorSocketId, mode, unitId }) => {
+    io.to(visitorSocketId).emit('call_answered', { residentSocketId: socket.id, mode, unitId });
   });
   
   // WebRTC Signaling

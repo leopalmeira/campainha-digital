@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { Video, Phone, MicOff, PhoneOff, User, Bell, MapPin, ShieldCheck, EyeOff, Download, Settings, Save, AlertCircle } from 'lucide-react';
+import Peer from 'peerjs';
 
 const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3001');
 
@@ -16,8 +17,9 @@ export default function ResidentDashboard() {
 
   const audioRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  const peerConnection = useRef(null);
-  const localStream = useRef(null);
+  const peerRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const currentCallRef = useRef(null);
 
   useEffect(() => {
     // Request notification permission
@@ -55,7 +57,6 @@ export default function ResidentDashboard() {
               });
             });
           } else {
-            // Fallback for non-service worker contexts
             const notif = new Notification('CHAMADA RECEBIDA 🔔', {
               body: `${unitName} - Alguém está tocando sua campainha!`,
               icon: '/logo.png'
@@ -68,14 +69,29 @@ export default function ResidentDashboard() {
       }
     });
 
-    socket.on('webrtc_offer', async ({ sender, offer }) => {
-      await handleWebRTCOffer(sender, offer);
+    // Initialize PeerJS
+    const peer = new Peer(`campainha_resident_${id}`, {
+      debug: 2
+    });
+    peerRef.current = peer;
+
+    peer.on('open', (id) => {
+      console.log('Resident PeerJS ID:', id);
     });
 
-    socket.on('webrtc_ice_candidate', async ({ candidate }) => {
-      if (peerConnection.current && candidate) {
-        await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-      }
+    peer.on('call', (incomingCall) => {
+      console.log('Incoming PeerJS call!');
+      currentCallRef.current = incomingCall;
+
+      // The resident decides to answer with or without stream depending on their localStreamRef
+      incomingCall.answer(localStreamRef.current);
+
+      incomingCall.on('stream', (remoteStream) => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+          remoteVideoRef.current.play().catch(e => console.error('Video play error:', e));
+        }
+      });
     });
 
     // PWA Install Logic
@@ -87,21 +103,19 @@ export default function ResidentDashboard() {
 
     return () => {
       socket.off('incoming_call');
-      socket.off('webrtc_offer');
-      socket.off('webrtc_ice_candidate');
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       stopMedia();
     };
   }, [id]);
 
   const stopMedia = () => {
-    if (localStream.current) {
-      localStream.current.getTracks().forEach(t => t.stop());
-      localStream.current = null;
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(t => t.stop());
+      localStreamRef.current = null;
     }
-    if (peerConnection.current) {
-      peerConnection.current.close();
-      peerConnection.current = null;
+    if (currentCallRef.current) {
+      currentCallRef.current.close();
+      currentCallRef.current = null;
     }
   };
 
@@ -123,8 +137,9 @@ export default function ResidentDashboard() {
   const handleMonitor = () => {
     stopRingtone();
     setStatus('monitoring');
-    socket.emit('answer_call', { visitorSocketId: call.visitorSocketId, mode: 'monitor' });
-    // WebRTC offer will come from visitor
+    // Monitor mode: we don't send any stream (furtive)
+    localStreamRef.current = null;
+    socket.emit('answer_call', { visitorSocketId: call.visitorSocketId, mode: 'monitor', unitId: id });
   };
 
   const handleAnswer = async () => {
@@ -134,47 +149,12 @@ export default function ResidentDashboard() {
     // Request audio from resident to talk back
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      localStream.current = stream;
+      localStreamRef.current = stream;
     } catch (err) {
       console.error("Microphone access denied", err);
     }
 
-    socket.emit('answer_call', { visitorSocketId: call.visitorSocketId, mode: 'active' });
-  };
-
-  const handleWebRTCOffer = async (visitorSocketId, offer) => {
-    peerConnection.current = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    });
-
-    // If active (talking), add our audio track
-    if (status === 'active' && localStream.current) {
-      localStream.current.getTracks().forEach(track => {
-        peerConnection.current.addTrack(track, localStream.current);
-      });
-    }
-
-    // When visitor's video arrives
-    peerConnection.current.ontrack = (event) => {
-      if (remoteVideoRef.current && event.streams && event.streams[0]) {
-        if (remoteVideoRef.current.srcObject !== event.streams[0]) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-          remoteVideoRef.current.play().catch(e => console.error("Video play error", e));
-        }
-      }
-    };
-
-    peerConnection.current.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit('webrtc_ice_candidate', { target: visitorSocketId, candidate: event.candidate });
-      }
-    };
-
-    await peerConnection.current.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await peerConnection.current.createAnswer();
-    await peerConnection.current.setLocalDescription(answer);
-
-    socket.emit('webrtc_answer', { target: visitorSocketId, answer });
+    socket.emit('answer_call', { visitorSocketId: call.visitorSocketId, mode: 'active', unitId: id });
   };
 
   const handleEndCall = () => {
@@ -337,8 +317,8 @@ export default function ResidentDashboard() {
                 </button>
              ) : (
                 <button className="btn-secondary" style={{ width: '64px', height: '64px', borderRadius: '50%', padding: 0 }} onClick={() => {
-                  if (localStream.current) {
-                    const audioTrack = localStream.current.getAudioTracks()[0];
+                  if (localStreamRef.current) {
+                    const audioTrack = localStreamRef.current.getAudioTracks()[0];
                     if (audioTrack) audioTrack.enabled = !audioTrack.enabled;
                   }
                 }}>

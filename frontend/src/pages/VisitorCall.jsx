@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { Bell, CheckCircle, ShieldCheck, MapPin, User, ChevronRight, Mic, Video } from 'lucide-react';
+import Peer from 'peerjs';
 
 const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3001');
 
@@ -15,36 +16,45 @@ export default function VisitorCall() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const remoteAudioRef = useRef(null);
-  const peerConnection = useRef(null);
-  const localStream = useRef(null);
+  const peerRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const currentCallRef = useRef(null);
 
   useEffect(() => {
     fetchProperty();
     
-    socket.on('call_answered', ({ mode, residentSocketId }) => {
+    // Initialize PeerJS for visitor
+    const peer = new Peer({ debug: 2 });
+    peerRef.current = peer;
+
+    peer.on('open', (id) => {
+      console.log('Visitor PeerJS ID:', id);
+    });
+
+    socket.on('call_answered', ({ mode, residentSocketId, unitId }) => {
       setStatus(mode === 'monitor' ? 'monitored' : 'answered');
       setCountdown(0);
-      initiateWebRTC(residentSocketId);
-    });
+      
+      // Resident is ready. Visitor initiates the P2P connection to resident's known Peer ID.
+      const residentPeerId = `campainha_resident_${unitId}`;
+      console.log('Calling resident peer:', residentPeerId);
+      
+      if (localStreamRef.current) {
+        const call = peerRef.current.call(residentPeerId, localStreamRef.current);
+        currentCallRef.current = call;
 
-    socket.on('webrtc_answer', async ({ answer }) => {
-      if (peerConnection.current) {
-        await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
-      }
-    });
-
-    socket.on('webrtc_ice_candidate', async ({ candidate }) => {
-      if (peerConnection.current && candidate) {
-        await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+        call.on('stream', (remoteStream) => {
+          if (remoteAudioRef.current) {
+            remoteAudioRef.current.srcObject = remoteStream;
+            remoteAudioRef.current.play().catch(e => console.log('Audio autoplay blocked', e));
+          }
+        });
       }
     });
 
     return () => {
       socket.off('call_answered');
-      socket.off('webrtc_answer');
-      socket.off('webrtc_ice_candidate');
-      if (localStream.current) localStream.current.getTracks().forEach(t => t.stop());
-      if (peerConnection.current) peerConnection.current.close();
+      stopMedia();
     };
   }, [id]);
 
@@ -55,13 +65,24 @@ export default function VisitorCall() {
     } else if (countdown === 0 && status === 'calling') {
       setStatus('idle');
       setCallingUnit(null);
-      if (localStream.current) {
-        localStream.current.getTracks().forEach(t => t.stop());
-        localStream.current = null;
-      }
+      stopMedia();
     }
     return () => clearTimeout(timer);
   }, [countdown, status]);
+
+  const stopMedia = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(t => t.stop());
+      localStreamRef.current = null;
+    }
+    if (currentCallRef.current) {
+      currentCallRef.current.close();
+      currentCallRef.current = null;
+    }
+    if (peerRef.current) {
+      peerRef.current.destroy();
+    }
+  };
 
   const fetchProperty = async () => {
     try {
@@ -77,7 +98,7 @@ export default function VisitorCall() {
     return new Promise(async (resolve) => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
-        localStream.current = stream;
+        localStreamRef.current = stream;
         
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -89,7 +110,6 @@ export default function VisitorCall() {
               canvas.height = videoRef.current.videoHeight;
               canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
               const photoData = canvas.toDataURL('image/jpeg', 0.6);
-              // Do not stop tracks here, we keep them for WebRTC
               resolve(photoData);
             }, 500);
           };
@@ -101,36 +121,6 @@ export default function VisitorCall() {
         resolve(null);
       }
     });
-  };
-
-  const initiateWebRTC = async (residentSocketId) => {
-    peerConnection.current = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    });
-
-    if (localStream.current) {
-      localStream.current.getTracks().forEach(track => {
-        peerConnection.current.addTrack(track, localStream.current);
-      });
-    }
-
-    peerConnection.current.ontrack = (event) => {
-      if (remoteAudioRef.current) {
-        remoteAudioRef.current.srcObject = event.streams[0];
-        remoteAudioRef.current.play().catch(e => console.log('Audio autoplay blocked', e));
-      }
-    };
-
-    peerConnection.current.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit('webrtc_ice_candidate', { target: residentSocketId, candidate: event.candidate });
-      }
-    };
-
-    const offer = await peerConnection.current.createOffer();
-    await peerConnection.current.setLocalDescription(offer);
-    
-    socket.emit('webrtc_offer', { target: residentSocketId, offer });
   };
 
   const handleCall = async (unit) => {
@@ -157,10 +147,8 @@ export default function VisitorCall() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-      {/* Hidden local video (to capture photo and stream) */}
       <video ref={videoRef} style={{ display: 'none' }} playsInline muted />
       <canvas ref={canvasRef} style={{ display: 'none' }} />
-      {/* Remote audio from resident */}
       <audio ref={remoteAudioRef} autoPlay />
 
       <header style={{ textAlign: 'center', marginBottom: '40px' }}>
