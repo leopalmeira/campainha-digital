@@ -242,11 +242,33 @@ export default function AdminPanel() {
                   <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Códigos de Acesso dos Moradores:</span>
                   {p.units.map(u => (
                     <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: 'var(--bg-surface-elevated)', borderRadius: '8px', marginBottom: '6px' }}>
-                      <div>
-                        <span style={{ fontSize: '14px', fontWeight: 600 }}>{u.name}</span>
-                        <span style={{ fontSize: '12px', color: 'var(--primary)', fontFamily: 'monospace', fontWeight: 800, marginLeft: '8px', background: 'rgba(0,229,255,0.08)', padding: '2px 8px', borderRadius: '4px' }}>{u.accessCode || '---'}</span>
+                      <div style={{ flex: 1, paddingRight: '12px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{u.name}</span>
+                        <input 
+                          type="text" 
+                          readOnly 
+                          value={u.accessCode || '---'} 
+                          style={{ width: '100px', fontSize: '12px', color: 'var(--primary)', fontFamily: 'monospace', fontWeight: 800, background: 'rgba(0,229,255,0.08)', padding: '4px 8px', borderRadius: '4px', border: '1px solid rgba(0,229,255,0.2)', cursor: 'text' }}
+                          onClick={(e) => e.target.select()}
+                        />
                       </div>
-                      <button onClick={() => { navigator.clipboard.writeText(u.accessCode || ''); }} style={{ fontSize: '11px', color: 'var(--primary)', background: 'rgba(0,229,255,0.1)', border: 'none', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}>COPIAR</button>
+                      <button 
+                        onClick={(e) => { 
+                          navigator.clipboard.writeText(u.accessCode || '');
+                          const btn = e.target;
+                          btn.innerText = 'COPIADO!';
+                          btn.style.background = '#10B981';
+                          btn.style.color = '#fff';
+                          setTimeout(() => {
+                            btn.innerText = 'COPIAR';
+                            btn.style.background = 'rgba(0,229,255,0.1)';
+                            btn.style.color = 'var(--primary)';
+                          }, 2000);
+                        }} 
+                        style={{ fontSize: '11px', color: 'var(--primary)', background: 'rgba(0,229,255,0.1)', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s' }}
+                      >
+                        COPIAR
+                      </button>
                     </div>
                   ))}
                 </div>

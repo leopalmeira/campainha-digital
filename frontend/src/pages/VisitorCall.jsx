@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { Bell, CheckCircle, ShieldCheck, MapPin, User, ChevronRight } from 'lucide-react';
+import { Bell, CheckCircle, ShieldCheck, MapPin, User, ChevronRight, Mic, Video } from 'lucide-react';
 
 const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3001');
 
@@ -10,20 +10,41 @@ export default function VisitorCall() {
   const [property, setProperty] = useState(null);
   const [callingUnit, setCallingUnit] = useState(null);
   const [countdown, setCountdown] = useState(0);
-  const [status, setStatus] = useState('idle'); // idle, calling, answered
+  const [status, setStatus] = useState('idle'); // idle, calling, answered, monitored
+  
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const remoteAudioRef = useRef(null);
+  const peerConnection = useRef(null);
+  const localStream = useRef(null);
 
   useEffect(() => {
     fetchProperty();
     
-    socket.on('call_answered', () => {
-      setStatus('answered');
+    socket.on('call_answered', ({ mode, residentSocketId }) => {
+      setStatus(mode === 'monitor' ? 'monitored' : 'answered');
       setCountdown(0);
+      initiateWebRTC(residentSocketId);
+    });
+
+    socket.on('webrtc_answer', async ({ answer }) => {
+      if (peerConnection.current) {
+        await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
+      }
+    });
+
+    socket.on('webrtc_ice_candidate', async ({ candidate }) => {
+      if (peerConnection.current && candidate) {
+        await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+      }
     });
 
     return () => {
       socket.off('call_answered');
+      socket.off('webrtc_answer');
+      socket.off('webrtc_ice_candidate');
+      if (localStream.current) localStream.current.getTracks().forEach(t => t.stop());
+      if (peerConnection.current) peerConnection.current.close();
     };
   }, [id]);
 
@@ -34,6 +55,10 @@ export default function VisitorCall() {
     } else if (countdown === 0 && status === 'calling') {
       setStatus('idle');
       setCallingUnit(null);
+      if (localStream.current) {
+        localStream.current.getTracks().forEach(t => t.stop());
+        localStream.current = null;
+      }
     }
     return () => clearTimeout(timer);
   }, [countdown, status]);
@@ -48,10 +73,12 @@ export default function VisitorCall() {
     }
   };
 
-  const capturePhoto = async () => {
+  const getMediaAndPhoto = async () => {
     return new Promise(async (resolve) => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+        localStream.current = stream;
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
@@ -61,8 +88,8 @@ export default function VisitorCall() {
               canvas.width = videoRef.current.videoWidth;
               canvas.height = videoRef.current.videoHeight;
               canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-              const photoData = canvas.toDataURL('image/jpeg', 0.8);
-              stream.getTracks().forEach(t => t.stop());
+              const photoData = canvas.toDataURL('image/jpeg', 0.6);
+              // Do not stop tracks here, we keep them for WebRTC
               resolve(photoData);
             }, 500);
           };
@@ -76,12 +103,42 @@ export default function VisitorCall() {
     });
   };
 
+  const initiateWebRTC = async (residentSocketId) => {
+    peerConnection.current = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
+    if (localStream.current) {
+      localStream.current.getTracks().forEach(track => {
+        peerConnection.current.addTrack(track, localStream.current);
+      });
+    }
+
+    peerConnection.current.ontrack = (event) => {
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = event.streams[0];
+        remoteAudioRef.current.play().catch(e => console.log('Audio autoplay blocked', e));
+      }
+    };
+
+    peerConnection.current.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit('webrtc_ice_candidate', { target: residentSocketId, candidate: event.candidate });
+      }
+    };
+
+    const offer = await peerConnection.current.createOffer();
+    await peerConnection.current.setLocalDescription(offer);
+    
+    socket.emit('webrtc_offer', { target: residentSocketId, offer });
+  };
+
   const handleCall = async (unit) => {
     setStatus('calling');
     setCallingUnit(unit);
     setCountdown(30);
 
-    const photoBase64 = await capturePhoto();
+    const photoBase64 = await getMediaAndPhoto();
 
     socket.emit('initiate_call', {
       unitId: unit.id,
@@ -100,12 +157,14 @@ export default function VisitorCall() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-      {/* Hidden elements for silent capture */}
+      {/* Hidden local video (to capture photo and stream) */}
       <video ref={videoRef} style={{ display: 'none' }} playsInline muted />
       <canvas ref={canvasRef} style={{ display: 'none' }} />
+      {/* Remote audio from resident */}
+      <audio ref={remoteAudioRef} autoPlay />
 
-      <header style={{ textAlign: 'center', marginBottom: '60px' }}>
-         <div style={{ display: 'inline-flex', padding: '12px', background: 'rgba(0, 229, 255, 0.05)', borderRadius: '16px', border: '1px solid var(--border-subtle)', marginBottom: '20px' }}>
+      <header style={{ textAlign: 'center', marginBottom: '40px' }}>
+         <div style={{ display: 'inline-flex', padding: '12px', background: 'rgba(0, 229, 255, 0.05)', borderRadius: '16px', border: '1px solid var(--border-subtle)', marginBottom: '16px' }}>
             <ShieldCheck size={32} color="var(--primary)" />
          </div>
          <h1 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '8px' }}>Campainha Digital</h1>
@@ -128,7 +187,7 @@ export default function VisitorCall() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <p style={{ fontWeight: 700, fontSize: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>Para quem é a visita?</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', maxHeight: '50vh', overflowY: 'auto' }}>
                 {property.units.map(unit => (
                   <button 
                     key={unit.id} 
@@ -143,9 +202,6 @@ export default function VisitorCall() {
               </div>
             </div>
           )}
-          <div style={{ marginTop: '60px', textAlign: 'center' }}>
-             <p style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700 }}>Segurança Monitorada Ativa</p>
-          </div>
         </div>
       )}
 
@@ -158,7 +214,7 @@ export default function VisitorCall() {
              </div>
           </div>
           
-          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>Notificando Morador...</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>Chamando...</h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>Unidade: <span style={{ color: 'var(--text-main)', fontWeight: 700 }}>{callingUnit?.name}</span></p>
           
           <div style={{ display: 'inline-block', padding: '12px 24px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
@@ -166,18 +222,34 @@ export default function VisitorCall() {
                00:{countdown.toString().padStart(2, '0')}
              </span>
           </div>
-          
-          <p style={{ marginTop: '32px', fontSize: '13px', color: 'var(--text-muted)' }}>Aguarde alguns segundos enquanto a conexão é estabelecida.</p>
+          <p style={{ marginTop: '24px', fontSize: '13px', color: 'var(--text-muted)' }}>Sua câmera e microfone estão ativos.</p>
         </div>
       )}
 
-      {status === 'answered' && (
+      {(status === 'answered' || status === 'monitored') && (
         <div className="glass-panel fade-in" style={{ padding: '48px 24px', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-          <div style={{ width: '100px', height: '100px', background: '#10B981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px', boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)' }}>
-             <CheckCircle size={48} color="#000" />
+          <div style={{ width: '100px', height: '100px', background: status === 'answered' ? '#10B981' : 'rgba(245, 158, 11, 0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px', boxShadow: status === 'answered' ? '0 8px 32px rgba(16, 185, 129, 0.4)' : 'none' }}>
+             {status === 'answered' ? <CheckCircle size={48} color="#000" /> : <Video size={48} color="#F59E0B" />}
           </div>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px', color: '#10B981' }}>Chamada Atendida</h2>
-          <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>O morador visualizou sua chamada. Aguarde a comunicação via áudio/vídeo.</p>
+          
+          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px', color: status === 'answered' ? '#10B981' : '#F59E0B' }}>
+             {status === 'answered' ? 'Comunicação Ativa' : 'Morador Monitorando'}
+          </h2>
+          
+          <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '24px' }}>
+            {status === 'answered' 
+              ? 'O morador está na linha. Vocês já podem conversar!' 
+              : 'Sua câmera e áudio estão sendo transmitidos para o morador.'}
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}>
+              <Video size={24} color="var(--primary)" />
+            </div>
+            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}>
+              <Mic size={24} color="var(--primary)" />
+            </div>
+          </div>
         </div>
       )}
 
