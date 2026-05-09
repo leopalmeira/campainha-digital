@@ -81,11 +81,13 @@ export default function AdminPanel() {
   const selectType = (type) => {
     setPropertyType(type);
     setPropertyName(type === 'individual' ? 'Minha Casa' : '');
+    // Reseta as unidades ao trocar de tipo
+    setUnitsList([{ name: '' }]);
     setOnboardingStep('config');
   };
 
   const handleUnitChange = (i, v) => { const u = [...unitsList]; u[i].name = v; setUnitsList(u); };
-  const addUnit    = () => setUnitsList([...unitsList, { name: '' }]);
+  const addUnit    = () => setUnitsList(prev => [...prev, { name: '' }]);
   const removeUnit = (i) => { if (unitsList.length > 1) setUnitsList(unitsList.filter((_, idx) => idx !== i)); };
 
   const handleSubmit = async () => {
@@ -197,8 +199,8 @@ export default function AdminPanel() {
                   </div>
                 ))}
               </div>
-              <button onClick={addUnit} style={{ marginTop: '12px', width: '100%', background: 'transparent', border: '1px dashed var(--primary)', color: 'var(--primary)', padding: '10px', borderRadius: '10px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
-                <Plus size={14} /> Adicionar {propertyType === 'village' ? 'Casa' : 'Apartamento'}
+              <button onClick={addUnit} style={{ marginTop: '12px', width: '100%', background: 'transparent', border: '1px dashed var(--primary)', color: 'var(--primary)', padding: '12px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <Plus size={16} /> Adicionar {propertyType === 'village' ? 'Casa' : 'Apartamento'} ({unitsList.length} adicionado{unitsList.length !== 1 ? 's' : ''})
               </button>
             </div>
           )}

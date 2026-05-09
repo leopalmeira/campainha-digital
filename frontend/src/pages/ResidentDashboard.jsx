@@ -375,7 +375,7 @@ export default function ResidentDashboard() {
       )}
 
       {tab === 'history' && <HistoryPanel unitId={id} />}
-      {tab === 'settings' && <SettingsPanel unitName={unitName} setUnitName={setUnitName} onSave={saveSettings} />}
+      {tab === 'settings' && <SettingsPanel unitName={unitName} setUnitName={setUnitName} onSave={saveSettings} unitId={id} />}
 
       <NavBar />
     </div>

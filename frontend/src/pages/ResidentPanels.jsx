@@ -197,13 +197,37 @@ export const DEFAULT_CATEGORIES = [
   { id: 'general',  label: '💬 Geral',             messages: ['Volto já!', 'Não estou em casa', 'Um momento, por favor', 'Pode deixar recado'] },
 ];
 
-export function SettingsPanel({ unitName, setUnitName, onSave }) {
+export function SettingsPanel({ unitName, setUnitName, onSave, unitId }) {
   const [activeCategory, setActiveCategory] = useState('general');
   const [savedMessages, setSavedMessages] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cd_quick_msgs') || 'null') || DEFAULT_CATEGORIES; } catch { return DEFAULT_CATEGORIES; }
   });
   const [customMsg, setCustomMsg] = useState('');
   const [saved, setSaved] = useState(false);
+  const [accessCode, setAccessCode] = useState('');
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  // Busca o código de acesso desta unidade
+  useEffect(() => {
+    const fetchCode = async () => {
+      try {
+        const res = await fetch(`${API}/api/properties`);
+        const props = await res.json();
+        for (const p of props) {
+          const unit = p.units?.find(u => u.id === unitId);
+          if (unit) { setAccessCode(unit.accessCode); break; }
+        }
+      } catch {}
+    };
+    if (unitId) fetchCode();
+  }, [unitId]);
+
+  const copyCode = () => {
+    if (!accessCode) return;
+    navigator.clipboard.writeText(accessCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
 
   const saveAll = () => {
     localStorage.setItem('cd_quick_msgs', JSON.stringify(savedMessages));
@@ -229,6 +253,26 @@ export function SettingsPanel({ unitName, setUnitName, onSave }) {
       <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '4px' }}>Configurações</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px' }}>Personalize sua campainha</p>
 
+      {/* ── Código de Acesso ── */}
+      {accessCode && (
+        <div style={{ background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.2)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '1px', marginBottom: '12px' }}>🔑 SEU CÓDIGO DE ACESSO</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ flex: 1, background: 'var(--bg-deep)', borderRadius: '12px', padding: '14px 20px', textAlign: 'center' }}>
+              <span style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)', letterSpacing: '8px', fontFamily: 'monospace' }}>{accessCode}</span>
+            </div>
+            <button onClick={copyCode} style={{ padding: '14px 18px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: codeCopied ? 'rgba(16,185,129,0.2)' : 'rgba(0,229,255,0.1)', color: codeCopied ? '#10B981' : 'var(--primary)', transition: 'all 0.2s', minWidth: '64px' }}>
+              {codeCopied ? '✓' : '📋'}
+              <span style={{ fontSize: '10px' }}>{codeCopied ? 'Copiado!' : 'Copiar'}</span>
+            </button>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '10px', lineHeight: 1.5 }}>
+            Use este código para fazer login em outros dispositivos ou compartilhar com membros da família.
+          </p>
+        </div>
+      )}
+
+      {/* ── Nome ── */}
       <div className="glass-panel" style={{ padding: '20px', marginBottom: '16px' }}>
         <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '8px', letterSpacing: '1px' }}>NOME DE EXIBIÇÃO</label>
         <input type="text" className="input-glass" value={unitName} onChange={e => setUnitName(e.target.value)} style={{ width: '100%', marginBottom: '12px' }} />
@@ -237,6 +281,7 @@ export function SettingsPanel({ unitName, setUnitName, onSave }) {
         </button>
       </div>
 
+      {/* ── Mensagens Rápidas ── */}
       <div className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>📨 Mensagens Rápidas</h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '16px' }}>Respostas prontas que aparecem na campainha quando alguém tocar</p>
