@@ -20,8 +20,11 @@ export default function LandingPage() {
       <nav style={{ position: 'fixed', top: 0, width: '100%', padding: '16px 0', zIndex: 100, background: 'rgba(5, 11, 20, 0.9)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--border-subtle)' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/logo.png" alt="Campainha Digital" style={{ width: '32px', height: '32px', borderRadius: '6px' }} onError={(e) => { e.target.onerror = null; e.target.src = 'https://i.imgur.com/your-logo.png'; }} />
-            <span style={{ fontWeight: 700, fontSize: '18px', letterSpacing: '-0.5px' }}>Campainha Digital</span>
+            {/* Logo inline SVG — sem dependência de arquivo */}
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #00E5FF, #10B981)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,229,255,0.3)' }}>
+              <BellRing size={20} color="#000" strokeWidth={2.5} />
+            </div>
+            <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.5px', background: 'linear-gradient(90deg, #fff 60%, var(--primary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Campainha Digital</span>
           </div>
           <div className="desktop-nav-links" style={{ gap: '24px', alignItems: 'center' }}>
             <a href="#features" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color='#fff'} onMouseOut={e => e.target.style.color='var(--text-muted)'}>Recursos</a>
