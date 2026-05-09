@@ -57,6 +57,26 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
+## 🔒 v2.4.0 e v2.5.0 — Privacidade, Código no Painel e UI Premium (09/05/2026)
+
+### Correções de Cadastro
+- Reset da lista de unidades (`unitsList`) no `AdminPanel` ao trocar entre Individual / Condomínio (Bug Corrigido).
+- Exibição de contador de unidades no botão "Adicionar".
+
+### Privacidade no Histórico do Admin
+- Adicionado um filtro de segurança baseado no dispositivo (`localStorage: cd_admin_props`).
+- Administradores visualizam **apenas o histórico das propriedades que eles mesmos criaram**, impedindo vazamento de dados de outras contas e condomínios no banco compartilhado.
+
+### Nova Interface de Autenticação (ResidentLogin)
+- **Redesign Absoluto:** Substituição da interface antiga por um design de alto padrão (Glassmorphism, Dark Mode Profundo, Gradientes Aurora).
+- Tipografia em alto contraste com feedback tátil de foco para a digitação dos códigos.
+
+### Experiência do Morador
+- **Código no Painel de Espera:** Enquanto aguarda chamadas (`idle` state), o painel agora exibe em grande destaque o `Código de Acesso` da unidade, facilitando o compartilhamento e memorização.
+- **Botão Sair Imediato:** Botão "Sair do App" posicionado de forma ergonômica, que desloga o usuário e o envia diretamente para o `/morador-login` (novo PWA) limpando as credenciais seguras do navegador.
+
+---
+
 ## 🛠️ Próximos Passos
 - [ ] Integração Pix (R$15 por novo endereço).
 - [ ] Síndico Admin: reconfigurar códigos dos moradores.
