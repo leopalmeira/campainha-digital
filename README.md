@@ -2,140 +2,152 @@
 
 > **SaaS de Campainha Inteligente via QR Code com Videochamada P2P Real**
 
+[![GitHub](https://img.shields.io/badge/GitHub-leopalmeira%2Fcampainha--digital-black?logo=github)](https://github.com/leopalmeira/campainha-digital)
 [![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render)](https://render.com)
-[![Stack](https://img.shields.io/badge/Stack-React%20%2B%20Node.js%20%2B%20WebRTC-blue)](#)
-[![Version](https://img.shields.io/badge/Versão-2.0.0-green)](#)
+[![Version](https://img.shields.io/badge/Versão-2.2.0-green)](#)
 [![License](https://img.shields.io/badge/Licença-MIT-gray)](#)
 
 ---
 
 ## 🚀 O que é
 
-Campainha Digital é uma plataforma SaaS que transforma um simples QR Code em uma campainha inteligente com **videochamada P2P em tempo real** entre visitante e morador — sem aplicativo, sem hardware adicional.
+Campainha Digital transforma um QR Code em uma campainha inteligente com **videochamada P2P** entre visitante e morador — sem app, sem hardware.
 
-**Fluxo básico:**
-1. Visitante escaneia o QR Code na porta do imóvel
-2. Câmera captura foto automática para identificação
-3. Morador recebe alerta instantâneo com a foto do visitante
-4. Morador escolhe **Atender** (áudio bidirecional) ou **Monitorar** (furtivo)
-5. Videochamada P2P é estabelecida diretamente entre os dispositivos
+**Fluxo:**
+1. Visitante escaneia o QR Code na porta
+2. Câmera captura foto para identificação
+3. Morador recebe **DING-DONG real** + vibração no celular
+4. Morador escolhe: **Modo Oculto** / **Só Áudio** / **Câmera + Áudio**
+5. Conexão P2P direta estabelecida via WebRTC
 
 ---
 
-## 🛠️ Stack Técnica
+## 🛠️ Stack
 
 | Camada | Tecnologia |
 |--------|-----------|
 | Frontend | React 19 + Vite + Socket.io-client |
 | Backend | Node.js + Express + Socket.io |
-| Realtime | **WebRTC Nativo** (sem bibliotecas externas) |
+| Realtime | **WebRTC Nativo** (sem PeerJS) |
 | Signaling | Socket.io no próprio servidor |
 | ICE/STUN | Google STUN servers |
-| TURN (fallback) | OpenRelay (redes NAT restritivas) |
+| TURN | OpenRelay (fallback NAT) |
+| Som | **Web Audio API** (DING-DONG sintético) |
+| Vibração | `navigator.vibrate()` |
 | Deploy | Render.com |
-| Persistência | JSON files (roadmap: PostgreSQL/Neon) |
+| DB | JSON files (roadmap: PostgreSQL/Neon) |
 
 ---
 
-## ⚡ Como a Videochamada P2P Funciona
-
-O servidor atua **apenas como mensageiro de sinalização** — a mídia (áudio/vídeo) flui diretamente entre os dispositivos sem passar pelo servidor.
+## ⚡ Arquitetura WebRTC
 
 ```
 [Visitante]            [Servidor Render]          [Morador]
-     │                        │                       │
-     │── initiate_call ───────►│                       │
-     │   (foto do visitante)   │── incoming_call ─────►│
-     │                         │        (alerta toca)  │
-     │                         │◄── answer_call ───────│
-     │◄── call_answered ───────│  (morador clicou)     │
-     │                         │                       │
-     │── webrtc_offer ─────────►────────────────────── ►│
-     │◄── webrtc_answer ────── ◄──────────────────────  │
+     │── initiate_call ────────►│                      │
+     │                          │── incoming_call ─────►│  🔔 DING-DONG + Vibração
+     │                          │◄── answer_call ───────│
+     │◄── call_answered ────────│                       │
+     │── webrtc_offer ──────────►────────────────────── ►│
+     │◄── webrtc_answer ────────◄──────────────────────  │
      │◄══ ICE candidates ══════════════════════════════►│
-     │                                                   │
-     │◄═══════ CONEXÃO P2P DIRETA (áudio/vídeo) ════════►│
+     │◄═══════════ CONEXÃO P2P DIRETA ════════════════►│
 ```
-
-**Por que funciona em qualquer rede:**
-- **STUN servers do Google** — descobre o IP público do dispositivo
-- **TURN server OpenRelay** — relay de fallback para redes corporativas/móveis com NAT restritivo
-- **Sem servidor externo** — toda sinalização passa pelo seu próprio backend no Render
 
 ---
 
-## 🌐 Deploy no Render (Conta Free)
+## 📱 Funcionalidades
+
+### Para o Morador (ResidentDashboard)
+- ✅ **Som real DING-DONG** via Web Audio API (osciladores sine)
+- ✅ **Volume máximo forçado** via GainNode (1.5x)
+- ✅ **Vibração** com padrão de campainha
+- ✅ **3 modos de atender:** Oculto / Só Áudio / Câmera + Áudio
+- ✅ **Modo Oculto:** visitante não sabe que está sendo monitorado
+- ✅ **Toggle câmera e mute** durante a chamada
+- ✅ **Mensagens rápidas** por categoria (Água, Light, Entregador, Geral)
+- ✅ **Histórico profissional** com grupos por data, filtros e foto expandível
+- ✅ **Tempo relativo** (Agora, 5min atrás, Ontem...)
+- ✅ **Navegação inferior** com Campainha / Histórico / Configurações / Sair
+- ✅ PWA instalável
+
+### Para o Visitante (VisitorCall)
+- ✅ QR Code único por propriedade
+- ✅ Foto automática para identificação
+- ✅ Lista de unidades para condomínio/vila
+- ✅ Banner de mensagem rápida enviada pelo morador (5s)
+- ✅ Modo monitor invisível (não revela que está sendo observado)
+
+### Para o Proprietário (AdminPanel)
+- ✅ Geração automática de QR Code único (UUID v4)
+- ✅ Aba "Histórico de Visitantes"
+- ✅ Códigos de acesso copiáveis por unidade
+- ✅ Paywall R$15/mês para endereços adicionais
+- ✅ Suporte a Casa / Vila / Condomínio
+
+---
+
+## 🌐 Deploy no Render
 
 ### Backend — Web Service
 | Campo | Valor |
 |-------|-------|
-| Diretório | `backend/` |
+| Root Directory | `backend/` |
 | Build Command | `npm install` |
 | Start Command | `node server.js` |
-| Variável de ambiente | `FRONTEND_URL=https://seu-frontend.onrender.com` |
+| Env: `FRONTEND_URL` | `https://SEU-FRONTEND.onrender.com` |
 
 ### Frontend — Static Site
 | Campo | Valor |
 |-------|-------|
-| Diretório | `frontend/` |
+| Root Directory | `frontend/` |
 | Build Command | `npm install --legacy-peer-deps && npm run build` |
-| Publish Directory | `frontend/dist` |
-| Variável de ambiente | `VITE_API_URL=https://seu-backend.onrender.com` |
+| Publish Directory | `dist` |
+| Env: `VITE_API_URL` | `https://SEU-BACKEND.onrender.com` |
 
-### ⚠️ Keep-Alive (Render Free Tier)
-O Render gratuito suspende o servidor após 15min sem requisições. Para manter online:
-
-1. Crie conta gratuita em [uptimerobot.com](https://uptimerobot.com)
-2. Adicione monitor HTTP apontando para: `https://seu-backend.onrender.com/api/ping`
-3. Intervalo: **10 minutos**
-
-O endpoint `/api/ping` responde `{ok: true}` instantaneamente, mantendo o servidor vivo.
+### ⚠️ Keep-Alive (Render Free)
+Configure o [UptimeRobot](https://uptimerobot.com) (gratuito) para chamar:
+```
+https://SEU-BACKEND.onrender.com/api/ping
+```
+a cada **10 minutos** — evita o spin-down de 15min.
 
 ---
 
-## 📱 Tipos de Imóvel
+## 💰 Modelo de Negócio
 
-| Tipo | Descrição | Acesso do Morador |
-|------|-----------|-------------------|
-| Casa Simples | 1 unidade | Código de acesso |
-| Vila de Casas | N casas, 1 QR Code | Código por casa |
-| Condomínio | N apartamentos, 1 QR Code | Código por apartamento |
-
----
-
-## 📋 Funcionalidades
-
-- ✅ QR Code único por propriedade (gerado automaticamente)
-- ✅ Foto automática do visitante no momento da chamada
-- ✅ Videochamada P2P via WebRTC (sem PeerJS, sem servidor de mídia)
-- ✅ Modo Furtivo — morador monitora sem o visitante saber
-- ✅ Histórico de visitantes com foto, data e hora
-- ✅ Notificação push via Service Worker (mesmo com app minimizado)
-- ✅ PWA instalável (Android e iOS)
-- ✅ Códigos de acesso copiáveis com feedback visual
-- ✅ Suporte a múltiplas unidades (condomínio/vila)
-- ✅ Encerramento de chamada sinalizado para ambos os lados
+| Plano | Preço | O que inclui |
+|-------|-------|-------------|
+| **Básico** | Grátis | 1 endereço, QR Code único, videochamada |
+| **Adicional** | R$15/mês | Cada novo endereço extra |
 
 ---
 
-## 🏗️ Estrutura do Projeto
+## 🔑 QR Code — Garantia de Unicidade
+
+- Cada cadastro gera **1 QR Code único** via UUID v4 (`crypto.randomUUID`).
+- O link aponta para `/chamada/:propertyId` — nunca se repete.
+- **Casa simples:** QR leva direto para tocar a campainha.
+- **Condomínio / Vila:** QR mostra lista de unidades configuradas na plataforma.
+
+---
+
+## 🏗️ Estrutura
 
 ```
 campainha-digital/
 ├── backend/
 │   ├── server.js          # Express + Socket.io + WebRTC signaling
-│   ├── db.json            # Propriedades e QR Codes
-│   ├── residents.json     # Moradores registrados
-│   └── visitors.json      # Histórico de visitas (foto + timestamp)
-└── frontend/
-    └── src/
-        └── pages/
-            ├── LandingPage.jsx       # Página inicial (B2B)
-            ├── AdminPanel.jsx        # Painel do proprietário + histórico
-            ├── ResidentDashboard.jsx # App do morador (WebRTC answer)
-            ├── VisitorCall.jsx       # Interface do visitante (WebRTC offer)
-            ├── ResidentLogin.jsx     # Login do morador
-            └── AuthPage.jsx          # Cadastro/Login do proprietário
+│   ├── db.json            # Propriedades
+│   ├── residents.json     # Moradores
+│   └── visitors.json      # Histórico (foto + timestamp)
+└── frontend/src/pages/
+    ├── LandingPage.jsx
+    ├── AdminPanel.jsx         # Proprietário: QR, histórico, paywall
+    ├── ResidentDashboard.jsx  # Morador: WebRTC + som + vibração
+    ├── ResidentPanels.jsx     # Histórico pro + configurações
+    ├── VisitorCall.jsx        # Visitante: câmera + WebRTC offer
+    ├── ResidentLogin.jsx
+    └── AuthPage.jsx
 ```
 
 ---

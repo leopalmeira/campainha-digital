@@ -5,106 +5,90 @@ Este documento registra a evolução, decisões técnicas e marcos do projeto.
 ---
 
 ## 🚀 Fase 1: Fundação e Visão (Início - 04/05/2026)
-- **Objetivo:** Transformar o conceito de campainha via QR Code em um SaaS ultra-premium para casas e condomínios.
-- **Stack Definida:** React (Vite) + Node.js (Express) + Socket.io + WebRTC Nativo.
+- **Stack:** React (Vite) + Node.js (Express) + Socket.io + WebRTC Nativo.
 - **Design System:** Tema "Midnight Corporate" com Glassmorphism e Aurora Gradients.
 
-## 🎨 Fase 2: Redesign e Experiência do Usuário
-- **Landing Page:** Reconstruída do zero focando em B2B e segurança.
-- **Auth Page:** Login e Cadastro com visual imersivo, correções mobile.
-- **Painel do Cliente (Admin):** Refatoração completa, otimização mobile, gestão de placas.
-- **Resident Dashboard:** Interface estilo App Nativo com alertas sonoros e visuais.
-- **Visitor Experience:** Interface ultra-simplificada com suporte a múltiplos apartamentos.
+## 🎨 Fase 2: Redesign e UX
+- Landing Page, Auth, Painel Admin, Dashboard do Morador e tela do Visitante.
 
-## 📱 Fase 3: Mobilidade e PWA
-- **PWA:** Integração com `vite-plugin-pwa`. Prompt de instalação nativo.
-- **Single House Flow:** Fluxo específico para casas individuais.
+## 📱 Fase 3: PWA
+- `vite-plugin-pwa`, prompt de instalação nativo.
 
-## 📂 Fase 4: Sincronização e Git
-- **Repositório:** [leopalmeira/campainha-digital](https://github.com/leopalmeira/campainha-digital)
-- **Versionamento:** Commits estruturados por marco funcional.
+## 📂 Fase 4: Git
+- Repositório: [leopalmeira/campainha-digital](https://github.com/leopalmeira/campainha-digital)
 
 ---
 
-## 🔗 Fase 5: WebRTC P2P Real — Videochamada Funcional (09/05/2026) — v2.0.0
+## 🔗 Fase 5 — v2.0.0 (09/05/2026): WebRTC P2P Real
 
-### Por que a videochamada não funcionava antes
+### Problema (PeerJS)
+- ID fixo `campainha_resident_${id}` causava conflito ao reconectar.
+- Servidor PeerJS externo fora do nosso controle.
+- Race condition: visitante enviava call antes do morador estar registrado.
 
-O projeto usava **PeerJS**, uma biblioteca que depende de um servidor público externo para conectar os dois lados da chamada. Havia 3 falhas críticas:
-
-**1. ID fixo causava conflito**
-```js
-// CÓDIGO ANTIGO — problemático
-const peer = new Peer(`campainha_resident_${unitId}`)
+### Solução (WebRTC Nativo + Socket.io)
 ```
-Se o morador fechasse o app e reabrisse, o servidor PeerJS já tinha esse ID registrado e rejeitava o novo registro. Resultado: morador invisível, chamada nunca chegava.
-
-**2. Servidor externo fora do nosso controle**
-O servidor público do PeerJS pode estar lento, indisponível ou bloqueado pela operadora. Impossível diagnosticar ou corrigir.
-
-**3. Corrida de eventos (race condition)**
-O visitante tentava ligar ao morador **antes** do morador terminar de se registrar no PeerJS. A notificação pelo Socket.io era mais rápida que o registro no servidor externo.
+Visitante → offer → Servidor → offer → Morador
+Morador  → answer → Servidor → answer → Visitante
+↕ ICE candidates em tempo real ↕
+══ Conexão P2P Direta Estabelecida ══
+```
+- STUN Google + TURN OpenRelay (fallback NAT).
+- `/api/ping` keep-alive para Render Free.
+- Histórico de visitantes em `visitors.json`.
+- Aba "Histórico" no AdminPanel.
+- Códigos de acesso copiáveis com botão COPIAR.
 
 ---
 
-### Como funciona agora — WebRTC Nativo com Signaling próprio
+## 🎛️ Fase 6 — v2.1.0 (09/05/2026): Painel do Morador Completo
 
-**Não existe mais servidor externo.** O próprio servidor no Render faz a sinalização.
-
-```
-[Visitante]              [Servidor Render]             [Morador]
-     │                         │                           │
-     │── initiate_call ────────►│                           │
-     │   (envia foto)           │── incoming_call ─────────►│
-     │                          │         (tela toca)       │
-     │                          │◄── answer_call ───────────│
-     │◄── call_answered ────────│   (morador clicou atender)│
-     │                          │                           │
-     │── webrtc_offer ──────────►────────────────────────── ►│
-     │◄── webrtc_answer ─────── ◄──────────────────────────  │
-     │◄══ ICE candidates trocados via servidor ══════════════►│
-     │                                                        │
-     │◄═══════ CONEXÃO P2P DIRETA ESTABELECIDA ══════════════►│
-     │          áudio/vídeo fluem direto entre eles           │
-```
-
-**Por que cada parte funciona:**
-
-| Problema antigo | Solução nova |
-|---|---|
-| ID fixo conflitava | Socket.id único gerado a cada conexão, sem conflito |
-| Servidor externo instável | Só usa o servidor Render — sob nosso controle |
-| Race condition | Offer só criado DEPOIS do `call_answered` — sequência garantida |
-| Falha em redes móveis | TURN servers OpenRelay como fallback para qualquer NAT |
-
-**O detalhe mais importante — ordem garantida:**
-```js
-// Visitante ESPERA o sinal do servidor para só então criar o WebRTC
-socket.on('call_answered', async ({ residentSocketId }) => {
-  await startWebRTC(residentSocketId) // só aqui cria o offer
-})
-```
-
-### Compatibilidade com Render Free Tier
-- **`/api/ping`** — endpoint keep-alive. Configure UptimeRobot (gratuito) para chamar a cada 10min e evitar spin-down de 15min.
-- Socket.io com `pingTimeout: 60000`, `pingInterval: 25000` e fallback para polling.
-- Reconexão automática no cliente com 20 tentativas.
-- O áudio/vídeo **nunca passa pelo servidor** (é P2P direto) — o servidor só carrega os textos leves de sinalização.
-
-### O que foi entregue na v2.0.0
-- ✅ WebRTC nativo substituindo PeerJS completamente
-- ✅ STUN servers Google + TURN OpenRelay (fallback NAT restritivo)
-- ✅ Histórico de visitantes com foto, data, hora em `visitors.json`
-- ✅ Nova aba "Histórico de Visitantes" no painel do proprietário
-- ✅ Códigos de acesso com botão COPIAR com feedback visual
-- ✅ Botão "Encerrar chamada" funcional com sinalização P2P
-- ✅ Mudo funcional no dashboard do morador
+- **Navegação inferior:** Campainha / Histórico / Configurações / Sair.
+- **3 modos de atendimento:** Modo Oculto (furtivo) / Só Áudio / Câmera + Áudio.
+- **Toggle de câmera e mute** durante chamada ativa.
+- **Modo Oculto:** visitante NÃO sabe que está sendo monitorado (permanece na tela "Chamando...").
+- **Mensagens rápidas por categoria:** 💧 Água / ⚡ Light / 📦 Entregador / 💬 Geral.
+- **Mensagens pré-configuradas:** "Volto já!", "Deixe na porta", "Não estou em casa", etc.
+- **Banner de mensagem** aparece na tela do visitante em tempo real (5s).
+- Backend: relay `send_quick_message` via Socket.io.
 
 ---
 
-## 🛠️ Próximos Passos (Em Andamento)
-- [ ] **Auth por tipo:** Casa simples → email+senha; Condo/vila → código + número da unidade.
-- [ ] **Síndico Admin:** Interface para síndico reconfigurar acesso dos moradores.
-- [ ] **Keep-alive automático:** Integrar UptimeRobot ao processo de deploy.
-- [ ] **Backend Robustecimento:** Migração para banco de dados relacional (PostgreSQL/Neon).
-- [ ] **Painel de Vendas/Admin Master:** Monitorar crescimento e gerenciar vendedores.
+## 🔔 Fase 7 — v2.2.0 (09/05/2026): Som Real + Histórico Pro + Paywall
+
+### Som de Campainha Real (Web Audio API)
+- **DING-DONG** gerado sinteticamente — sem depender de arquivo externo ou CDN.
+- `AudioContext` com osciladores sine: 880Hz (DING) → 660Hz (DONG).
+- `GainNode` com gain 1.5x para forçar volume máximo.
+- Repetição automática a cada 2.2 segundos enquanto a campainha toca.
+- **Vibração real:** padrão `[400,200,400,200,800,500,400,200,400]` via `navigator.vibrate()`.
+- Para de tocar e vibrar automaticamente ao atender ou recusar.
+
+### Histórico de Visitantes Profissional
+- **Grupos por data:** Hoje / Ontem / "12 de maio" etc.
+- **Cards de estatísticas:** Total, Hoje, Com Foto.
+- **Filtros rápidos:** Todos / Hoje / Com Foto.
+- **Card expansível:** clica para ver foto ampliada + data completa + hora.
+- **Tempo relativo:** "Agora", "5min atrás", "2h atrás", "Ontem".
+- **Indicador de câmera:** ponto verde (com foto) / cinza (sem foto).
+
+### Paywall — Nova Placa R$15
+- Segunda placa em diante exige pagamento de **R$15/mês**.
+- Modal profissional com lista de benefícios.
+- Botão "Pagar R$15 e Adicionar" (integração Pix a implementar).
+- Primeira placa continua gratuita.
+
+### QR Code — Garantia de Unicidade
+- 1 QR Code único por cadastro, vinculado ao `propertyId` (UUID v4).
+- UUID gerado pelo `crypto` do Node — probabilidade de colisão desprezível.
+- QR Code aponta para `/chamada/:propertyId`.
+- Ao escanear: casa simples → toca direto; condomínio/vila → lista de unidades.
+
+---
+
+## 🛠️ Próximos Passos
+- [ ] Integração Pix para pagamento de novos endereços (R$15/mês).
+- [ ] Auth diferenciada: casa → email+senha; condo/vila → código por unidade.
+- [ ] Síndico Admin: reconfigurar códigos dos moradores.
+- [ ] Migração do banco para PostgreSQL/Neon.
+- [ ] Painel de Vendas/Admin Master.
