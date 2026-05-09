@@ -1,389 +1,335 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { Video, Phone, MicOff, PhoneOff, Bell, ShieldCheck, EyeOff, Download, Settings, Save, AlertCircle, Clock, User } from 'lucide-react';
+import { Phone, MicOff, PhoneOff, Bell, ShieldCheck, EyeOff, Download, AlertCircle, Video, VideoOff, LogOut, History, Settings, Home } from 'lucide-react';
+import { HistoryPanel, SettingsPanel, DEFAULT_CATEGORIES } from './ResidentPanels';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-const ICE_CONFIG = {
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    {
-      urls: 'turn:openrelay.metered.ca:80',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    }
-  ],
-  iceCandidatePoolSize: 10
+    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+  ]
 };
 
 export default function ResidentDashboard() {
-  const { id } = useParams(); // unitId
-  const [call, setCall]           = useState(null);
-  const [status, setStatus]       = useState('idle');
-  const [installPrompt, setInstallPrompt] = useState(null);
-  const [showSettings, setShowSettings]   = useState(false);
-  const [unitName, setUnitName]   = useState('Minha Casa');
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [tab, setTab] = useState('home'); // home | history | settings
+  const [call, setCall] = useState(null);
+  const [status, setStatus] = useState('idle'); // idle|ringing|active|monitoring
   const [audioError, setAudioError] = useState(false);
-  const [isMuted, setIsMuted]     = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [camOn, setCamOn] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [unitName, setUnitName] = useState(() => localStorage.getItem('cd_unit_name') || 'Minha Casa');
   const [visitorSocketId, setVisitorSocketId] = useState(null);
+  const [quickMsgs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cd_quick_msgs') || 'null') || DEFAULT_CATEGORIES; } catch { return DEFAULT_CATEGORIES; }
+  });
+  const [activeMsgCat, setActiveMsgCat] = useState('general');
+  const [sentMsg, setSentMsg] = useState('');
 
-  const audioRef       = useRef(null);
+  const audioRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const localVideoRef = useRef(null);
   const localStreamRef = useRef(null);
-  const pcRef          = useRef(null);
-  const socketRef      = useRef(null);
+  const pcRef = useRef(null);
+  const socketRef = useRef(null);
 
-  // ─── Socket + WebRTC setup ──────────────────────────────────────────────
   useEffect(() => {
-    const socket = io(API_URL, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 2000,
-      reconnectionAttempts: 20
-    });
-    socketRef.current = socket;
+    const s = io(API, { transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: 20 });
+    socketRef.current = s;
+    s.emit('register_resident', { unitId: id });
 
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-
-    socket.emit('register_resident', { unitId: id });
-
-    socket.on('incoming_call', (data) => {
-      setCall(data);
-      setStatus('ringing');
-      setVisitorSocketId(data.visitorSocketId);
-      playRingtone();
-      triggerNotification(unitName);
-    });
-
-    // Visitante enviou WebRTC offer
-    socket.on('webrtc_offer', async ({ sender, offer }) => {
-      await handleWebRTCOffer(sender, offer);
-    });
-
-    // ICE candidate do visitante
-    socket.on('webrtc_ice_candidate', async ({ candidate }) => {
-      if (pcRef.current && candidate) {
+    s.on('incoming_call', (data) => {
+      setCall(data); setStatus('ringing'); setVisitorSocketId(data.visitorSocketId);
+      setTab('home'); setSentMsg('');
+      if (audioRef.current) { audioRef.current.currentTime = 0; audioRef.current.play().catch(() => setAudioError(true)); }
+      if ('Notification' in window && Notification.permission === 'granted') {
         try {
-          await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (e) {
-          console.warn('[ICE] Erro ao adicionar candidate:', e);
-        }
+          new Notification('🔔 CAMPAINHA!', { body: `${unitName} — alguém está na porta!`, icon: '/logo.png' });
+        } catch {}
       }
     });
 
-    // Visitante encerrou
-    socket.on('call_ended', () => {
-      setStatus('idle');
-      setCall(null);
-      stopAll();
+    s.on('webrtc_offer', async ({ sender, offer }) => handleOffer(sender, offer));
+    s.on('webrtc_ice_candidate', async ({ candidate }) => {
+      if (pcRef.current && candidate) try { await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)); } catch {}
     });
+    s.on('call_ended', () => { setStatus('idle'); setCall(null); stopAll(); });
 
-    const handleBIP = (e) => { e.preventDefault(); setInstallPrompt(e); };
-    window.addEventListener('beforeinstallprompt', handleBIP);
+    const bip = (e) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', bip);
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
 
-    return () => {
-      socket.disconnect();
-      window.removeEventListener('beforeinstallprompt', handleBIP);
-      stopAll();
-    };
+    return () => { s.disconnect(); window.removeEventListener('beforeinstallprompt', bip); stopAll(); };
   }, [id]);
 
-  const playRingtone = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => setAudioError(true));
-    }
-  };
-
-  const stopRingtone = () => {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
-    setAudioError(false);
-  };
-
-  const triggerNotification = (name) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.ready.then(reg =>
-            reg.showNotification('CHAMADA RECEBIDA 🔔', {
-              body: `${name} - Alguém está tocando sua campainha!`,
-              icon: '/logo.png',
-              vibrate: [200, 100, 200, 100, 400],
-              tag: 'campainha-call',
-              renotify: true,
-              requireInteraction: true
-            })
-          );
-        } else {
-          const n = new Notification('CHAMADA RECEBIDA 🔔', {
-            body: `${name} - Alguém está tocando!`,
-            icon: '/logo.png'
-          });
-          n.onclick = () => window.focus();
-        }
-      } catch (e) { console.error('Notification error', e); }
-    }
-  };
-
+  const stopRing = () => { if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; } setAudioError(false); };
   const stopAll = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(t => t.stop());
-      localStreamRef.current = null;
-    }
+    if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
     if (pcRef.current) { pcRef.current.close(); pcRef.current = null; }
   };
 
-  // ─── WebRTC: Morador recebe offer e responde ─────────────────────────────
-  const handleWebRTCOffer = useCallback(async (senderSocketId, offer) => {
-    const pc = new RTCPeerConnection(ICE_CONFIG);
+  const handleOffer = useCallback(async (senderSocketId, offer) => {
+    const pc = new RTCPeerConnection(ICE);
     pcRef.current = pc;
-
-    // Adiciona stream local se disponível (modo ativo)
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current);
-      });
-    }
-
-    // Recebe stream do visitante
-    pc.ontrack = (event) => {
-      if (remoteVideoRef.current && event.streams[0]) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-        remoteVideoRef.current.play().catch(e => console.warn('[Video] play error:', e));
-      }
-    };
-
-    // Envia ICE candidates para o visitante
-    pc.onicecandidate = (event) => {
-      if (event.candidate && socketRef.current) {
-        socketRef.current.emit('webrtc_ice_candidate', {
-          target: senderSocketId,
-          candidate: event.candidate
-        });
-      }
-    };
-
-    pc.onconnectionstatechange = () => {
-      console.log('[WebRTC] Estado morador:', pc.connectionState);
-    };
-
-    try {
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      socketRef.current.emit('webrtc_answer', {
-        target: senderSocketId,
-        answer: pc.localDescription
-      });
-    } catch (err) {
-      console.error('[WebRTC] Erro ao responder offer:', err);
-    }
+    if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => pc.addTrack(t, localStreamRef.current));
+    pc.ontrack = (e) => { if (remoteVideoRef.current && e.streams[0]) { remoteVideoRef.current.srcObject = e.streams[0]; remoteVideoRef.current.play().catch(() => {}); } };
+    pc.onicecandidate = (e) => { if (e.candidate) socketRef.current.emit('webrtc_ice_candidate', { target: senderSocketId, candidate: e.candidate }); };
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socketRef.current.emit('webrtc_answer', { target: senderSocketId, answer: pc.localDescription });
   }, []);
 
-  // ─── Ações do morador ────────────────────────────────────────────────────
   const handleMonitor = () => {
-    stopRingtone();
-    setStatus('monitoring');
-    localStreamRef.current = null; // sem stream local = furtivo
-    socketRef.current.emit('answer_call', {
-      visitorSocketId: call.visitorSocketId,
-      mode: 'monitor',
-      unitId: id
-    });
+    stopRing(); setStatus('monitoring'); localStreamRef.current = null;
+    socketRef.current.emit('answer_call', { visitorSocketId: call.visitorSocketId, mode: 'monitor', unitId: id });
   };
 
-  const handleAnswer = async () => {
-    stopRingtone();
-    setStatus('active');
+  const handleAnswer = async (withCamera = false) => {
+    stopRing(); setStatus('active'); setCamOn(withCamera);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withCamera });
       localStreamRef.current = stream;
-      // Se já existe PC (offer já chegou), adiciona tracks
-      if (pcRef.current) {
-        stream.getTracks().forEach(track => pcRef.current.addTrack(track, stream));
-      }
-    } catch (err) {
-      console.warn('[Mic] Acesso negado:', err);
-    }
-    socketRef.current.emit('answer_call', {
-      visitorSocketId: call.visitorSocketId,
-      mode: 'active',
-      unitId: id
-    });
+      if (withCamera && localVideoRef.current) { localVideoRef.current.srcObject = stream; localVideoRef.current.play().catch(() => {}); }
+      if (pcRef.current) stream.getTracks().forEach(t => pcRef.current.addTrack(t, stream));
+    } catch (e) { console.warn('[Media]', e); }
+    socketRef.current.emit('answer_call', { visitorSocketId: call.visitorSocketId, mode: 'active', unitId: id });
   };
 
-  const handleEndCall = () => {
-    stopRingtone();
-    if (visitorSocketId && socketRef.current) {
-      socketRef.current.emit('call_ended', { target: visitorSocketId });
-    }
-    setStatus('idle');
-    setCall(null);
-    stopAll();
+  const handleEnd = () => {
+    stopRing();
+    if (visitorSocketId) socketRef.current.emit('call_ended', { target: visitorSocketId });
+    setStatus('idle'); setCall(null); stopAll();
   };
 
   const toggleMute = () => {
-    if (localStreamRef.current) {
-      const track = localStreamRef.current.getAudioTracks()[0];
-      if (track) { track.enabled = !track.enabled; setIsMuted(!track.enabled); }
+    const t = localStreamRef.current?.getAudioTracks()[0];
+    if (t) { t.enabled = !t.enabled; setIsMuted(!t.enabled); }
+  };
+
+  const toggleCam = async () => {
+    if (!camOn) {
+      try {
+        const vs = await navigator.mediaDevices.getUserMedia({ video: true });
+        vs.getVideoTracks().forEach(t => { localStreamRef.current?.addTrack(t); pcRef.current?.addTrack(t, localStreamRef.current); });
+        if (localVideoRef.current) { localVideoRef.current.srcObject = localStreamRef.current; localVideoRef.current.play().catch(() => {}); }
+        setCamOn(true);
+      } catch {}
+    } else {
+      localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
+      setCamOn(false);
     }
   };
 
-  const handleInstallClick = async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') setInstallPrompt(null);
+  const sendQuickMsg = (msg) => {
+    if (!visitorSocketId) return;
+    socketRef.current.emit('send_quick_message', { target: visitorSocketId, message: msg });
+    setSentMsg(msg);
+    setTimeout(() => setSentMsg(''), 3000);
   };
 
-  const unlockAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.play().then(() => audioRef.current.pause()).catch(() => {});
-      setAudioError(false);
-    }
-  };
+  const saveSettings = () => { localStorage.setItem('cd_unit_name', unitName); };
+
+  const activeC = quickMsgs.find(c => c.id === activeMsgCat);
+
+  // ── Bottom Nav ───────────────────────────────────────────────────────────
+  const NavBar = () => (
+    <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg-surface-elevated)', borderTop: '1px solid var(--border-subtle)', display: 'flex', zIndex: 100 }}>
+      {[
+        { key: 'home', icon: <Home size={20} />, label: 'Campainha' },
+        { key: 'history', icon: <History size={20} />, label: 'Histórico' },
+        { key: 'settings', icon: <Settings size={20} />, label: 'Config.' },
+      ].map(n => (
+        <button key={n.key} onClick={() => setTab(n.key)} style={{ flex: 1, padding: '12px 4px 8px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: tab === n.key ? 'var(--primary)' : 'var(--text-muted)', fontSize: '10px', fontWeight: 700, transition: 'color 0.2s' }}>
+          {n.icon}{n.label}
+        </button>
+      ))}
+      <button onClick={() => navigate('/')} style={{ flex: 1, padding: '12px 4px 8px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: 'var(--text-muted)', fontSize: '10px', fontWeight: 700 }}>
+        <LogOut size={20} />Sair
+      </button>
+    </nav>
+  );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', padding: '24px', display: 'flex', flexDirection: 'column', position: 'relative' }} onClick={unlockAudio}>
-      <audio ref={audioRef} loop preload="auto">
-        <source src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" type="audio/mpeg" />
-      </audio>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', paddingBottom: '72px' }} onClick={() => { if (audioRef.current) audioRef.current.play().then(() => audioRef.current.pause()).catch(() => {}); }}>
+      <audio ref={audioRef} loop preload="auto"><source src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" type="audio/mpeg" /></audio>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <ShieldCheck size={28} color="var(--primary)" />
-          <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>{unitName}</h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>Sistema Ativo • ID: {id.slice(0, 8)}</p>
-          </div>
+      <div style={{ padding: '20px 24px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <ShieldCheck size={24} color="var(--primary)" />
+        <div>
+          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>{unitName}</h2>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>ID: {id.slice(0, 8)} • {status === 'idle' ? '🟢 Online' : '🔴 Em chamada'}</p>
         </div>
-        <button onClick={() => setShowSettings(!showSettings)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '10px', borderRadius: '12px', color: showSettings ? 'var(--primary)' : 'var(--text-main)', cursor: 'pointer' }}>
-          <Settings size={20} />
-        </button>
+        {installPrompt && (
+          <button onClick={async () => { installPrompt.prompt(); const r = await installPrompt.userChoice; if (r.outcome === 'accepted') setInstallPrompt(null); }}
+            style={{ marginLeft: 'auto', background: 'var(--primary)', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Download size={14} /> Instalar
+          </button>
+        )}
       </div>
 
-      {audioError && status === 'ringing' && (
-        <div style={{ background: '#EF4444', color: '#fff', padding: '12px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600 }}>
-          <AlertCircle size={20} /> Toque em qualquer lugar para ativar o som!
-        </div>
-      )}
+      {audioError && <div style={{ margin: '12px 24px 0', background: '#EF4444', color: '#fff', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, display: 'flex', gap: '8px', alignItems: 'center' }}><AlertCircle size={16} />Toque na tela para ativar o som!</div>}
 
-      {/* Settings */}
-      {showSettings && (
-        <div className="glass-panel fade-in" style={{ padding: '24px', marginBottom: '24px', border: '1px solid var(--primary)' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Configurar Campainha</h3>
-          <input type="text" className="input-glass" value={unitName} onChange={(e) => setUnitName(e.target.value)} style={{ width: '100%', marginBottom: '16px' }} placeholder="Nome de exibição" />
-          <button className="btn-primary" onClick={() => setShowSettings(false)} style={{ padding: '12px', fontSize: '14px', width: '100%' }}>
-            <Save size={16} /> Salvar
-          </button>
-        </div>
-      )}
-
-      {/* PWA Install */}
-      {installPrompt && status === 'idle' && (
-        <div className="animate-fade-up" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.2), rgba(0,119,255,0.2))', border: '1px solid var(--primary)', borderRadius: '20px', padding: '20px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ background: 'var(--primary)', padding: '10px', borderRadius: '12px' }}>
-            <Download size={24} color="#000" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h4 style={{ fontSize: '14px', fontWeight: 700, margin: 0 }}>Instalar PWA</h4>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>Fique online mesmo fora do navegador.</p>
-          </div>
-          <button onClick={handleInstallClick} className="btn-primary" style={{ padding: '8px 16px', fontSize: '12px', width: 'auto' }}>Instalar</button>
-        </div>
-      )}
-
-      {/* ── IDLE ── */}
-      {status === 'idle' && (
-        <div className="fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-          <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', border: '1px solid var(--border-subtle)' }}>
-            <Bell size={40} color="var(--text-muted)" style={{ opacity: 0.3 }} />
-          </div>
-          <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Aguardando Chamadas</h3>
-          <p style={{ color: 'var(--text-muted)', maxWidth: '240px' }}>Você será notificado assim que alguém tocar a campainha.</p>
-          <div style={{ marginTop: '32px', display: 'flex', alignItems: 'center', gap: '8px', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '8px 16px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} /> Conectado ao Servidor
-          </div>
-        </div>
-      )}
-
-      {/* ── RINGING ── */}
-      {status === 'ringing' && call && (
-        <div className="glass-panel fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
-          <div style={{ padding: '24px', background: 'rgba(239,68,68,0.1)', borderBottom: '1px solid rgba(239,68,68,0.2)', textAlign: 'center' }}>
-            <h3 style={{ color: '#EF4444', fontWeight: 800, letterSpacing: '2px', fontSize: '14px', margin: 0, animation: 'pulse 1s infinite' }}>CHAMADA RECEBIDA</h3>
-          </div>
-          <div style={{ flex: 1, position: 'relative', background: '#000', minHeight: '200px' }}>
-            {call.photo
-              ? <img src={call.photo} alt="Visitante" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <div style={{ display: 'flex', height: '200px', alignItems: 'center', justifyContent: 'center' }}><User size={64} style={{ opacity: 0.2 }} /></div>
-            }
-            <div style={{ position: 'absolute', top: '16px', left: '16px', background: 'rgba(0,0,0,0.6)', padding: '6px 12px', borderRadius: '100px', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', backdropFilter: 'blur(8px)' }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#EF4444' }} /> PRÉ-VISUALIZAÇÃO
-            </div>
-          </div>
-          <div style={{ padding: '32px 24px', display: 'flex', gap: '16px' }}>
-            <button className="btn-secondary" style={{ flex: 1, flexDirection: 'column', height: 'auto', padding: '20px' }} onClick={handleMonitor}>
-              <EyeOff size={24} style={{ marginBottom: '8px' }} /> Monitorar (Furtivo)
-            </button>
-            <button className="btn-primary" style={{ flex: 1, flexDirection: 'column', height: 'auto', padding: '20px', background: '#10B981', boxShadow: '0 8px 32px rgba(16,185,129,0.4)' }} onClick={handleAnswer}>
-              <Phone size={24} style={{ marginBottom: '8px' }} /> Atender c/ Áudio
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── MONITORING / ACTIVE ── */}
-      {(status === 'monitoring' || status === 'active') && call && (
-        <div className="glass-panel fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0 }}>
-          <div style={{ padding: '20px', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h3 style={{ fontSize: '16px', margin: 0 }}>{status === 'monitoring' ? 'Modo Furtivo' : 'Em Chamada'}</h3>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Câmera ao vivo do visitante</span>
-            </div>
-            <div style={{ color: '#EF4444', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 10px #EF4444', animation: 'pulse 1s infinite' }} /> LIVE
-            </div>
-          </div>
-
-          <div style={{ flex: 1, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: '250px' }}>
-            <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            {!remoteVideoRef.current?.srcObject && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ width: '32px', height: '32px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#10B981', borderRadius: '50%', animation: 'mesh-pulse 1s linear infinite' }} />
-                <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Conectando câmera P2P...</span>
-                {call.photo && <img src={call.photo} alt="blur" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3, filter: 'blur(20px)', zIndex: -1 }} />}
+      {/* ── HOME TAB ── */}
+      {tab === 'home' && (
+        <>
+          {/* IDLE */}
+          {status === 'idle' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 160px)', textAlign: 'center', padding: '24px' }}>
+              <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+                <Bell size={40} style={{ opacity: 0.3 }} />
               </div>
-            )}
-          </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Aguardando Chamadas</h3>
+              <p style={{ color: 'var(--text-muted)', maxWidth: '240px', fontSize: '14px' }}>Você será notificado assim que alguém tocar a campainha.</p>
+              <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', gap: '8px', color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '8px 16px', borderRadius: '100px', fontSize: '12px', fontWeight: 600 }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} />Conectado
+              </div>
+            </div>
+          )}
 
-          <div style={{ padding: '32px 24px', display: 'flex', gap: '20px', justifyContent: 'center', background: 'rgba(0,0,0,0.8)' }}>
-            {status === 'monitoring'
-              ? <button className="btn-primary" style={{ flex: 1, background: '#10B981', boxShadow: '0 8px 32px rgba(16,185,129,0.4)' }} onClick={handleAnswer}>
-                  <Phone size={20} /> Falar com Visitante
+          {/* RINGING */}
+          {status === 'ringing' && call && (
+            <div style={{ padding: '16px 24px' }}>
+              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '16px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', animation: 'pulse 1s infinite' }} />
+                <span style={{ color: '#EF4444', fontWeight: 800, fontSize: '13px', letterSpacing: '1px' }}>CHAMADA RECEBIDA</span>
+              </div>
+
+              {/* Foto visitante */}
+              <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#000', aspectRatio: '4/3', position: 'relative', marginBottom: '16px' }}>
+                {call.photo ? <img src={call.photo} alt="Visitante" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}><Bell size={48} style={{ opacity: 0.2 }} /></div>}
+                <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.7)', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 700, backdropFilter: 'blur(8px)' }}>
+                  📷 Visitante na porta
+                </div>
+              </div>
+
+              {/* Mensagens rápidas */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '10px' }}>📨 ENVIAR MENSAGEM RÁPIDA</p>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                  {quickMsgs.map(c => (
+                    <button key={c.id} onClick={() => setActiveMsgCat(c.id)}
+                      style={{ padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer', background: activeMsgCat === c.id ? 'var(--primary)' : 'rgba(255,255,255,0.05)', color: activeMsgCat === c.id ? '#000' : 'var(--text-muted)' }}>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {activeC?.messages.map((msg, i) => (
+                    <button key={i} onClick={() => sendQuickMsg(msg)}
+                      style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '12px', border: '1px solid var(--border-subtle)', background: sentMsg === msg ? '#10B981' : 'rgba(255,255,255,0.05)', color: sentMsg === msg ? '#000' : 'var(--text-main)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>
+                      {sentMsg === msg ? '✓ Enviado' : `"${msg}"`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botões de atender */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <button onClick={handleMonitor} style={{ padding: '16px', borderRadius: '14px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13px' }}>
+                  <EyeOff size={22} color="var(--primary)" />Modo Oculto
                 </button>
-              : <button className="btn-secondary" style={{ width: '64px', height: '64px', borderRadius: '50%', padding: 0, background: isMuted ? 'rgba(239,68,68,0.2)' : undefined }} onClick={toggleMute}>
-                  <MicOff size={24} />
+                <button onClick={() => handleAnswer(false)} style={{ padding: '16px', borderRadius: '14px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13px' }}>
+                  <Phone size={22} color="#10B981" />Só Áudio
                 </button>
-            }
-            <button className="btn-secondary" style={{ width: '64px', height: '64px', borderRadius: '50%', padding: 0, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444' }} onClick={handleEndCall}>
-              <PhoneOff size={24} />
-            </button>
-          </div>
-        </div>
+              </div>
+              <button onClick={() => handleAnswer(true)} className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '15px', background: '#10B981', boxShadow: '0 8px 24px rgba(16,185,129,0.35)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                <Video size={22} /> Atender com Câmera e Áudio
+              </button>
+              <button onClick={handleEnd} style={{ width: '100%', marginTop: '10px', padding: '12px', borderRadius: '14px', border: 'none', background: 'rgba(239,68,68,0.1)', color: '#EF4444', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <PhoneOff size={18} /> Recusar
+              </button>
+            </div>
+          )}
+
+          {/* MONITORING */}
+          {status === 'monitoring' && call && (
+            <div style={{ padding: '16px 24px' }}>
+              <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '14px', padding: '10px 16px', display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+                <EyeOff size={16} color="#F59E0B" /><span style={{ color: '#F59E0B', fontWeight: 700, fontSize: '13px' }}>Modo Oculto Ativo — visitante não sabe que você está vendo</span>
+              </div>
+              <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#000', position: 'relative', marginBottom: '16px', minHeight: '220px' }}>
+                <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', objectFit: 'cover' }} />
+                <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(245,158,11,0.9)', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 800, color: '#000' }}>👁 OCULTO</div>
+              </div>
+
+              {/* Mensagens rápidas */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: '14px', padding: '14px', marginBottom: '14px' }}>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '8px' }}>ENVIAR MENSAGEM SEM REVELAR CÂMERA</p>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {quickMsgs.find(c => c.id === 'general')?.messages.map((msg, i) => (
+                    <button key={i} onClick={() => sendQuickMsg(msg)}
+                      style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '12px', border: '1px solid var(--border-subtle)', background: sentMsg === msg ? '#10B981' : 'rgba(255,255,255,0.05)', color: sentMsg === msg ? '#000' : 'var(--text-main)', cursor: 'pointer', fontWeight: 600 }}>
+                      {sentMsg === msg ? '✓' : `"${msg}"`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => handleAnswer(false)} className="btn-primary" style={{ flex: 1, padding: '14px', background: '#10B981', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <Phone size={18} /> Falar
+                </button>
+                <button onClick={handleEnd} style={{ width: '56px', height: '52px', borderRadius: '14px', border: 'none', background: 'rgba(239,68,68,0.15)', color: '#EF4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <PhoneOff size={20} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ACTIVE CALL */}
+          {status === 'active' && call && (
+            <div style={{ padding: '16px 24px' }}>
+              <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '14px', padding: '10px 16px', display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', animation: 'pulse 1s infinite' }} />
+                <span style={{ color: '#10B981', fontWeight: 700, fontSize: '13px' }}>Chamada em andamento</span>
+              </div>
+
+              {/* Vídeos */}
+              <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden', background: '#000', minHeight: '220px', marginBottom: '16px' }}>
+                <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', objectFit: 'cover' }} />
+                {camOn && <video ref={localVideoRef} autoPlay playsInline muted style={{ position: 'absolute', bottom: '12px', right: '12px', width: '100px', borderRadius: '12px', border: '2px solid var(--primary)' }} />}
+              </div>
+
+              {/* Mensagens */}
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                {quickMsgs.find(c => c.id === 'general')?.messages.slice(0, 3).map((msg, i) => (
+                  <button key={i} onClick={() => sendQuickMsg(msg)}
+                    style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '12px', border: '1px solid var(--border-subtle)', background: sentMsg === msg ? '#10B981' : 'rgba(255,255,255,0.05)', color: sentMsg === msg ? '#000' : 'var(--text-main)', cursor: 'pointer', fontWeight: 600 }}>
+                    {sentMsg === msg ? '✓' : `"${msg}"`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Controles */}
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button onClick={toggleMute} style={{ width: '56px', height: '56px', borderRadius: '50%', border: 'none', background: isMuted ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)', color: isMuted ? '#EF4444' : 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MicOff size={22} />
+                </button>
+                <button onClick={toggleCam} style={{ width: '56px', height: '56px', borderRadius: '50%', border: 'none', background: camOn ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.08)', color: camOn ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {camOn ? <Video size={22} /> : <VideoOff size={22} />}
+                </button>
+                <button onClick={handleEnd} style={{ width: '56px', height: '56px', borderRadius: '50%', border: 'none', background: '#EF4444', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(239,68,68,0.4)' }}>
+                  <PhoneOff size={22} />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
+
+      {tab === 'history' && <HistoryPanel unitId={id} />}
+      {tab === 'settings' && <SettingsPanel unitName={unitName} setUnitName={setUnitName} onSave={saveSettings} />}
+
+      <NavBar />
     </div>
   );
 }

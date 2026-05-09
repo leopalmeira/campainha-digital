@@ -244,6 +244,11 @@ io.on('connection', (socket) => {
     if (target) io.to(target).emit('call_ended');
   });
 
+  // Morador envia mensagem rápida para o visitante
+  socket.on('send_quick_message', ({ target, message }) => {
+    if (target) io.to(target).emit('quick_message', { message });
+  });
+
   socket.on('disconnect', () => {
     console.log('[WS] desconectado:', socket.id);
     // Remove morador dos maps

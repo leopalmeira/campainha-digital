@@ -34,9 +34,10 @@ export default function VisitorCall() {
   const [property, setProperty]     = useState(null);
   const [callingUnit, setCallingUnit] = useState(null);
   const [countdown, setCountdown]   = useState(0);
-  const [status, setStatus]         = useState('idle'); // idle | calling | answered | monitored | ended | error
+  const [status, setStatus]         = useState('idle');
   const [errorMsg, setErrorMsg]     = useState('');
   const [residentSocket, setResidentSocket] = useState(null);
+  const [quickMessage, setQuickMessage] = useState('');
 
   const localVideoRef   = useRef(null); // câmera do visitante (oculta)
   const canvasRef       = useRef(null);
@@ -58,11 +59,21 @@ export default function VisitorCall() {
     fetchProperty();
 
     // Morador atendeu – inicia WebRTC
+    // Em modo monitor: visitante vê "Chamando..." — NÃO revela que está sendo visto
     socket.on('call_answered', async ({ residentSocketId, mode, unitId }) => {
       setResidentSocket(residentSocketId);
-      setStatus(mode === 'monitor' ? 'monitored' : 'answered');
-      setCountdown(0);
+      // modo monitor: visitante continua vendo a tela de "chamando" (não sabe que está sendo monitorado)
+      if (mode !== 'monitor') {
+        setStatus('answered');
+        setCountdown(0);
+      }
       await startWebRTC(residentSocketId, mode);
+    });
+
+    // Mensagem rápida enviada pelo morador
+    socket.on('quick_message', ({ message }) => {
+      setQuickMessage(message);
+      setTimeout(() => setQuickMessage(''), 5000);
     });
 
     // Recebe answer do morador
@@ -259,6 +270,14 @@ export default function VisitorCall() {
       <video ref={localVideoRef} style={{ display: 'none' }} playsInline muted />
       <canvas ref={canvasRef}    style={{ display: 'none' }} />
       <audio  ref={remoteAudioRef} autoPlay playsInline />
+
+      {/* Banner de mensagem rápida do morador */}
+      {quickMessage && (
+        <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.92)', border: '1px solid var(--primary)', borderRadius: '16px', padding: '14px 24px', zIndex: 999, maxWidth: '320px', width: '90%', textAlign: 'center', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,229,255,0.2)' }}>
+          <p style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 700, marginBottom: '4px', letterSpacing: '1px' }}>💬 MENSAGEM</p>
+          <p style={{ fontSize: '17px', fontWeight: 700, margin: 0 }}>"{quickMessage}"</p>
+        </div>
+      )}
 
       {/* Header */}
       <header style={{ textAlign: 'center', marginBottom: '40px' }}>
