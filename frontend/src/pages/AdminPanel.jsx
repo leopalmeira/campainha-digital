@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check } from 'lucide-react';
+import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -13,13 +13,39 @@ function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = (e) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const fallbackCopy = (val) => {
+      const textArea = document.createElement("textarea");
+      textArea.value = val;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try { document.execCommand('copy'); setCopied(true); setTimeout(() => setCopied(false), 2000); } 
+      catch (err) { console.error('Fallback copy falhou', err); }
+      document.body.removeChild(textArea);
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+        .catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
   };
   return (
     <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: copied ? '#10B981' : 'var(--primary)', background: copied ? 'rgba(16,185,129,0.1)' : 'rgba(0,229,255,0.1)', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
       {copied ? <><Check size={12} /> COPIADO!</> : <><Copy size={12} /> COPIAR</>}
+    </button>
+  );
+}
+
+function WhatsAppButton({ code }) {
+  const handleShare = () => {
+    const msg = `Esse é o seu login de acesso à Campainha Digital! Só precisa baixar o app, entrar na aba Morador e colocar o seu código de acesso para poder atender aos visitantes.\n\n🔑 *Seu Código:* ${code}\n📱 *Link do App:* ${window.location.origin}/morador-login`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+  return (
+    <button onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#fff', background: '#25D366', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
+      <MessageCircle size={12} /> WHATSAPP
     </button>
   );
 }
@@ -336,7 +362,10 @@ export default function AdminPanel() {
                             <span style={{ fontSize: '14px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{u.name}</span>
                             <code style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 800, letterSpacing: '2px', background: 'rgba(0,229,255,0.08)', padding: '3px 8px', borderRadius: '4px' }}>{u.accessCode || '---'}</code>
                           </div>
-                          <CopyButton text={u.accessCode || ''} />
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <CopyButton text={u.accessCode || ''} />
+                            <WhatsAppButton code={u.accessCode || ''} />
+                          </div>
                         </div>
                       ))}
                     </div>
