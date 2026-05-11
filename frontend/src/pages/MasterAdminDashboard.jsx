@@ -11,7 +11,7 @@ export default function MasterAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showScanner, setShowScanner] = useState(false);
   const [scannedId, setScannedId] = useState('');
-  const [newClient, setNewClient] = useState({ email: '', name: '', type: 'individual' });
+  const [newClient, setNewClient] = useState({ email: '', name: '', type: 'house', numUnits: 1 });
   const [isRegistering, setIsRegistering] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -107,14 +107,15 @@ export default function MasterAdminDashboard() {
           id: scannedId,
           adminEmail: newClient.email,
           name: newClient.name,
-          type: newClient.type
+          type: newClient.type,
+          units: newClient.type !== 'house' ? Array.from({ length: newClient.numUnits }, (_, i) => ({ name: `Unidade ${i + 1}` })) : []
         })
       });
 
       if (res.ok) {
         alert('Cliente registrado com sucesso!');
         setScannedId('');
-        setNewClient({ email: '', name: '', type: 'individual' });
+        setNewClient({ email: '', name: '', type: 'house', numUnits: 1 });
         fetchClients();
       } else {
         alert('Erro ao registrar cliente.');
@@ -140,6 +141,13 @@ export default function MasterAdminDashboard() {
     c.adminEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.id.includes(searchQuery)
   );
+
+  const totalUnits = clients.reduce((acc, c) => acc + (c.units ? c.units.length : 0), 0);
+  
+  const fmtDate = (isoString) => {
+    if (!isoString) return '---';
+    return new Date(isoString).toLocaleDateString('pt-BR');
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#050505', color: '#e0e0e0', display: 'flex', fontFamily: '"Inter", sans-serif' }}>
@@ -197,6 +205,22 @@ export default function MasterAdminDashboard() {
           </div>
         </header>
 
+        {/* STATS STRIP */}
+        <div style={{ display: 'flex', gap: '24px', marginBottom: '40px' }} className="stagger-2">
+           <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', padding: '24px', flex: 1, borderLeft: '4px solid #adff2f' }}>
+              <p style={{ color: '#666', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>Total de Clientes Ativos</p>
+              <p style={{ fontSize: '32px', fontWeight: 900, color: '#fff' }}>{clients.length}</p>
+           </div>
+           <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', padding: '24px', flex: 1, borderLeft: '4px solid #adff2f' }}>
+              <p style={{ color: '#666', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>Total de Unidades/Casas</p>
+              <p style={{ fontSize: '32px', fontWeight: 900, color: '#fff' }}>{totalUnits}</p>
+           </div>
+           <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', padding: '24px', flex: 1, borderLeft: '4px solid #adff2f' }}>
+              <p style={{ color: '#666', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>Status do Sistema</p>
+              <p style={{ fontSize: '32px', fontWeight: 900, color: '#adff2f' }}>ONLINE</p>
+           </div>
+        </div>
+
         {activeTab === 'clients' && (
           <section className="stagger-3" style={{ position: 'relative', zIndex: 1 }}>
             <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a' }}>
@@ -213,6 +237,7 @@ export default function MasterAdminDashboard() {
                       <th style={{ padding: '16px 24px', fontSize: '11px', color: '#444', fontWeight: 900, textTransform: 'uppercase' }}>Email do Admin</th>
                       <th style={{ padding: '16px 24px', fontSize: '11px', color: '#444', fontWeight: 900, textTransform: 'uppercase' }}>Tipo</th>
                       <th style={{ padding: '16px 24px', fontSize: '11px', color: '#444', fontWeight: 900, textTransform: 'uppercase' }}>Unidades</th>
+                      <th style={{ padding: '16px 24px', fontSize: '11px', color: '#444', fontWeight: 900, textTransform: 'uppercase' }}>Próx. Pgto</th>
                       <th style={{ padding: '16px 24px', fontSize: '11px', color: '#444', fontWeight: 900, textTransform: 'uppercase' }}>Ações</th>
                     </tr>
                   </thead>
@@ -241,6 +266,9 @@ export default function MasterAdminDashboard() {
                             <Building2 size={14} color="#444" />
                             <span style={{ fontSize: '14px', fontWeight: 700 }}>{client.units?.length || 0}</span>
                           </div>
+                        </td>
+                        <td style={{ padding: '20px 24px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#adff2f' }}>{fmtDate(client.nextPaymentDate)}</span>
                         </td>
                         <td style={{ padding: '20px 24px' }}>
                           <div style={{ display: 'flex', gap: '12px' }}>
@@ -284,13 +312,24 @@ export default function MasterAdminDashboard() {
 
                 <div style={{ marginBottom: '32px' }}>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: '#444', textTransform: 'uppercase', marginBottom: '12px' }}>3. Tipo de Configuração</label>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    {['individual', 'collective'].map(type => (
-                      <button key={type} type="button" onClick={() => setNewClient({ ...newClient, type })} style={{ flex: 1, padding: '12px', background: newClient.type === type ? '#adff2f15' : 'transparent', border: `1px solid ${newClient.type === type ? '#adff2f' : '#222'}`, color: newClient.type === type ? '#adff2f' : '#666', fontWeight: 800, textTransform: 'uppercase', fontSize: '12px', cursor: 'pointer' }}>
-                        {type === 'individual' ? 'Casa Única' : 'Múltiplas Unidades'}
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                    {[
+                      { val: 'house', label: 'Casa Simples' },
+                      { val: 'village', label: 'Vila de Casas' },
+                      { val: 'condo', label: 'Condomínio' }
+                    ].map(t => (
+                      <button key={t.val} type="button" onClick={() => setNewClient({ ...newClient, type: t.val })} style={{ flex: 1, padding: '12px', background: newClient.type === t.val ? '#adff2f15' : 'transparent', border: `1px solid ${newClient.type === t.val ? '#adff2f' : '#222'}`, color: newClient.type === t.val ? '#adff2f' : '#666', fontWeight: 800, textTransform: 'uppercase', fontSize: '12px', cursor: 'pointer' }}>
+                        {t.label}
                       </button>
                     ))}
                   </div>
+
+                  {newClient.type !== 'house' && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: '#444', textTransform: 'uppercase', marginBottom: '8px' }}>Número de Unidades</label>
+                      <input type="number" min="1" placeholder="Ex: 10" value={newClient.numUnits} onChange={e => setNewClient({ ...newClient, numUnits: parseInt(e.target.value) || 1 })} style={{ width: '100%', background: '#111', border: '1px solid #222', color: '#fff', padding: '14px', outline: 'none' }} required />
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '16px' }}>

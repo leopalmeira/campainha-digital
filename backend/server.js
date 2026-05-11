@@ -82,17 +82,24 @@ app.post('/api/properties', async (req, res) => {
   // Check if property with this ID already exists (for "activation" flow)
   const existingIndex = properties.findIndex(p => p.id === id);
   
+  const isCollective = type === 'village' || type === 'condo' || type === 'collective';
+  
+  // Calculate next payment date (30 days from now)
+  const nextPaymentDate = new Date();
+  nextPaymentDate.setDate(nextPaymentDate.getDate() + 30);
+
   const property = {
     id,
-    type: type || 'individual',
+    type: type || 'house',
     name: name || 'Nova Propriedade',
-    units: type === 'collective'
+    units: isCollective
       ? (units && units.length > 0 ? units.map(u => ({ id: uuidv4(), name: u.name, accessCode: generateAccessCode() })) : [])
       : [{ id: uuidv4(), name: 'Principal', accessCode: generateAccessCode() }],
     qrCodeUrl: qrCodeDataUrl,
     url,
     adminEmail: adminEmail || null,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    nextPaymentDate: nextPaymentDate.toISOString()
   };
 
   if (existingIndex > -1) {

@@ -93,8 +93,27 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
+## 👑 v2.7.0 — Painel Master Admin, Escaneamento e Controle Global (11/05/2026)
+
+### Visão Master Admin
+- Autenticação específica para o administrador do sistema (`leandro... / 27031981`).
+- Permissão global: visualização de todos os clientes e condomínios cadastrados.
+- Módulo estatístico mostrando o número total de clientes, total de unidades e status do sistema.
+- Inclusão do dado **Próxima Data de Pagamento** para cada placa/propriedade cadastrada, fixada em 30 dias após a geração.
+
+### Ativação Física e QR Code 
+- Integração da biblioteca de visão computacional `jsQR`.
+- **Fluxo de Fábrica/Representante**: O Master Admin agora pode **escanear uma placa física já impressa**, o sistema extrai o ID UUID contido no link e abre o formulário para vinculá-lo a um cliente (e-mail), definindo tipo (casa simples, vila, condomínio) e o número exato de unidades.
+- Eliminado o uso de IDs arbitrários no backend para essa rota, permitindo que o sistema reconheça e ative placas de forma programada.
+
+### Estética Cyber-Industrial Brutalista
+- O painel Master utiliza um padrão visual agressivo e técnico (Cyber-Industrial Brutalism), focando na experiência de linha de comando visual: alto contraste de preto puro com verde tóxico (`#adff2f`), cantos afiados (0px border-radius) e animações de glitch estático no background, além de staggered delays na montagem da tela.
+- Design radicalmente distante dos clichés de SaaS B2C/Glassmorphism usados no Painel do Morador.
+
+---
+
 ## 🛠️ Próximos Passos
-- [ ] Integração Pix (R$15 por novo endereço).
-- [ ] Síndico Admin: reconfigurar códigos dos moradores.
+- [ ] Integração Pix (R$15 por novo endereço e mensalidade automática).
+- [ ] Síndico Admin: reconfigurar códigos dos moradores e gerar novas unidades.
 - [ ] Migração banco → PostgreSQL/Neon.
 - [ ] Push notifications via FCM (Firebase Cloud Messaging).
