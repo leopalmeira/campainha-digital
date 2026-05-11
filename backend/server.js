@@ -51,10 +51,25 @@ app.get('/api/ping', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const generateAccessCode = () => crypto.randomBytes(3).toString('hex').toUpperCase();
 
+// ─── Master Admin Credentials ────────────────────────────────────────────────
+const MASTER_ADMIN_EMAIL = 'leandro2703palmeira@gmail.com';
+const MASTER_ADMIN_PASSWORD = '27031981';
+
+// ─── Auth Routes ─────────────────────────────────────────────────────────────
+app.post('/api/admin/login', (req, res) => {
+  const { email, password } = req.body;
+  if (email === MASTER_ADMIN_EMAIL && password === MASTER_ADMIN_PASSWORD) {
+    return res.json({ success: true, role: 'master', email });
+  }
+  // Fallback for regular admins (currently just checks if they exist in properties or allows anyone)
+  // For now, let's keep it simple as per user request
+  res.status(401).json({ error: 'Credenciais inválidas.' });
+});
+
 // ─── Properties Routes ───────────────────────────────────────────────────────
 app.post('/api/properties', async (req, res) => {
-  const { type, name, units, adminEmail } = req.body;
-  const id = uuidv4();
+  const { type, name, units, adminEmail, id: forcedId } = req.body;
+  const id = forcedId || uuidv4();
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const url = `${frontendUrl}/chamada/${id}`;
 
@@ -64,12 +79,15 @@ app.post('/api/properties', async (req, res) => {
     color: { dark: '#000', light: '#FFF' }
   });
 
+  // Check if property with this ID already exists (for "activation" flow)
+  const existingIndex = properties.findIndex(p => p.id === id);
+  
   const property = {
     id,
-    type,
-    name,
+    type: type || 'individual',
+    name: name || 'Nova Propriedade',
     units: type === 'collective'
-      ? units.map(u => ({ id: uuidv4(), name: u.name, accessCode: generateAccessCode() }))
+      ? (units && units.length > 0 ? units.map(u => ({ id: uuidv4(), name: u.name, accessCode: generateAccessCode() })) : [])
       : [{ id: uuidv4(), name: 'Principal', accessCode: generateAccessCode() }],
     qrCodeUrl: qrCodeDataUrl,
     url,
@@ -77,13 +95,24 @@ app.post('/api/properties', async (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  properties.push(property);
+  if (existingIndex > -1) {
+    properties[existingIndex] = property;
+  } else {
+    properties.push(property);
+  }
+
   saveDb();
   res.status(201).json(property);
 });
 
 app.get('/api/properties', (req, res) => {
   const { email } = req.query;
+  
+  // Master Admin can see everything
+  if (email === MASTER_ADMIN_EMAIL) {
+    return res.json(properties);
+  }
+
   // Isolamento: Se não houver email, não retorna nada ou retorna erro
   if (!email) return res.status(400).json({ error: 'Email is required for security isolation' });
   const filtered = properties.filter(p => p.adminEmail === email);
@@ -101,8 +130,8 @@ app.delete('/api/properties/:id', (req, res) => {
   const prop = properties.find(p => p.id === req.params.id);
   if (!prop) return res.status(404).json({ error: 'Property not found' });
   
-  // Isolamento: Apenas o dono pode deletar
-  if (adminEmail && prop.adminEmail !== adminEmail) {
+  // Isolamento: Apenas o dono ou Master Admin pode deletar
+  if (adminEmail !== MASTER_ADMIN_EMAIL && prop.adminEmail !== adminEmail) {
     return res.status(403).json({ error: 'Unauthorized to delete this property' });
   }
 

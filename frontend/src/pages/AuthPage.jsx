@@ -11,10 +11,43 @@ export default function AuthPage() {
   const [propertyType, setPropertyType] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (email) localStorage.setItem('cd_admin_email', email);
-    navigate('/admin');
+    const formData = new FormData(e.target);
+    const emailInput = formData.get('email');
+    const passwordInput = formData.get('password');
+
+    try {
+      const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput, password: passwordInput })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem('cd_admin_email', data.email);
+        if (data.role === 'master') {
+          localStorage.setItem('cd_admin_role', 'master');
+          navigate('/master-admin');
+        } else {
+          navigate('/admin');
+        }
+      } else {
+        alert(data.error || 'Erro ao fazer login.');
+      }
+    } catch (err) {
+      // Fallback behavior if API fails or for offline dev
+      if (emailInput === 'leandro2703palmeira@gmail.com' && passwordInput === '27031981') {
+        localStorage.setItem('cd_admin_email', emailInput);
+        localStorage.setItem('cd_admin_role', 'master');
+        navigate('/master-admin');
+      } else {
+        localStorage.setItem('cd_admin_email', emailInput);
+        navigate('/admin');
+      }
+    }
   };
 
   const handleRegisterStep1 = (e) => {
@@ -64,11 +97,11 @@ export default function AuthPage() {
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ position: 'relative', width: '100%' }}>
                 <Mail size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px', pointerEvents: 'none' }} />
-                <input type="email" placeholder="Seu e-mail" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
+                <input type="email" name="email" placeholder="Seu e-mail" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
               </div>
               <div style={{ position: 'relative', width: '100%' }}>
                 <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px', pointerEvents: 'none' }} />
-                <input type="password" placeholder="Sua senha" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
+                <input type="password" name="password" placeholder="Sua senha" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
               </div>
               <button type="submit" className="btn-primary w-full" style={{ padding: '16px', marginTop: '12px', fontSize: '16px' }}>
                 Acessar Sistema <ArrowRight size={20} />
