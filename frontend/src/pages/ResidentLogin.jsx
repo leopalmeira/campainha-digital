@@ -40,6 +40,9 @@ export default function ResidentLogin() {
     localStorage.setItem('residentUnitId', data.unitId);
     localStorage.setItem('residentName', data.unitName || 'Morador');
     localStorage.setItem('residentPropertyName', data.propertyName || '');
+    localStorage.setItem('residentPropertyId', data.propertyId || '');
+    // Se o login for por código, o código já está no state, se for por email, vem no data
+    localStorage.setItem('residentAccessCode', data.accessCode || accessCode || '');
     navigate(`/morador/${data.unitId}`);
   };
 

@@ -88,19 +88,15 @@ export default function ResidentDashboard() {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    // Busca código de acesso
-    fetch(`${API}/api/properties`)
-      .then(r => r.json())
-      .then(props => {
-        for (const p of props) {
-          const unit = p.units?.find(u => u.id === id);
-          if (unit) { setAccessCode(unit.accessCode); break; }
-        }
-      }).catch(console.warn);
+    // Busca informações salvas localmente para evitar consultas inseguras
+    const savedCode = localStorage.getItem('residentAccessCode');
+    const savedPropId = localStorage.getItem('residentPropertyId');
+    if (savedCode) setAccessCode(savedCode);
 
     const s = io(API, { transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: 20 });
     socketRef.current = s;
-    s.emit('register_resident', { unitId: id });
+    s.emit('register_resident', { unitId: id, propertyId: savedPropId });
+
 
     s.on('incoming_call', (data) => {
       setCall(data); setStatus('ringing'); setVisitorSocketId(data.visitorSocketId);
@@ -406,8 +402,8 @@ export default function ResidentDashboard() {
         </>
       )}
 
-      {tab === 'history' && <HistoryPanel unitId={id} />}
-      {tab === 'settings' && <SettingsPanel unitName={unitName} setUnitName={setUnitName} onSave={saveSettings} unitId={id} />}
+      {tab === 'history' && <HistoryPanel unitId={id} propertyId={localStorage.getItem('residentPropertyId')} />}
+      {tab === 'settings' && <SettingsPanel unitName={unitName} setUnitName={setUnitName} onSave={saveSettings} unitId={id} propertyId={localStorage.getItem('residentPropertyId')} />}
 
       <NavBar />
     </div>

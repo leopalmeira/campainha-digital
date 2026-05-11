@@ -84,10 +84,12 @@ app.post('/api/properties', async (req, res) => {
 
 app.get('/api/properties', (req, res) => {
   const { email } = req.query;
-  if (!email) return res.json(properties);
+  // Isolamento: Se não houver email, não retorna nada ou retorna erro
+  if (!email) return res.status(400).json({ error: 'Email is required for security isolation' });
   const filtered = properties.filter(p => p.adminEmail === email);
   res.json(filtered);
 });
+
 app.get('/api/properties/:id', (req, res) => {
   const prop = properties.find(p => p.id === req.params.id);
   if (!prop) return res.status(404).json({ error: 'Property not found' });
@@ -95,30 +97,47 @@ app.get('/api/properties/:id', (req, res) => {
 });
 
 app.delete('/api/properties/:id', (req, res) => {
+  const { adminEmail } = req.query;
+  const prop = properties.find(p => p.id === req.params.id);
+  if (!prop) return res.status(404).json({ error: 'Property not found' });
+  
+  // Isolamento: Apenas o dono pode deletar
+  if (adminEmail && prop.adminEmail !== adminEmail) {
+    return res.status(403).json({ error: 'Unauthorized to delete this property' });
+  }
+
   properties = properties.filter(p => p.id !== req.params.id);
   saveDb();
   res.json({ success: true });
 });
 
 // ─── Visitor History Routes ───────────────────────────────────────────────────
-// Retorna histórico por unitId
+// Retorna histórico por unitId - Apenas para moradores daquela unidade
 app.get('/api/visitors/:unitId', (req, res) => {
+  const { propertyId } = req.query; // Validamos o propertyId para garantir isolamento
+  
   const unitVisitors = visitors
-    .filter(v => v.unitId === req.params.unitId)
+    .filter(v => v.unitId === req.params.unitId && (!propertyId || v.propertyId === propertyId))
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    .slice(0, 100); // últimas 100 visitas
+    .slice(0, 100);
   res.json(unitVisitors);
 });
 
-// Retorna histórico por propertyId (todos as unidades)
+// Retorna histórico por propertyId (todos as unidades) - Apenas para o admin da propriedade
 app.get('/api/visitors/property/:propertyId', (req, res) => {
-  // Busca todas as unidades da propriedade
+  const { adminEmail } = req.query;
+  
+  // Validação de propriedade e admin
   const prop = properties.find(p => p.id === req.params.propertyId);
   if (!prop) return res.status(404).json({ error: 'Property not found' });
   
-  const unitIds = prop.units.map(u => u.id);
+  // Se adminEmail for fornecido, verificamos se ele é o dono (Isolamento)
+  if (adminEmail && prop.adminEmail !== adminEmail) {
+    return res.status(403).json({ error: 'Unauthorized access to this property history' });
+  }
+  
   const propVisitors = visitors
-    .filter(v => unitIds.includes(v.unitId))
+    .filter(v => v.propertyId === req.params.propertyId)
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     .slice(0, 200);
   res.json(propVisitors);
@@ -174,7 +193,6 @@ app.post('/api/resident/login', (req, res) => {
   res.json({ unitId: foundUnit.id, unitName: foundUnit.name, propertyName: foundProperty.name, propertyId: foundProperty.id });
 });
 
-// Login por CÓDIGO apenas (para condomínios e vilas — sem precisar de e-mail)
 app.post('/api/resident/login-by-code', (req, res) => {
   const { accessCode } = req.body;
   if (!accessCode) return res.status(400).json({ error: 'Código de acesso é obrigatório.' });
@@ -195,15 +213,11 @@ app.post('/api/resident/login-by-code', (req, res) => {
   });
 });
 
-// ─── Mapa de sockets de moradores ativos ─────────────────────────────────────
-// unitId → Set<socketId>
 const residentSockets = new Map();
 
-// ─── WebSockets ───────────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
   console.log('[WS] conectado:', socket.id);
 
-  // Morador entra na sala da sua unidade
   socket.on('register_resident', ({ unitId }) => {
     socket.join(`unit_${unitId}`);
     if (!residentSockets.has(unitId)) residentSockets.set(unitId, new Set());
@@ -211,35 +225,31 @@ io.on('connection', (socket) => {
     console.log(`[WS] Morador ${socket.id} → unit_${unitId}`);
   });
 
-  // Visitante toca a campainha
-  socket.on('initiate_call', ({ unitId, photoBase64 }) => {
-    console.log(`[WS] Chamada para unit_${unitId} de ${socket.id}`);
+  socket.on('initiate_call', ({ unitId, propertyId, photoBase64 }) => {
+    console.log(`[WS] Chamada para unit_${unitId} na prop_${propertyId} de ${socket.id}`);
 
-    // Salva o visitante no histórico
     const visit = {
       id: uuidv4(),
       unitId,
+      propertyId, // Isolamento vinculado à propriedade
       visitorSocketId: socket.id,
       photo: photoBase64 || null,
       timestamp: new Date().toISOString()
     };
     visitors.push(visit);
-    // Mantém apenas as últimas 500 visitas para não inflar o JSON
     if (visitors.length > 500) visitors = visitors.slice(-500);
     saveVisitors();
 
-    // Notifica moradores da unidade
     io.to(`unit_${unitId}`).emit('incoming_call', {
       visitorSocketId: socket.id,
       photo: photoBase64,
       timestamp: visit.timestamp,
-      visitId: visit.id
+      visitId: visit.id,
+      propertyId
     });
   });
 
-  // Morador atende a chamada
   socket.on('answer_call', ({ visitorSocketId, mode, unitId }) => {
-    console.log(`[WS] Morador ${socket.id} atende ${visitorSocketId} modo=${mode}`);
     io.to(visitorSocketId).emit('call_answered', {
       residentSocketId: socket.id,
       mode,
@@ -247,37 +257,27 @@ io.on('connection', (socket) => {
     });
   });
 
-  // ─── WebRTC Signaling puro (sem PeerJS) ─────────────────────────────────
-  // O visitante envia offer para o morador
   socket.on('webrtc_offer', ({ target, offer }) => {
-    console.log(`[WRTc] offer de ${socket.id} para ${target}`);
     io.to(target).emit('webrtc_offer', { sender: socket.id, offer });
   });
 
-  // O morador responde com answer
   socket.on('webrtc_answer', ({ target, answer }) => {
-    console.log(`[WRTc] answer de ${socket.id} para ${target}`);
     io.to(target).emit('webrtc_answer', { sender: socket.id, answer });
   });
 
-  // Troca de ICE candidates (ambos os lados)
   socket.on('webrtc_ice_candidate', ({ target, candidate }) => {
     io.to(target).emit('webrtc_ice_candidate', { sender: socket.id, candidate });
   });
 
-  // Sinaliza encerramento de chamada
   socket.on('call_ended', ({ target }) => {
     if (target) io.to(target).emit('call_ended');
   });
 
-  // Morador envia mensagem rápida para o visitante
   socket.on('send_quick_message', ({ target, message }) => {
     if (target) io.to(target).emit('quick_message', { message });
   });
 
   socket.on('disconnect', () => {
-    console.log('[WS] desconectado:', socket.id);
-    // Remove morador dos maps
     residentSockets.forEach((sockets, unitId) => {
       sockets.delete(socket.id);
       if (sockets.size === 0) residentSockets.delete(unitId);
@@ -289,3 +289,4 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
 });
+

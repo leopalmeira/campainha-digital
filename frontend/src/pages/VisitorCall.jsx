@@ -241,6 +241,7 @@ export default function VisitorCall() {
 
     socketRef.current.emit('initiate_call', {
       unitId: unit.id,
+      propertyId: property.id, // Vínculo com a propriedade para isolamento
       photoBase64: photo
     });
   };

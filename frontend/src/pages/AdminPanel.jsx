@@ -83,8 +83,12 @@ export default function AdminPanel() {
 
   const fetchVisitors = async (propertyId) => {
     setLoadingVisitors(true);
+    const adminEmail = localStorage.getItem('cd_admin_email');
     try {
-      const res  = await fetch(`${API}/api/visitors/property/${propertyId}`);
+      const url = adminEmail 
+        ? `${API}/api/visitors/property/${propertyId}?adminEmail=${encodeURIComponent(adminEmail)}`
+        : `${API}/api/visitors/property/${propertyId}`;
+      const res  = await fetch(url);
       const data = await res.json();
       setVisitors(data);
     } catch { setVisitors([]); }
@@ -144,7 +148,14 @@ export default function AdminPanel() {
 
   const deleteProperty = async (id) => {
     if (!window.confirm('Excluir esta placa?')) return;
-    try { await fetch(`${API}/api/properties/${id}`, { method: 'DELETE' }); fetchProperties(); } catch {}
+    const adminEmail = localStorage.getItem('cd_admin_email');
+    try { 
+      const url = adminEmail 
+        ? `${API}/api/properties/${id}?adminEmail=${encodeURIComponent(adminEmail)}`
+        : `${API}/api/properties/${id}`;
+      await fetch(url, { method: 'DELETE' }); 
+      fetchProperties(); 
+    } catch {}
   };
 
   const downloadQR = (url, name) => { const a = document.createElement('a'); a.href = url; a.download = `QR_${name}.png`; a.click(); };

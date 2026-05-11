@@ -81,7 +81,7 @@ function VisitorCard({ v }) {
   );
 }
 
-export function HistoryPanel({ unitId }) {
+export function HistoryPanel({ unitId, propertyId }) {
   const [visitors, setVisitors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('all'); // all | today | withPhoto
@@ -89,7 +89,10 @@ export function HistoryPanel({ unitId }) {
   const load = async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/api/visitors/${unitId}`);
+      const url = propertyId 
+        ? `${API}/api/visitors/${unitId}?propertyId=${propertyId}`
+        : `${API}/api/visitors/${unitId}`;
+      const r = await fetch(url);
       setVisitors(await r.json());
     } catch { setVisitors([]); }
     finally { setLoading(false); }
@@ -197,30 +200,17 @@ export const DEFAULT_CATEGORIES = [
   { id: 'general',  label: '💬 Geral',             messages: ['Volto já!', 'Não estou em casa', 'Um momento, por favor', 'Pode deixar recado'] },
 ];
 
-export function SettingsPanel({ unitName, setUnitName, onSave, unitId }) {
+export function SettingsPanel({ unitName, setUnitName, onSave, unitId, propertyId }) {
   const [activeCategory, setActiveCategory] = useState('general');
   const [savedMessages, setSavedMessages] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cd_quick_msgs') || 'null') || DEFAULT_CATEGORIES; } catch { return DEFAULT_CATEGORIES; }
   });
   const [customMsg, setCustomMsg] = useState('');
   const [saved, setSaved] = useState(false);
-  const [accessCode, setAccessCode] = useState('');
+  const [accessCode, setAccessCode] = useState(() => localStorage.getItem('residentAccessCode') || '');
   const [codeCopied, setCodeCopied] = useState(false);
 
-  // Busca o código de acesso desta unidade
-  useEffect(() => {
-    const fetchCode = async () => {
-      try {
-        const res = await fetch(`${API}/api/properties`);
-        const props = await res.json();
-        for (const p of props) {
-          const unit = p.units?.find(u => u.id === unitId);
-          if (unit) { setAccessCode(unit.accessCode); break; }
-        }
-      } catch {}
-    };
-    if (unitId) fetchCode();
-  }, [unitId]);
+  // Removido o fetch para /api/properties por motivos de segurança e isolamento
 
   const copyCode = () => {
     if (!accessCode) return;
