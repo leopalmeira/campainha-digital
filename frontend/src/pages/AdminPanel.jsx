@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle } from 'lucide-react';
+import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle, CreditCard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -59,6 +59,7 @@ export default function AdminPanel() {
   const [propertyName, setPropertyName]     = useState('');
   const [unitsList, setUnitsList]   = useState([{ name: '' }]);
   const [scanning, setScanning]     = useState(false);
+  const [scannedId, setScannedId]   = useState('');
   const [visitors, setVisitors]     = useState([]);
   const [loadingVisitors, setLoadingVisitors] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -75,7 +76,7 @@ export default function AdminPanel() {
       const data = await res.json();
       
       setProperties(data);
-      if (data.length === 0) setOnboardingStep('scan');
+      if (data.length === 0) setOnboardingStep('type');
       if (data.length > 0) setSelectedProperty(data[0].id);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -101,20 +102,31 @@ export default function AdminPanel() {
 
   const startScan = async () => {
     setScanning(true);
+    // Simulating scanning a QR code from a plate
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+      
+      // Simulation: after 3 seconds, it "finds" a QR code
       setTimeout(() => {
         if (videoRef.current?.srcObject) videoRef.current.srcObject.getTracks().forEach(t => t.stop());
-        setScanning(false); setOnboardingStep('type');
+        setScanning(false);
+        const mockScannedId = Math.random().toString(36).substring(2, 10).toUpperCase();
+        setScannedId(mockScannedId);
+        handleSubmit(mockScannedId);
       }, 3000);
-    } catch { setScanning(false); setOnboardingStep('type'); }
+    } catch { 
+      setScanning(false); 
+      alert('Câmera não disponível. Usando ID de teste para demonstração.');
+      const mockScannedId = 'TEST-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+      setScannedId(mockScannedId);
+      handleSubmit(mockScannedId);
+    }
   };
 
   const selectType = (type) => {
     setPropertyType(type);
     setPropertyName(type === 'individual' ? 'Minha Casa' : '');
-    // Reseta as unidades ao trocar de tipo
     setUnitsList([{ name: '' }]);
     setOnboardingStep('config');
   };
@@ -123,16 +135,16 @@ export default function AdminPanel() {
   const addUnit    = () => setUnitsList(prev => [...prev, { name: '' }]);
   const removeUnit = (i) => { if (unitsList.length > 1) setUnitsList(unitsList.filter((_, idx) => idx !== i)); };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (idFromScanner) => {
+    const finalId = idFromScanner || scannedId;
     const units = propertyType !== 'individual' ? unitsList.filter(u => u.name.trim()) : [];
-    if (propertyType !== 'individual' && units.length === 0) return alert('Adicione pelo menos uma unidade.');
-    
     const adminEmail = localStorage.getItem('cd_admin_email');
     
     try {
       const res = await fetch(`${API}/api/properties`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
+          id: finalId,
           type: propertyType === 'individual' ? 'individual' : 'collective', 
           name: propertyName, 
           units,
@@ -142,6 +154,10 @@ export default function AdminPanel() {
       if (res.ok) { 
         setOnboardingStep(null); 
         fetchProperties(); 
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao ativar placa.');
+        setOnboardingStep('scan');
       }
     } catch (err) { console.error(err); }
   };
@@ -163,27 +179,25 @@ export default function AdminPanel() {
   // ── Onboarding ─────────────────────────────────────────────────────────────
   if (onboardingStep === 'scan') return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div className="fade-in" style={{ textAlign: 'center', maxWidth: '400px' }}>
-        <div style={{ display: 'inline-flex', padding: '20px', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '24px', border: '1px solid var(--border-subtle)', marginBottom: '32px' }}>
-          <ScanLine size={56} color="var(--primary)" />
+      <div className="fade-in" style={{ textAlign: 'center', maxWidth: '400px', width: '100%' }}>
+        <div style={{ display: 'inline-flex', padding: '20px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: '24px', border: '1px solid var(--border-subtle)', marginBottom: '32px' }}>
+          <ScanLine size={56} color="#10B981" />
         </div>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '12px' }}>Bem-vindo!</h1>
+        <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '12px' }}>Ativar Placa</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1.6, marginBottom: '40px' }}>
-          Escaneie a <strong style={{ color: 'var(--text-main)' }}>placa QR Code</strong> ou configure manualmente.
+          Agora escaneie o <strong style={{ color: 'var(--text-main)' }}>QR Code da sua placa física</strong> para finalizar a ativação.
         </p>
         {scanning ? (
-          <div style={{ borderRadius: '20px', overflow: 'hidden', border: '2px solid var(--primary)', marginBottom: '24px', position: 'relative' }}>
+          <div style={{ borderRadius: '20px', overflow: 'hidden', border: '2px solid #10B981', marginBottom: '24px', position: 'relative' }}>
             <video ref={videoRef} style={{ width: '100%', height: '300px', objectFit: 'cover', display: 'block' }} playsInline muted />
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '200px', height: '200px', border: '2px solid var(--primary)', borderRadius: '16px', boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)' }} />
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translateX(-50%) translateY(-50%)', width: '200px', height: '200px', border: '2px solid #10B981', borderRadius: '16px', boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)' }} />
           </div>
         ) : (
-          <button onClick={startScan} className="btn-primary" style={{ width: '100%', padding: '18px', fontSize: '18px', marginBottom: '16px' }}>
-            <Camera size={24} /> Abrir Câmera
+          <button onClick={startScan} className="btn-primary" style={{ width: '100%', padding: '18px', fontSize: '18px', marginBottom: '16px', background: '#10B981' }}>
+            <Camera size={24} /> Escanear Agora
           </button>
         )}
-        <button onClick={() => setOnboardingStep('type')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '14px' }}>
-          Configurar manualmente →
-        </button>
+        <button onClick={() => setOnboardingStep('pay')} style={{ display: 'block', margin: '24px auto 0', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px' }}>← Voltar ao Pagamento</button>
       </div>
     </div>
   );
@@ -255,11 +269,42 @@ export default function AdminPanel() {
               </button>
             </div>
           )}
-          <button onClick={handleSubmit} className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '16px', marginTop: '24px' }}>
-            Ativar Campainha <ChevronRight size={20} />
+          <button onClick={() => setOnboardingStep('pay')} className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '16px', marginTop: '24px' }}>
+            Prosseguir para Pagamento <ChevronRight size={20} />
           </button>
         </div>
         <button onClick={() => setOnboardingStep('type')} style={{ display: 'block', margin: '16px auto 0', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px' }}>← Voltar</button>
+      </div>
+    </div>
+  );
+
+  if (onboardingStep === 'pay') return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div className="fade-in" style={{ maxWidth: '400px', width: '100%', textAlign: 'center' }}>
+        <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+          <CreditCard size={32} color="#10B981" />
+        </div>
+        <h2 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '12px' }}>Pagamento</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '15px', lineHeight: 1.6, marginBottom: '32px' }}>
+          Ative sua campainha digital por apenas <strong style={{ color: 'var(--primary)' }}>R$ 15,00/mês</strong>.
+        </p>
+        
+        <div className="premium-card" style={{ padding: '24px', textAlign: 'left', marginBottom: '32px' }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px', fontWeight: 600 }}>RESUMO DO PEDIDO</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span>Plano Mensal - {propertyName}</span>
+            <span style={{ fontWeight: 700 }}>R$ 15,00</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: '8px', marginTop: '8px' }}>
+            <span style={{ fontWeight: 800 }}>Total</span>
+            <span style={{ fontWeight: 800, color: 'var(--primary)' }}>R$ 15,00</span>
+          </div>
+        </div>
+
+        <button onClick={() => setOnboardingStep('scan')} className="btn-primary" style={{ width: '100%', padding: '18px', fontSize: '16px', marginBottom: '16px', background: 'linear-gradient(135deg, #10B981, #059669)' }}>
+          💳 Pagar e Ativar Placa
+        </button>
+        <button onClick={() => setOnboardingStep('config')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px' }}>← Voltar para Configuração</button>
       </div>
     </div>
   );
