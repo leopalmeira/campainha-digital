@@ -238,6 +238,16 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
+## 🚀 v2.9.10 — Refinamento de UX e Som na Home (12/05/2026)
+
+### Landing Page
+- **Restauração do Layout**: Reposicionei o mockup original do iPhone no Hero para manter a demonstração do app, conforme solicitado.
+- **Destaque de Vídeo IA**: O vídeo do avatar foi movido para uma seção de destaque absoluta no topo da página (acima do Hero), garantindo impacto imediato sem interferir na visualização do smartphone.
+- **Ativação de Áudio**: Removido o atributo `muted` padrão para permitir áudio. Adicionado suporte a clique no vídeo para iniciar o som (necessário devido às políticas de autoplay dos navegadores) e um indicador visual "Clique para Som".
+- **Corte de Precisão (Zoom)**: Ajustado o zoom do vídeo (`scale(1.3)`) para garantir que as barras brancas superiores e inferiores sejam cortadas de forma limpa, mantendo o enquadramento no avatar.
+
+---
+
 ## 🛠️ Próximos Passos
 - [ ] Implementação real dos gráficos no módulo de Analytics.
 - [ ] Integração Pix automatizada via API de pagamentos.
