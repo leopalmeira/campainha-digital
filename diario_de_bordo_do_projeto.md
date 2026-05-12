@@ -187,6 +187,19 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
+## 🎨 v2.9.6 — Padronização de Branding HD (12/05/2026)
+
+### Branding & Design
+- **Novo Logo HD**: Criado um componente de Logo em SVG de alta definição, garantindo nitidez perfeita em qualquer tamanho de tela (mobile, tablet e desktop). O design segue a identidade visual da marca: ícone de onda digital circular com centro laranja vibrante e tipografia moderna.
+- **Unificação Total**: O novo logo foi aplicado em todos os pontos de contato da plataforma:
+    - Landing Page (Home)
+    - Telas de Login (Morador, Porteiro e Administrador)
+    - Painéis de Controle (Admin, Master e Porteiro)
+    - Interface do Visitante (Tela de Chamada)
+- **Consistência Visual**: A substituição de ícones genéricos pelo logo oficial reforça o profissionalismo e a confiança na marca Campainha-Digital.
+
+---
+
 ## 🛠️ Próximos Passos
 - [ ] Implementação real dos gráficos no módulo de Analytics.
 - [ ] Integração Pix automatizada via API de pagamentos.
