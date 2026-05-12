@@ -183,7 +183,7 @@ export default function MasterAdminDashboard() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAFC', color: '#1E293B', display: 'flex', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#FFFFFF', color: '#1E293B', display: 'flex', fontFamily: 'Inter, sans-serif' }}>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       
       {/* SIDEBAR */}
@@ -202,6 +202,7 @@ export default function MasterAdminDashboard() {
           <SidebarLink icon={History} label="Logs do Sistema" active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} />
           <SidebarLink icon={CreditCard} label="Financeiro / Pix" active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} />
           <SidebarLink icon={Headphones} label="Suporte & Tickets" active={activeTab === 'support'} onClick={() => setActiveTab('support')} />
+          <SidebarLink icon={MessageCircle} label="Indicações / Vizinho" active={activeTab === 'referrals'} onClick={() => setActiveTab('referrals')} />
           <SidebarLink icon={Settings2} label="Config. Globais" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
           <SidebarLink icon={Database} label="API / Integrações" active={activeTab === 'api'} onClick={() => setActiveTab('api')} />
         </nav>
@@ -221,14 +222,19 @@ export default function MasterAdminDashboard() {
       </aside>
 
       {/* CONTENT AREA */}
-      <main style={{ flex: 1, marginLeft: '280px', padding: '40px' }}>
+      <main style={{ flex: 1, padding: '40px' }}>
         
         {/* HEADER */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
           <div>
-            <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px' }}>
+            <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', letterSpacing: '-1.5px' }}>
               {activeTab === 'clients' && "Visão Geral de Clientes"}
               {activeTab === 'register' && "Registrar Nova Placa"}
+              {activeTab === 'analytics' && "Analytics de Produção"}
+              {activeTab === 'doormen' && "Gestão de Portarias"}
+              {activeTab === 'billing' && "Financeiro & Assinaturas"}
+              {activeTab === 'support' && "Central de Suporte Mestre"}
+              {activeTab === 'referrals' && "Programa de Indicações"}
             </h2>
             <p style={{ color: '#64748B', fontSize: '16px', marginTop: '4px' }}>Controle total sobre a infraestrutura Campainha Digital.</p>
           </div>
@@ -241,20 +247,22 @@ export default function MasterAdminDashboard() {
         </header>
 
         {/* STATS GRID */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '40px' }}>
-          {stats.map((s, i) => (
-            <div key={i} style={{ background: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <div style={{ background: `${s.color}15`, padding: '10px', borderRadius: '12px' }}>
-                  <s.icon size={24} color={s.color} />
+        {activeTab === 'clients' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '40px' }}>
+            {stats.map((s, i) => (
+              <div key={i} style={{ background: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <div style={{ background: `${s.color}15`, padding: '10px', borderRadius: '12px' }}>
+                    <s.icon size={24} color={s.color} />
+                  </div>
+                  <div style={{ color: '#10B981', fontSize: '12px', fontWeight: 700 }}>+12% ↑</div>
                 </div>
-                <div style={{ color: '#10B981', fontSize: '12px', fontWeight: 700 }}>+12% ↑</div>
+                <p style={{ color: '#64748B', fontSize: '14px', fontWeight: 600, margin: 0 }}>{s.label}</p>
+                <h3 style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', margin: '4px 0 0' }}>{s.value}</h3>
               </div>
-              <p style={{ color: '#64748B', fontSize: '14px', fontWeight: 600, margin: 0 }}>{s.label}</p>
-              <h3 style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A', margin: '4px 0 0' }}>{s.value}</h3>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* MAIN VIEWS */}
         <div style={{ background: '#FFF', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
@@ -522,20 +530,95 @@ export default function MasterAdminDashboard() {
           )}
 
           {activeTab === 'support' && (
-            <div style={{ padding: '20px' }}>
-              <SectionTitle icon={Headphones} title="Central de Suporte" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' }}>
-                <div style={{ padding: '20px', background: '#FFF5F5', border: '1px solid #FEE2E2', borderRadius: '16px', display: 'flex', justifyContent: 'space-between' }}>
-                  <div>
-                    <span style={{ fontSize: '11px', background: '#EF4444', color: '#FFF', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>URGENTE</span>
-                    <h4 style={{ margin: '8px 0 4px', fontWeight: 800 }}>Problema na conexão de áudio - Condomínio Solar</h4>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>Aberto há 12 minutos por Porteiro Joâo</p>
+             <div style={{ padding: '10px' }}>
+               <SectionTitle icon={Headphones} title="Central de Suporte" />
+               <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 300px', gap: '32px' }}>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ padding: '20px', background: '#FFF1F2', border: '1px solid #FECACA', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '10px', background: '#EF4444', color: '#FFF', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>URGENTE</span>
+                          <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>TICKET #8821</span>
+                        </div>
+                        <h4 style={{ margin: '0 0 4px', fontWeight: 800 }}>Problema na conexão de áudio - Condomínio Solar</h4>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>Aberto há 12 minutos por Porteiro João</p>
+                      </div>
+                      <button style={{ padding: '10px 20px', borderRadius: '8px', background: '#FFF', border: '1px solid #EF4444', color: '#EF4444', fontWeight: 700, cursor: 'pointer' }}>ASSUMIR TICKET</button>
+                    </div>
+                    {[1,2].map(i => (
+                      <div key={i} style={{ padding: '20px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '10px', background: '#64748B', color: '#FFF', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>PENDENTE</span>
+                            <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>TICKET #881{i}</span>
+                          </div>
+                          <h4 style={{ margin: '0 0 4px', fontWeight: 800 }}>Dúvida sobre cadastro de novas unidades</h4>
+                          <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>Aberto há 2 horas por Admin Maria</p>
+                        </div>
+                        <button style={{ padding: '10px 20px', borderRadius: '8px', background: '#FFF', border: '1px solid #3B82F6', color: '#3B82F6', fontWeight: 700, cursor: 'pointer' }}>RESPONDER</button>
+                      </div>
+                    ))}
+                 </div>
+                 <div style={{ padding: '24px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
+                    <h5 style={{ margin: '0 0 16px', fontWeight: 800 }}>Resumo de Suporte</h5>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '13px', color: '#64748B' }}>Tickets Abertos</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700 }}>12</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '13px', color: '#64748B' }}>Tempo Médio</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700 }}>14 min</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '13px', color: '#64748B' }}>Satisfação</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#10B981' }}>98%</span>
+                    </div>
+                 </div>
+               </div>
+             </div>
+           )}
+
+           {activeTab === 'referrals' && (
+             <div style={{ padding: '10px' }}>
+               <SectionTitle icon={MessageCircle} title="Programa de Indicações de Vizinhos" />
+               <p style={{ color: '#64748B', marginTop: '12px' }}>Acompanhe os vizinhos indicados e coloque-os no sistema sem sair de casa.</p>
+               
+               <div style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+                  <div style={{ padding: '24px', background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '16px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#0369A1', marginBottom: '8px' }}>TOTAL INDICADOS</div>
+                    <div style={{ fontSize: '32px', fontWeight: 900, color: '#0C4A6E' }}>84</div>
                   </div>
-                  <button style={{ alignSelf: 'center', padding: '10px 20px', borderRadius: '10px', background: '#FFF', border: '1px solid #EF4444', color: '#EF4444', fontWeight: 700 }}>ASSUMIR TICKET</button>
-                </div>
-              </div>
-            </div>
-          )}
+                  <div style={{ padding: '24px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '16px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#166534', marginBottom: '8px' }}>CONVERTIDOS</div>
+                    <div style={{ fontSize: '32px', fontWeight: 900, color: '#064E3B' }}>32</div>
+                  </div>
+                  <div style={{ padding: '24px', background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '16px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#92400E', marginBottom: '8px' }}>EM CONTATO</div>
+                    <div style={{ fontSize: '32px', fontWeight: 900, color: '#78350F' }}>12</div>
+                  </div>
+               </div>
+
+               <div style={{ marginTop: '40px' }}>
+                 <h4 style={{ fontWeight: 800, marginBottom: '20px' }}>Indicações Recentes</h4>
+                 <div style={{ background: '#F8FAFC', borderRadius: '16px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                    {[1,2,3].map(i => (
+                      <div key={i} style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFF' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={20} color="#94A3B8"/></div>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: 700 }}>Vizinho do {['Apartamento 102', 'Lote 14', 'Bloco B'][i-1]}</div>
+                            <div style={{ fontSize: '12px', color: '#64748B' }}>Indicado por: Condomínio Solar das Palmeiras</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <button style={{ padding: '8px 16px', borderRadius: '8px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>ATIVAR CLIENTE REMOTAMENTE</button>
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+               </div>
+             </div>
+           )}
 
           {activeTab === 'settings' && (
             <div style={{ padding: '20px' }}>

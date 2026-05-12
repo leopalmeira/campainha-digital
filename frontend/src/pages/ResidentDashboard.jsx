@@ -280,9 +280,19 @@ export default function ResidentDashboard() {
                     localStorage.removeItem('residentUnitId');
                     navigate('/morador-login');
                   }} 
-                  style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: 'rgba(239,68,68,0.1)', color: '#EF4444', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }}
+                  style={{ width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: 'rgba(239,68,68,0.1)', color: '#EF4444', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s', marginBottom: '12px' }}
                 >
                   <LogOut size={18} /> Sair do App
+                </button>
+
+                <button 
+                  onClick={() => {
+                    const text = encodeURIComponent(`Olá vizinho! 👋 Estou usando a Campainha Digital aqui no ${unitName} e recomendo muito! \n\nConsigo atender o portão pelo celular de qualquer lugar e ver quem está chamando por vídeo. \n\nAcesse e veja como funciona: https://campainha-digital.com.br`);
+                    window.open(`https://wa.me/?text=${text}`, '_blank');
+                  }} 
+                  style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #10B981', background: '#FFFFFF', color: '#10B981', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }}
+                >
+                  <MessageCircle size={18} /> Indicar para um Vizinho
                 </button>
               </div>
 
