@@ -56,29 +56,32 @@ export default function LandingPage() {
               <Shield size={14} /> Mais segurança para você
             </div>
             
-            <h1 className="animate-fade-up delay-100" style={{ fontSize: 'clamp(36px, 5vw, 64px)', lineHeight: 1.1, fontWeight: 800, letterSpacing: '-1.5px', marginBottom: '24px' }}>
-              Atenda o portão de <span className="text-gradient-primary">qualquer lugar.</span>
+            <h1 className="animate-fade-up delay-100" style={{ fontSize: 'clamp(48px, 6vw, 72px)', lineHeight: 1, fontWeight: 900, letterSpacing: '-3px', marginBottom: '24px', textTransform: 'uppercase' }}>
+              Atenda o portão de <br/>
+              <span className="text-gradient-primary">qualquer lugar.</span>
             </h1>
             
-            <p className="animate-fade-up delay-200" style={{ fontSize: 'clamp(16px, 2vw, 20px)', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '24px', maxWidth: '540px' }}>
-              <strong style={{ color: '#fff' }}>Agora você vai poder atender de longe, mesmo estando na rua.</strong> Não precisa ir até o portão para ver quem está chamando. Receba a imagem no seu celular instantaneamente.
+            <p className="animate-fade-up delay-200" style={{ fontSize: 'clamp(18px, 2.5vw, 22px)', color: 'var(--text-muted)', lineHeight: 1.4, marginBottom: '32px', maxWidth: '600px', fontWeight: 500 }}>
+              <strong style={{ color: '#fff' }}>Segurança definitiva sem fios ou obras.</strong> Receba chamadas de vídeo instantâneas no seu celular.
             </p>
 
-            <div className="animate-fade-up delay-300" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px', color: '#10B981', fontWeight: 600, fontSize: '14px' }}>
-              <Home size={16} /> Ideal para casas simples, vilas e grandes condomínios.
+            <div className="animate-fade-up delay-300" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '40px', color: '#10B981', fontWeight: 700, fontSize: '14px', letterSpacing: '0.5px' }}>
+              <div style={{ width: '12px', height: '12px', borderRadius: '2px', background: '#10B981', boxShadow: '0 0 10px #10B981' }}></div>
+              IDEAL PARA CASAS, VILAS E CONDOMÍNIOS
             </div>
 
-            {/* Avatar Video - Moved here, below text */}
-            <div className="animate-fade-up delay-350" style={{ marginBottom: '32px' }}>
+            {/* Avatar Video - Positioned BELOW text as requested */}
+            <div className="animate-fade-up delay-350" style={{ marginBottom: '40px', position: 'relative' }}>
               <div style={{ 
                 width: '100%', 
                 maxWidth: '540px', 
-                borderRadius: '24px', 
+                borderRadius: '0', // Sharp geometry for technical feel
                 overflow: 'hidden', 
                 background: '#000',
                 position: 'relative',
                 aspectRatio: '16/9',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.1)'
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 20px 80px rgba(0, 229, 255, 0.15)'
               }}>
                 <video 
                   autoPlay 
@@ -88,25 +91,29 @@ export default function LandingPage() {
                     width: '100%', 
                     height: '100%', 
                     objectFit: 'cover',
-                    transform: 'scale(1.3)' 
+                    transform: 'scale(1.4)' // Even more crop to ensure no bars
                   }}
                   onMouseOver={(e) => { e.target.volume = 1.0; e.target.play(); }}
                   id="hero-video"
                 >
                   <source src="/avatar.mp4" type="video/mp4" />
                 </video>
+                
+                {/* Visual Depth Overlay */}
+                <div style={{ position: 'absolute', inset: 0, border: '1px solid rgba(255,255,255,0.05)', pointerEvents: 'none' }}></div>
               </div>
             </div>
+
+
             
-            <div className="animate-fade-up delay-400" style={{ display: 'flex', gap: '16px', flexDirection: 'column' }}>
+            <div className="animate-fade-up delay-400" style={{ display: 'flex', gap: '16px', flexDirection: 'row', alignItems: 'center' }}>
               <Link to="/auth" style={{ textDecoration: 'none' }}>
-                <button className="btn-primary" style={{ padding: '16px 24px', fontSize: '16px' }}>
-                  Assinar por R$ 39,90/mês <ArrowRight size={20} />
+                <button className="btn-primary" style={{ padding: '20px 40px', fontSize: '18px', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  Assinar R$ 39,90 <ArrowRight size={20} />
                 </button>
               </Link>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
-                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary)' }}></div>
-                 Para condomínios, consulte nossos planos especiais com preços reduzidos por unidade.
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '200px', lineHeight: 1.3, fontWeight: 600 }}>
+                 Planos especiais para condomínios sob consulta.
               </div>
             </div>
           </div>
@@ -207,8 +214,6 @@ export default function LandingPage() {
               </Link>
             </div>
           </div>
-        </div>
-      </section>
         </div>
       </section>
 
