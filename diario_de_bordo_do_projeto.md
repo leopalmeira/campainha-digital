@@ -248,6 +248,16 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
+## 📽️ v2.9.12 — Relocação do Vídeo e Ajuste de Autoplay (12/05/2026)
+
+### Landing Page
+- **Nova Posição do Vídeo**: O vídeo de apresentação foi movido para dentro do Hero, posicionado estrategicamente logo abaixo do texto principal ("Atenda o portão..."), otimizando o fluxo de leitura e impacto visual.
+- **Remoção de Menções a IA**: Removidos todos os selos e textos que referenciavam o vídeo como sendo gerado por Inteligência Artificial, tornando a apresentação mais natural e direta.
+- **Som Ativado**: Configurado o vídeo para carregar com som ativado por padrão. Adicionado suporte a `onMouseOver` para forçar o `play` e `volume` caso o navegador bloqueie o autoplay silencioso.
+- **Limpeza de Layout**: Removida a seção superior redundante que continha o vídeo anteriormente.
+
+---
+
 ## 🛠️ Próximos Passos
 - [ ] Implementação real dos gráficos no módulo de Analytics.
 - [ ] Integração Pix automatizada via API de pagamentos.
