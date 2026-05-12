@@ -71,10 +71,10 @@ export default function AuthPage() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative', overflow: 'hidden', background: 'var(--bg-deep)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative', overflow: 'hidden', background: '#F8FAFC' }}>
       
-      <div style={{ position: 'absolute', top: '20%', left: '10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(0, 229, 255, 0.15) 0%, transparent 60%)', filter: 'blur(60px)', animation: 'mesh-pulse 15s infinite alternate ease-in-out', zIndex: 0 }}></div>
-      <div style={{ position: 'absolute', bottom: '10%', right: '10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 60%)', filter: 'blur(60px)', animation: 'mesh-pulse 20s infinite alternate-reverse ease-in-out', zIndex: 0 }}></div>
+      <div style={{ position: 'absolute', top: '20%', left: '10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 60%)', filter: 'blur(60px)', zIndex: 0 }}></div>
+      <div style={{ position: 'absolute', bottom: '10%', right: '10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 60%)', filter: 'blur(60px)', zIndex: 0 }}></div>
       
       <div style={{ position: 'absolute', top: '32px', left: '32px', zIndex: 10 }}>
          <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600 }}>
@@ -88,11 +88,11 @@ export default function AuthPage() {
         {isLogin && (
           <>
             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-              <div style={{ display: 'inline-flex', padding: '16px', background: 'rgba(0, 229, 255, 0.05)', borderRadius: '20px', border: '1px solid var(--border-subtle)', marginBottom: '24px', boxShadow: '0 0 40px rgba(0, 229, 255, 0.1)' }}>
+              <div style={{ display: 'inline-flex', padding: '16px', background: '#FFF', borderRadius: '20px', border: '1px solid var(--border-subtle)', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
                  <ShieldCheck size={40} color="var(--primary)" />
               </div>
-              <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '12px' }}>Acessar Painel</h2>
-              <p className="text-muted" style={{ fontSize: '14px', lineHeight: 1.5 }}>Entre com seu e-mail e código único de cliente.</p>
+              <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '12px', color: 'var(--text-main)' }}>Acessar Painel</h2>
+              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-muted)' }}>Entre com seu e-mail e código único de cliente.</p>
             </div>
 
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -127,11 +127,11 @@ export default function AuthPage() {
         {!isLogin && step === 1 && (
           <>
             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-              <div style={{ display: 'inline-flex', padding: '16px', background: 'rgba(0, 229, 255, 0.05)', borderRadius: '20px', border: '1px solid var(--border-subtle)', marginBottom: '24px' }}>
+              <div style={{ display: 'inline-flex', padding: '16px', background: '#FFF', borderRadius: '20px', border: '1px solid var(--border-subtle)', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
                  <User size={40} color="var(--primary)" />
               </div>
-              <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '12px' }}>Criar Conta</h2>
-              <p className="text-muted" style={{ fontSize: '14px', lineHeight: 1.5 }}>Primeiro, seus dados pessoais. Depois escolha o tipo de imóvel.</p>
+              <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '12px', color: 'var(--text-main)' }}>Criar Conta</h2>
+              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-muted)' }}>Primeiro, seus dados pessoais. Depois escolha o tipo de imóvel.</p>
             </div>
 
             <form onSubmit={handleRegisterStep1} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -164,8 +164,8 @@ export default function AuthPage() {
         {!isLogin && step === 2 && (
           <>
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '8px' }}>Tipo de Imóvel</h2>
-              <p className="text-muted" style={{ fontSize: '14px', lineHeight: 1.5 }}>Selecione para configurarmos sua campainha corretamente.</p>
+              <h2 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '8px', color: 'var(--text-main)' }}>Tipo de Imóvel</h2>
+              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-muted)' }}>Selecione para configurarmos sua campainha corretamente.</p>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
@@ -181,11 +181,11 @@ export default function AuthPage() {
                     transition: 'all 0.2s', textAlign: 'left', width: '100%'
                   }}
                 >
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${pt.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${pt.color}10`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <pt.icon size={24} color={pt.color} />
                   </div>
                   <div>
-                    <strong style={{ color: '#fff', fontSize: '16px', display: 'block' }}>{pt.label}</strong>
+                    <strong style={{ color: 'var(--text-main)', fontSize: '16px', display: 'block' }}>{pt.label}</strong>
                     <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{pt.desc}</span>
                   </div>
                 </button>

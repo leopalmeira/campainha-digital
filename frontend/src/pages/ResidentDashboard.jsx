@@ -249,17 +249,17 @@ export default function ResidentDashboard() {
           {/* IDLE */}
           {status === 'idle' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 160px)', textAlign: 'center', padding: '24px' }}>
-              <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', boxShadow: '0 0 40px rgba(16,185,129,0.05)' }}>
+              <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: '#FFF', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
                 <Bell size={40} style={{ opacity: 0.3 }} color="#10B981" />
               </div>
               <h3 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '8px' }}>Aguardando Chamadas</h3>
               <p style={{ color: 'var(--text-muted)', maxWidth: '240px', fontSize: '14px', marginBottom: '32px' }}>Você será notificado assim que alguém tocar a campainha.</p>
               
               {/* Box de Informações e Sair */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '20px', width: '100%', maxWidth: '300px' }}>
+              <div style={{ background: '#FFF', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '20px', width: '100%', maxWidth: '300px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                 <div style={{ marginBottom: '20px' }}>
                   <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '1px', marginBottom: '8px' }}>SEU CÓDIGO DE ACESSO</p>
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '12px', borderRadius: '10px', border: '1px dashed rgba(255,255,255,0.1)', fontSize: '24px', fontWeight: 900, color: 'var(--primary)', letterSpacing: '4px', fontFamily: 'monospace' }}>
+                  <div style={{ background: '#F8FAFC', padding: '12px', borderRadius: '10px', border: '1px dashed #CBD5E1', fontSize: '24px', fontWeight: 900, color: 'var(--primary)', letterSpacing: '4px', fontFamily: 'monospace' }}>
                     {accessCode || '...'}
                   </div>
                 </div>
@@ -290,16 +290,16 @@ export default function ResidentDashboard() {
               </div>
 
               {/* Foto visitante */}
-              <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#000', aspectRatio: '4/3', position: 'relative', marginBottom: '16px' }}>
+              <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#F1F5F9', aspectRatio: '4/3', position: 'relative', marginBottom: '16px', border: '1px solid var(--border-subtle)' }}>
                 {call.photo ? <img src={call.photo} alt="Visitante" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}><Bell size={48} style={{ opacity: 0.2 }} /></div>}
-                <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.7)', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 700, backdropFilter: 'blur(8px)' }}>
+                  : <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}><Bell size={48} style={{ opacity: 0.1 }} /></div>}
+                <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.9)', color: '#0F172A', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 700, backdropFilter: 'blur(8px)', border: '1px solid var(--border-subtle)' }}>
                   📷 Visitante na porta
                 </div>
               </div>
 
               {/* Mensagens rápidas */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
+              <div style={{ background: '#FFF', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '16px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '10px' }}>📨 ENVIAR MENSAGEM RÁPIDA</p>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
                   {quickMsgs.map(c => (

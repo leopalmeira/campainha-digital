@@ -78,31 +78,29 @@ export default function ResidentLogin() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: '#030712', position: 'relative', overflow: 'hidden' }}>
-
-      {/* Futuristic Background */}
-      <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 60%)', filter: 'blur(80px)', animation: 'mesh-pulse 15s infinite alternate' }} />
-      <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(0,229,255,0.1) 0%, transparent 60%)', filter: 'blur(80px)', animation: 'mesh-pulse 20s infinite alternate-reverse' }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22 opacity=%220.03%22/%3E%3C/svg%3E")', zIndex: 0, pointerEvents: 'none' }} />
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: '#F8FAFC', position: 'relative', overflow: 'hidden' }}>
+      {/* Subtle Background elements */}
+      <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 60%)', filter: 'blur(80px)' }} />
+      <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(16,185,129,0.05) 0%, transparent 60%)', filter: 'blur(80px)' }} />
 
       {/* Back link */}
       <div style={{ position: 'absolute', top: '32px', left: '32px', zIndex: 10 }}>
-        <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, padding: '8px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '100px', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', transition: 'all 0.2s' }}>
+        <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, padding: '8px 16px', background: '#FFF', borderRadius: '100px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.2s' }}>
           <Home size={15} /> Voltar ao Site
         </Link>
       </div>
 
-      {/* ── PWA Banner (Agressivo & Premium) ── */}
+      {/* ── PWA Banner ── */}
       {installPrompt && !installed && (
-        <div className="fade-in" style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 48px)', maxWidth: '420px', background: 'rgba(10, 15, 25, 0.85)', borderRadius: '24px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', zIndex: 200, backdropFilter: 'blur(24px)', border: '1px solid rgba(16,185,129,0.3)', boxShadow: '0 24px 64px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05) inset' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'linear-gradient(135deg, #00E5FF, #10B981)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 8px 24px rgba(16,185,129,0.4)' }}>
-            <BellRing size={28} color="#000" strokeWidth={2.5} />
+        <div className="fade-in" style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 48px)', maxWidth: '420px', background: '#FFF', borderRadius: '24px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', zIndex: 200, border: '1px solid var(--border-subtle)', boxShadow: '0 24px 64px rgba(0,0,0,0.1)' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'linear-gradient(135deg, #3B82F6, #10B981)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 8px 24px rgba(59, 130, 246, 0.2)' }}>
+            <BellRing size={28} color="#FFF" strokeWidth={2.5} />
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ fontWeight: 800, fontSize: '15px', margin: '0 0 4px', color: '#fff' }}>Instale o App</p>
+            <p style={{ fontWeight: 800, fontSize: '15px', margin: '0 0 4px', color: 'var(--text-main)' }}>Instale o App</p>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>Notificações instantâneas e acesso com 1 toque.</p>
           </div>
-          <button onClick={handleInstall} style={{ background: '#fff', color: '#000', border: 'none', padding: '12px 20px', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, transition: 'transform 0.2s' }}>
+          <button onClick={handleInstall} style={{ background: 'var(--text-main)', color: '#FFF', border: 'none', padding: '12px 20px', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, transition: 'transform 0.2s' }}>
             <Download size={16} /> Obter
           </button>
         </div>
@@ -113,25 +111,25 @@ export default function ResidentLogin() {
         
         {/* Logo superior */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ width: '64px', height: '64px', margin: '0 auto 24px', borderRadius: '20px', background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(0,229,255,0.1))', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 60px rgba(16,185,129,0.15)' }}>
-             <ShieldCheck size={32} color="#10B981" />
+          <div style={{ width: '64px', height: '64px', margin: '0 auto 24px', borderRadius: '20px', background: '#FFF', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }}>
+             <ShieldCheck size={32} color="var(--primary)" />
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 900, letterSpacing: '-1px', marginBottom: '8px', background: 'linear-gradient(180deg, #FFFFFF 0%, #A1A1AA 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <h1 style={{ fontSize: '32px', fontWeight: 900, letterSpacing: '-1px', marginBottom: '8px', color: 'var(--text-main)' }}>
             Acesso Morador
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>Conecte-se à sua campainha digital</p>
         </div>
 
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '32px', padding: '8px', backdropFilter: 'blur(20px)', boxShadow: '0 24px 80px rgba(0,0,0,0.5)' }}>
+        <div style={{ background: '#FFF', border: '1px solid var(--border-subtle)', borderRadius: '32px', padding: '8px', boxShadow: '0 24px 80px rgba(0,0,0,0.06)' }}>
           
           {/* Toggle Switches */}
-          <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '24px', padding: '6px', marginBottom: '32px', position: 'relative' }}>
+          <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '24px', padding: '6px', marginBottom: '32px', position: 'relative' }}>
             <button onClick={() => { setLoginType('code'); setError(''); }}
-              style={{ flex: 1, padding: '14px', borderRadius: '18px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', background: loginType === 'code' ? 'rgba(16,185,129,0.15)' : 'transparent', color: loginType === 'code' ? '#10B981' : 'var(--text-muted)' }}>
+              style={{ flex: 1, padding: '14px', borderRadius: '18px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', background: loginType === 'code' ? '#FFF' : 'transparent', color: loginType === 'code' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: loginType === 'code' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none' }}>
               <Hash size={18} /> Código
             </button>
             <button onClick={() => { setLoginType('email'); setError(''); }}
-              style={{ flex: 1, padding: '14px', borderRadius: '18px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', background: loginType === 'email' ? 'rgba(255,255,255,0.08)' : 'transparent', color: loginType === 'email' ? '#fff' : 'var(--text-muted)' }}>
+              style={{ flex: 1, padding: '14px', borderRadius: '18px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', background: loginType === 'email' ? '#FFF' : 'transparent', color: loginType === 'email' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: loginType === 'email' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none' }}>
               <Mail size={18} /> E-mail
             </button>
           </div>
@@ -160,14 +158,12 @@ export default function ResidentLogin() {
                     <input
                       type="text"
                       placeholder="EX: A3F9C2"
-                      style={{ width: '100%', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px', color: '#10B981', fontSize: '24px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '8px', textAlign: 'center', transition: 'all 0.2s', outline: 'none' }}
+                      style={{ width: '100%', background: '#F8FAFC', border: '1px solid var(--border-subtle)', borderRadius: '16px', padding: '20px', color: 'var(--primary)', fontSize: '24px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '8px', textAlign: 'center', transition: 'all 0.2s', outline: 'none' }}
                       value={accessCode}
                       onChange={e => setAccessCode(e.target.value.toUpperCase())}
                       maxLength={8}
                       autoFocus
                       required
-                      onFocus={e => e.target.style.borderColor = '#10B981'}
-                      onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
                     />
                   </div>
                 </div>
@@ -210,7 +206,7 @@ export default function ResidentLogin() {
 
         {/* Footer Admin Link */}
         <div style={{ marginTop: '32px', textAlign: 'center' }}>
-          <Link to="/auth" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '100px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, transition: 'all 0.2s' }}>
+          <Link to="/auth" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '100px', background: '#FFF', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '13px', fontWeight: 600, transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
             Sou síndico / administrador <ArrowRight size={14} />
           </Link>
         </div>

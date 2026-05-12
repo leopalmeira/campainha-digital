@@ -82,7 +82,7 @@ app.post('/api/doorman/login', (req, res) => {
 
 // ─── Properties Routes ───────────────────────────────────────────────────────
 app.post('/api/properties', async (req, res) => {
-  const { type, name, units, adminEmail, id: forcedId, clientName, clientPhone, clientDocument, clientAddress, doormanEmail } = req.body;
+  const { type, name, units, adminEmail, id: forcedId, clientName, clientPhone, clientDocument, clientAddress, doormanEmail, companyName, plan } = req.body;
   const id = forcedId || uuidv4();
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const url = `${frontendUrl}/chamada/${id}`;
@@ -210,7 +210,7 @@ app.post('/api/resident/register', (req, res) => {
 
   let foundUnit = null, foundProperty = null;
   for (const prop of properties) {
-    const unit = prop.units.find(u => u.accessCode === accessCode);
+    const unit = prop.units.find(u => u.accessCode === accessCode.trim().toUpperCase());
     if (unit) { foundUnit = unit; foundProperty = prop; break; }
   }
   if (!foundUnit) return res.status(404).json({ error: 'Código de acesso inválido.' });
@@ -235,7 +235,7 @@ app.post('/api/resident/login', (req, res) => {
 
   let foundUnit = null, foundProperty = null;
   for (const prop of properties) {
-    const unit = prop.units.find(u => u.accessCode === accessCode);
+    const unit = prop.units.find(u => u.accessCode === accessCode.trim().toUpperCase());
     if (unit) { foundUnit = unit; foundProperty = prop; break; }
   }
   if (!foundUnit) return res.status(401).json({ error: 'Código de acesso inválido.' });
@@ -330,6 +330,10 @@ io.on('connection', (socket) => {
 
   socket.on('webrtc_answer', ({ target, answer }) => {
     io.to(target).emit('webrtc_answer', { sender: socket.id, answer });
+  });
+
+  socket.on('webrtc_ready', ({ target }) => {
+    io.to(target).emit('webrtc_ready', { residentSocketId: socket.id });
   });
 
   socket.on('webrtc_ice_candidate', ({ target, candidate }) => {

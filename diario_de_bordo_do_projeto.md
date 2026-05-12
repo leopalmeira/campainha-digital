@@ -113,8 +113,27 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
+## ☁️ v2.9.0 — Migração Global para White Theme (12/05/2026)
+
+### Padronização Visual (Premium Clean)
+- **Migração Completa de Todos os Painéis**: `AdminPanel`, `ResidentDashboard`, `PorteiroDashboard` e `ResidentPanels` foram totalmente redesenhados para o **White Theme**.
+- **Consistência de Marca**: Agora todo o ecossistema segue a estética do Master Admin (Fundo `#F8FAFC`, Cards `#FFFFFF` com sombras suaves e bordas sutis).
+- **Paleta de Cores**: Substituição do Ciano `#00E5FF` pelo Azul Profissional `#3B82F6` como cor primária global.
+- **Tipografia & Contraste**: Melhoria drástica na legibilidade com textos em `#0F172A` e `#64748B`.
+
+### Fluxos de Autenticação Redesenhados
+- **Páginas de Login**: `ResidentLogin`, `PorteiroLogin` e `AuthPage` (Admin) agora possuem um visual limpo, focado em conversão e facilidade de uso, mantendo o banner de PWA integrado.
+- **Elementos de UI**: Atualização do `index.css` com variáveis globais para o tema claro, garantindo que novos componentes já nasçam no padrão visual correto.
+
+### Melhorias de Infraestrutura UI
+- **Shadow Tokens**: Implementação de sombras multinível para criar profundidade em superfícies brancas.
+- **Border System**: Uso de `--border-subtle` (`#E2E8F0`) para delimitação de seções sem poluição visual.
+
+---
+
 ## 🛠️ Próximos Passos
 - [ ] Implementação real dos gráficos no módulo de Analytics.
 - [ ] Integração Pix automatizada via API de pagamentos.
 - [ ] Sistema de notificações push (FCM) para o Master Admin sobre novas ativações.
 - [ ] Migração final para PostgreSQL/Neon.
+

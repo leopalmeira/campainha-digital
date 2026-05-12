@@ -1,15 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --bg-deep: #050B14;
-  --bg-surface: #0A111F;
-  --bg-surface-elevated: #111A2C;
-  --primary: #00E5FF;
-  --primary-glow: rgba(0, 229, 255, 0.4);
-  --text-main: #FFFFFF;
-  --text-muted: #94A3B8;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-highlight: rgba(255, 255, 255, 0.15);
+  --bg-deep: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #FFFFFF;
+  --primary: #3B82F6;
+  --primary-glow: rgba(59, 130, 246, 0.2);
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --border-subtle: #E2E8F0;
+  --border-highlight: #CBD5E1;
   
   --transition-smooth: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-fast: all 0.3s ease;
@@ -43,7 +43,7 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #FFFFFF 0%, #94A3B8 100%);
+  background: linear-gradient(135deg, #0F172A 0%, #64748B 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -56,17 +56,17 @@ body {
 
 /* Glassmorphism & Inputs */
 .glass-panel {
-  background: rgba(10, 17, 31, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: 24px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .input-glass {
   width: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  background: #FFFFFF;
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 16px;
@@ -89,8 +89,8 @@ body {
 
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, #00E5FF 0%, #00B3FF 100%);
-  color: #000;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: #FFFFFF;
   border: none;
   padding: 16px 32px;
   border-radius: 12px;
@@ -98,7 +98,7 @@ body {
   font-size: 16px;
   cursor: pointer;
   transition: var(--transition-fast);
-  box-shadow: 0 8px 32px var(--primary-glow);
+  box-shadow: 0 8px 24px var(--primary-glow);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -123,8 +123,8 @@ body {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-highlight);
+  background: #FFFFFF;
+  border: 1px solid var(--border-subtle);
   color: var(--text-main);
   padding: 16px 32px;
   border-radius: 12px;
@@ -132,7 +132,6 @@ body {
   font-size: 16px;
   cursor: pointer;
   transition: var(--transition-fast);
-  backdrop-filter: blur(10px);
   width: 100%;
   display: inline-flex;
   align-items: center;
@@ -153,13 +152,14 @@ body {
 
 /* Premium Cards */
 .premium-card {
-  background: linear-gradient(180deg, rgba(10, 17, 31, 0.8) 0%, rgba(5, 11, 20, 0.9) 100%);
+  background: #FFFFFF;
   border: 1px solid var(--border-subtle);
   border-radius: 24px;
   padding: 32px;
   transition: var(--transition-smooth);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
 .premium-card::before {

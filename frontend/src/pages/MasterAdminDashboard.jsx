@@ -200,12 +200,6 @@ export default function MasterAdminDashboard() {
         <nav style={{ padding: '24px 16px', flex: 1 }}>
           <SidebarLink icon={Users} label="Gerenciar Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
           <SidebarLink icon={Plus} label="Novo Registro" active={activeTab === 'register'} onClick={() => setActiveTab('register')} />
-          <SidebarLink icon={BarChart3} label="Análise de Dados" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
-          <SidebarLink icon={Activity} label="Logs do Sistema" active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} />
-          <SidebarLink icon={Globe} label="Rede Global" active={activeTab === 'network'} onClick={() => setActiveTab('network')} />
-          <div style={{ margin: '24px 0 12px', padding: '0 12px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>Configurações</div>
-          <SidebarLink icon={Settings} label="Preferências" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
-          <SidebarLink icon={Database} label="Banco de Dados" active={activeTab === 'db'} onClick={() => setActiveTab('db')} />
         </nav>
 
         <div style={{ padding: '24px', borderTop: '1px solid #F1F5F9', background: '#F8FAFC' }}>
@@ -231,8 +225,6 @@ export default function MasterAdminDashboard() {
             <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px' }}>
               {activeTab === 'clients' && "Visão Geral de Clientes"}
               {activeTab === 'register' && "Registrar Nova Placa"}
-              {activeTab === 'analytics' && "Dashboard Analítico"}
-              {activeTab === 'logs' && "Monitoramento de Logs"}
             </h2>
             <p style={{ color: '#64748B', fontSize: '16px', marginTop: '4px' }}>Controle total sobre a infraestrutura Campainha Digital.</p>
           </div>

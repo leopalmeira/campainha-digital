@@ -38,10 +38,10 @@ function VisitorCard({ v }) {
   const [expanded, setExpanded] = useState(false);
   const { date, time, weekday, ago } = fmt(v.timestamp);
   return (
-    <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.02)', transition: 'all 0.2s' }}>
+    <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-subtle)', background: '#FFF', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
       <div onClick={() => setExpanded(!expanded)} style={{ display: 'flex', gap: '14px', alignItems: 'center', padding: '14px 16px', cursor: 'pointer' }}>
         {/* Foto */}
-        <div style={{ width: '56px', height: '56px', borderRadius: '12px', overflow: 'hidden', background: 'rgba(255,255,255,0.05)', flexShrink: 0, border: '2px solid var(--border-subtle)', position: 'relative' }}>
+        <div style={{ width: '56px', height: '56px', borderRadius: '12px', overflow: 'hidden', background: '#F1F5F9', flexShrink: 0, border: '2px solid var(--border-subtle)', position: 'relative' }}>
           {v.photo
             ? <img src={v.photo} alt="Visitante" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={24} style={{ opacity: 0.3 }} /></div>}
@@ -68,10 +68,10 @@ function VisitorCard({ v }) {
             <img src={v.photo} alt="Visitante ampliado" style={{ width: '100%', maxHeight: '240px', objectFit: 'contain' }} />
           </div>
           <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '6px 12px', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', background: '#F8FAFC', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
               <Calendar size={12} /> {date}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '6px 12px', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', background: '#F8FAFC', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
               <Clock size={12} /> {time}
             </div>
           </div>
@@ -122,7 +122,7 @@ export function HistoryPanel({ unitId, propertyId }) {
             {visitors.length} visita{visitors.length !== 1 ? 's' : ''} registrada{visitors.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button onClick={load} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)', padding: '8px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+        <button onClick={load} style={{ background: '#FFF', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)', padding: '8px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
           <RefreshCw size={15} />
         </button>
       </div>
@@ -135,7 +135,7 @@ export function HistoryPanel({ unitId, propertyId }) {
             { label: 'Hoje', value: visitors.filter(v => new Date(v.timestamp).toDateString() === new Date().toDateString()).length, color: '#10B981' },
             { label: 'Com Foto', value: visitors.filter(v => v.photo).length, color: '#F59E0B' },
           ].map(s => (
-            <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+            <div key={s.label} style={{ background: '#FFF', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '12px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
               <div style={{ fontSize: '22px', fontWeight: 800, color: s.color }}>{s.value}</div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{s.label}</div>
             </div>
@@ -146,7 +146,7 @@ export function HistoryPanel({ unitId, propertyId }) {
       {/* Filtros */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         {[{ k: 'all', l: 'Todos' }, { k: 'today', l: 'Hoje' }, { k: 'withPhoto', l: 'Com Foto' }].map(f => (
-          <button key={f.k} onClick={() => setFilter(f.k)} style={{ padding: '6px 14px', borderRadius: '100px', fontSize: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', background: filter === f.k ? 'var(--primary)' : 'rgba(255,255,255,0.05)', color: filter === f.k ? '#000' : 'var(--text-muted)', transition: 'all 0.2s' }}>
+          <button key={f.k} onClick={() => setFilter(f.k)} style={{ padding: '6px 14px', borderRadius: '100px', fontSize: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', background: filter === f.k ? 'var(--primary)' : '#FFF', border: filter === f.k ? 'none' : '1px solid var(--border-subtle)', color: filter === f.k ? '#FFF' : 'var(--text-muted)', transition: 'all 0.2s' }}>
             {f.l}
           </button>
         ))}
@@ -245,10 +245,10 @@ export function SettingsPanel({ unitName, setUnitName, onSave, unitId, propertyI
 
       {/* ── Código de Acesso ── */}
       {accessCode && (
-        <div style={{ background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.2)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+        <div style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '1px', marginBottom: '12px' }}>🔑 SEU CÓDIGO DE ACESSO</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ flex: 1, background: 'var(--bg-deep)', borderRadius: '12px', padding: '14px 20px', textAlign: 'center' }}>
+            <div style={{ flex: 1, background: '#FFF', borderRadius: '12px', padding: '14px 20px', textAlign: 'center', border: '1px solid var(--border-subtle)' }}>
               <span style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)', letterSpacing: '8px', fontFamily: 'monospace' }}>{accessCode}</span>
             </div>
             <button onClick={copyCode} style={{ padding: '14px 18px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: codeCopied ? 'rgba(16,185,129,0.2)' : 'rgba(0,229,255,0.1)', color: codeCopied ? '#10B981' : 'var(--primary)', transition: 'all 0.2s', minWidth: '64px' }}>

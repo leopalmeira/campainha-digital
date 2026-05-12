@@ -164,12 +164,12 @@ export default function AdminPanel() {
   if (onboardingStep === 'scan') return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div className="fade-in" style={{ textAlign: 'center', maxWidth: '400px' }}>
-        <div style={{ display: 'inline-flex', padding: '20px', background: 'rgba(0,229,255,0.08)', borderRadius: '24px', border: '1px solid var(--border-subtle)', marginBottom: '32px' }}>
+        <div style={{ display: 'inline-flex', padding: '20px', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '24px', border: '1px solid var(--border-subtle)', marginBottom: '32px' }}>
           <ScanLine size={56} color="var(--primary)" />
         </div>
         <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '12px' }}>Bem-vindo!</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1.6, marginBottom: '40px' }}>
-          Escaneie a <strong style={{ color: '#fff' }}>placa QR Code</strong> ou configure manualmente.
+          Escaneie a <strong style={{ color: 'var(--text-main)' }}>placa QR Code</strong> ou configure manualmente.
         </p>
         {scanning ? (
           <div style={{ borderRadius: '20px', overflow: 'hidden', border: '2px solid var(--primary)', marginBottom: '24px', position: 'relative' }}>
@@ -202,11 +202,11 @@ export default function AdminPanel() {
             { val: 'condo',     icon: Building2,  label: 'Condomínio',     desc: '1 placa, vários apartamentos', color: 'var(--primary)' }
           ].map(t => (
             <button key={t.val} onClick={() => selectType(t.val)} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px', borderRadius: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
-              <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `${t.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: `${t.color}10`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <t.icon size={26} color={t.color} />
               </div>
               <div>
-                <strong style={{ color: '#fff', fontSize: '16px', display: 'block' }}>{t.label}</strong>
+                <strong style={{ color: 'var(--text-main)', fontSize: '16px', display: 'block' }}>{t.label}</strong>
                 <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{t.desc}</span>
               </div>
               <ChevronRight size={20} color="var(--text-muted)" style={{ marginLeft: 'auto' }} />
@@ -272,7 +272,7 @@ export default function AdminPanel() {
       {showPaywall && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', backdropFilter: 'blur(8px)' }}>
           <div style={{ background: 'var(--bg-surface-elevated)', borderRadius: '24px', padding: '32px', maxWidth: '380px', width: '100%', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(0,229,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '28px' }}>🏠</div>
+            <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '28px' }}>🏠</div>
             <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '8px' }}>Novo Endereço</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.6, marginBottom: '24px' }}>
               Cada endereço adicional tem o custo de <strong style={{ color: 'var(--primary)', fontSize: '18px' }}>R$ 15,00</strong> por mês.<br/>
@@ -355,7 +355,7 @@ export default function AdminPanel() {
                       <button onClick={() => deleteProperty(p.id)} style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#EF4444', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}><Trash2 size={18} /></button>
                     </div>
 
-                    <div style={{ background: '#fff', padding: '16px', borderRadius: '16px', display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                    <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '16px', display: 'flex', justifyContent: 'center', marginBottom: '20px', border: '1px solid var(--border-subtle)' }}>
                       <img src={p.qrCodeUrl} alt="QR" style={{ width: '140px', height: 'auto' }} />
                     </div>
 
@@ -426,7 +426,7 @@ export default function AdminPanel() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
                 {visitors.map(v => (
                   <div key={v.id} className="premium-card" style={{ padding: '0', overflow: 'hidden' }}>
-                    <div style={{ height: '160px', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                    <div style={{ height: '160px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                       {v.photo
                         ? <img src={v.photo} alt="Visitante" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <User size={48} color="var(--text-muted)" style={{ opacity: 0.3 }} />

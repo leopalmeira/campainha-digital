@@ -33,10 +33,10 @@ export default function PorteiroLogin() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative', overflow: 'hidden', background: 'var(--bg-deep)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative', overflow: 'hidden', background: '#F8FAFC' }}>
       
-      <div style={{ position: 'absolute', top: '20%', left: '10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 60%)', filter: 'blur(60px)', animation: 'mesh-pulse 15s infinite alternate ease-in-out', zIndex: 0 }}></div>
-      <div style={{ position: 'absolute', bottom: '10%', right: '10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 60%)', filter: 'blur(60px)', animation: 'mesh-pulse 20s infinite alternate-reverse ease-in-out', zIndex: 0 }}></div>
+      <div style={{ position: 'absolute', top: '20%', left: '10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(245, 158, 11, 0.05) 0%, transparent 60%)', filter: 'blur(60px)', zIndex: 0 }}></div>
+      <div style={{ position: 'absolute', bottom: '10%', right: '10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(245, 158, 11, 0.05) 0%, transparent 60%)', filter: 'blur(60px)', zIndex: 0 }}></div>
       
       <div style={{ position: 'absolute', top: '32px', left: '32px', zIndex: 10 }}>
          <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600 }}>
@@ -47,11 +47,11 @@ export default function PorteiroLogin() {
       <div className="glass-panel fade-in" style={{ width: '100%', maxWidth: '440px', padding: '48px 40px', zIndex: 1, position: 'relative' }}>
         
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ display: 'inline-flex', padding: '16px', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '20px', border: '1px solid var(--border-subtle)', marginBottom: '24px', boxShadow: '0 0 40px rgba(245, 158, 11, 0.1)' }}>
+          <div style={{ display: 'inline-flex', padding: '16px', background: '#FFF', borderRadius: '20px', border: '1px solid var(--border-subtle)', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
              <ShieldCheck size={40} color="#F59E0B" />
           </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '12px' }}>Acesso Portaria</h2>
-          <p className="text-muted" style={{ fontSize: '14px', lineHeight: 1.5 }}>Painel exclusivo para controle e comunicação da portaria.</p>
+          <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '12px', color: 'var(--text-main)' }}>Acesso Portaria</h2>
+          <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-muted)' }}>Painel exclusivo para controle e comunicação da portaria.</p>
         </div>
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -63,7 +63,7 @@ export default function PorteiroLogin() {
             <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px', pointerEvents: 'none' }} />
             <input type="password" placeholder="Código Único de Portaria" className="input-glass" style={{ paddingLeft: '48px', width: '100%', letterSpacing: '2px', textTransform: 'uppercase' }} value={code} onChange={e => setCode(e.target.value.toUpperCase())} required />
           </div>
-          <button type="submit" className="btn-primary w-full" style={{ padding: '16px', marginTop: '12px', fontSize: '16px', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', boxShadow: '0 8px 32px rgba(245, 158, 11, 0.4)' }}>
+          <button type="submit" className="btn-primary w-full" style={{ padding: '16px', marginTop: '12px', fontSize: '16px', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.2)' }}>
             Acessar Sistema <ArrowRight size={20} />
           </button>
         </form>

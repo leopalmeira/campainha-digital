@@ -74,17 +74,17 @@ export default function PorteiroDashboard() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)' }}>
       
       {/* HEADER */}
-      <header className="glass-panel" style={{ padding: '20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
+      <header className="glass-panel" style={{ padding: '20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, background: '#FFF', borderBottom: '1px solid var(--border-subtle)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ width: '48px', height: '48px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Building2 size={24} color="#F59E0B" />
           </div>
           <div>
-            <h1 style={{ fontSize: '20px', fontWeight: 800 }}>Portaria - {property.name}</h1>
+            <h1 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>Portaria - {property.name}</h1>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Status: <span style={{ color: '#10B981', fontWeight: 600 }}>Operacional</span></p>
           </div>
         </div>
-        <button onClick={() => { localStorage.removeItem('cd_doorman_propertyId'); navigate('/portaria-login'); }} className="btn-secondary" style={{ padding: '10px 20px', color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.3)', borderRadius: '12px' }}>
+        <button onClick={() => { localStorage.removeItem('cd_doorman_propertyId'); navigate('/portaria-login'); }} className="btn-secondary" style={{ width: 'auto', padding: '10px 20px', color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.2)', borderRadius: '12px', background: '#FFF5F5' }}>
           <LogOut size={16} /> Sair
         </button>
       </header>
@@ -105,7 +105,7 @@ export default function PorteiroDashboard() {
         
         <div style={{ position: 'relative', marginBottom: '32px' }}>
           <Search size={20} style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input type="text" placeholder="Buscar unidade, bloco ou apartamento..." value={search} onChange={e => setSearch(e.target.value)} className="input-glass" style={{ padding: '20px 20px 20px 56px', fontSize: '18px', borderRadius: '16px', border: '2px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.3)' }} />
+          <input type="text" placeholder="Buscar unidade, bloco ou apartamento..." value={search} onChange={e => setSearch(e.target.value)} className="input-glass" style={{ padding: '20px 20px 20px 56px', fontSize: '18px', borderRadius: '16px', border: '1px solid var(--border-subtle)', background: '#FFF', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
@@ -114,9 +114,9 @@ export default function PorteiroDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '1px' }}>Morador</span>
-                  <h3 style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px' }}>{unit.name}</h3>
+                  <h3 style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: 'var(--text-main)' }}>{unit.name}</h3>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '50%' }}>
+                <div style={{ background: 'rgba(245, 158, 11, 0.05)', padding: '12px', borderRadius: '50%' }}>
                   <Phone size={24} color="#F59E0B" />
                 </div>
               </div>
