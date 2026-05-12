@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { Phone, MicOff, PhoneOff, Bell, ShieldCheck, EyeOff, Download, AlertCircle, Video, VideoOff, LogOut, History, Settings, Home } from 'lucide-react';
+import { Phone, MicOff, PhoneOff, Bell, ShieldCheck, EyeOff, Download, AlertCircle, Video, VideoOff, LogOut, History, Settings, Home, KeyRound } from 'lucide-react';
 import { HistoryPanel, SettingsPanel, DEFAULT_CATEGORIES } from './ResidentPanels';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -161,6 +161,17 @@ export default function ResidentDashboard() {
     stopRing();
     if (visitorSocketId) socketRef.current.emit('call_ended', { target: visitorSocketId });
     setStatus('idle'); setCall(null); stopAll();
+  };
+
+  const handleOpenGate = () => {
+    const propId = localStorage.getItem('residentPropertyId');
+    if (socketRef.current && call) {
+      socketRef.current.emit('authorize_entry', { unitId: id, propertyId: propId, visitorId: call.visitId });
+      sendQuickMsg("Portão Aberto! Pode entrar.");
+      setTimeout(() => {
+        handleEnd();
+      }, 3000); // Ends call 3 seconds after opening gate
+    }
   };
 
   const toggleMute = () => {
@@ -386,7 +397,7 @@ export default function ResidentDashboard() {
               </div>
 
               {/* Controles */}
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
                 <button onClick={toggleMute} style={{ width: '56px', height: '56px', borderRadius: '50%', border: 'none', background: isMuted ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)', color: isMuted ? '#EF4444' : 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <MicOff size={22} />
                 </button>
@@ -397,6 +408,10 @@ export default function ResidentDashboard() {
                   <PhoneOff size={22} />
                 </button>
               </div>
+
+              <button onClick={handleOpenGate} className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '16px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                <KeyRound size={24} /> ABRIR PORTÃO
+              </button>
             </div>
           )}
         </>

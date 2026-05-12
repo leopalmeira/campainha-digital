@@ -8,7 +8,8 @@ import AuthPage from './pages/AuthPage';
 import ResidentLogin from './pages/ResidentLogin';
 
 import MasterAdminDashboard from './pages/MasterAdminDashboard';
-
+import PorteiroLogin from './pages/PorteiroLogin';
+import PorteiroDashboard from './pages/PorteiroDashboard';
 function App() {
   return (
     <Router>
@@ -20,6 +21,8 @@ function App() {
         <Route path="/master-admin" element={<MasterAdminDashboard />} />
         <Route path="/chamada/:id" element={<VisitorCall />} />
         <Route path="/morador/:id" element={<ResidentDashboard />} />
+        <Route path="/portaria-login" element={<PorteiroLogin />} />
+        <Route path="/portaria" element={<PorteiroDashboard />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

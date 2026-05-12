@@ -93,22 +93,27 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
-## 👑 v2.7.0 — Painel Master Admin, Escaneamento e Controle Global (11/05/2026)
+## 👑 v2.7.0 — Master Admin Redesign, Códigos Únicos e PWA da Portaria (11/05/2026)
 
-### Visão Master Admin
-- Autenticação específica para o administrador do sistema (`leandro... / 27031981`).
-- Permissão global: visualização de todos os clientes e condomínios cadastrados.
-- Módulo estatístico mostrando o número total de clientes, total de unidades e status do sistema.
-- Inclusão do dado **Próxima Data de Pagamento** para cada placa/propriedade cadastrada, fixada em 30 dias após a geração.
+### Master Admin Dashboard (Redesign Completo)
+- Substituição do design brutalista por uma interface de alto padrão (SaaS Premium, Glassmorphism, Dark Mode Elegante).
+- Formulário de cadastro expandido para incluir dados vitais do contrato (Nome/Razão Social, E-mail, Telefone, Documento e Endereço).
+- Exibição de cards estatísticos rápidos no topo: **Total de Clientes Ativos**, **Total de Unidades** e **Status do Sistema**.
+- O sistema agora gera automaticamente códigos exclusivos:
+  - **Código do Cliente (Administrador)**: Permite o acesso ao painel de gestão do condomínio.
+  - **Código da Portaria**: Gerado para condomínios/vilas, usado exclusivamente para o tablet do porteiro.
 
-### Ativação Física e QR Code 
-- Integração da biblioteca de visão computacional `jsQR`.
-- **Fluxo de Fábrica/Representante**: O Master Admin agora pode **escanear uma placa física já impressa**, o sistema extrai o ID UUID contido no link e abre o formulário para vinculá-lo a um cliente (e-mail), definindo tipo (casa simples, vila, condomínio) e o número exato de unidades.
-- Eliminado o uso de IDs arbitrários no backend para essa rota, permitindo que o sistema reconheça e ative placas de forma programada.
+### Autenticação Dinâmica e Segura
+- **Login do Cliente:** A tela de login (`AuthPage.jsx`) agora exige que o cliente informe seu E-mail e o **Código Único de Acesso** gerado pelo Master Admin.
+- **Isolamento de Segurança:** Garante que apenas quem tem o código possa gerenciar a propriedade.
 
-### Estética Cyber-Industrial Brutalista
-- O painel Master utiliza um padrão visual agressivo e técnico (Cyber-Industrial Brutalism), focando na experiência de linha de comando visual: alto contraste de preto puro com verde tóxico (`#adff2f`), cantos afiados (0px border-radius) e animações de glitch estático no background, além de staggered delays na montagem da tela.
-- Design radicalmente distante dos clichés de SaaS B2C/Glassmorphism usados no Painel do Morador.
+### 🏢 Novo Módulo: PWA da Portaria (Doorman Dashboard)
+- **Rotas e Login Exclusivos**: Criadas rotas separadas (`/portaria-login` e `/portaria`) para o porteiro acessar com o e-mail da portaria e o **Código da Portaria**.
+- **Painel Tático do Porteiro**: Interface otimizada para tablets, exibindo todas as unidades do condomínio em formato de grid ("blocos/apartamentos").
+- **Comunicação Direta**: O porteiro pode tocar em uma unidade para iniciar uma chamada instantânea com o morador (usando a mesma infraestrutura de WebRTC das placas).
+- **Feedback Visual de Abertura (Acesso Liberado)**:
+  - Adicionado botão verde de alto contraste **"Abrir Portão"** na tela de chamada ativa do morador.
+  - Ao clicar, o morador autoriza a entrada. O tablet do porteiro intercepta via WebSocket (`entry_authorized`) e **pisca uma grande notificação verde na tela**, informando visualmente qual apartamento autorizou a entrada, dispensando interfones físicos.
 
 ---
 

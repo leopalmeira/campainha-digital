@@ -15,14 +15,14 @@ export default function AuthPage() {
     e.preventDefault();
     const formData = new FormData(e.target);
     const emailInput = formData.get('email');
-    const passwordInput = formData.get('password');
+    const authInput = formData.get('authInput'); // Can be password or client code
 
     try {
       const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const res = await fetch(`${API}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailInput, password: passwordInput })
+        body: JSON.stringify({ email: emailInput, password: authInput, clientCode: authInput })
       });
       const data = await res.json();
 
@@ -32,6 +32,7 @@ export default function AuthPage() {
           localStorage.setItem('cd_admin_role', 'master');
           navigate('/master-admin');
         } else {
+          localStorage.setItem('cd_admin_role', 'client');
           navigate('/admin');
         }
       } else {
@@ -39,7 +40,7 @@ export default function AuthPage() {
       }
     } catch (err) {
       // Fallback behavior if API fails or for offline dev
-      if (emailInput === 'leandro2703palmeira@gmail.com' && passwordInput === '27031981') {
+      if (emailInput === 'leandro2703palmeira@gmail.com' && authInput === '27031981') {
         localStorage.setItem('cd_admin_email', emailInput);
         localStorage.setItem('cd_admin_role', 'master');
         navigate('/master-admin');
@@ -91,7 +92,7 @@ export default function AuthPage() {
                  <ShieldCheck size={40} color="var(--primary)" />
               </div>
               <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '12px' }}>Acessar Painel</h2>
-              <p className="text-muted" style={{ fontSize: '14px', lineHeight: 1.5 }}>Entre com seus dados para gerenciar sua campainha digital.</p>
+              <p className="text-muted" style={{ fontSize: '14px', lineHeight: 1.5 }}>Entre com seu e-mail e código único de cliente.</p>
             </div>
 
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -101,7 +102,7 @@ export default function AuthPage() {
               </div>
               <div style={{ position: 'relative', width: '100%' }}>
                 <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px', pointerEvents: 'none' }} />
-                <input type="password" name="password" placeholder="Sua senha" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
+                <input type="password" name="authInput" placeholder="Código Único de Acesso" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
               </div>
               <button type="submit" className="btn-primary w-full" style={{ padding: '16px', marginTop: '12px', fontSize: '16px' }}>
                 Acessar Sistema <ArrowRight size={20} />

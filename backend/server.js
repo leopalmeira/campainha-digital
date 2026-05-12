@@ -61,14 +61,28 @@ app.post('/api/admin/login', (req, res) => {
   if (email === MASTER_ADMIN_EMAIL && password === MASTER_ADMIN_PASSWORD) {
     return res.json({ success: true, role: 'master', email });
   }
-  // Fallback for regular admins (currently just checks if they exist in properties or allows anyone)
-  // For now, let's keep it simple as per user request
+  
+  // Login for clients (property owners) - requires email and clientCode
+  const { clientCode } = req.body;
+  const prop = properties.find(p => p.adminEmail === email && p.clientCode === clientCode);
+  if (prop) {
+    return res.json({ success: true, role: 'admin', email });
+  }
+
   res.status(401).json({ error: 'Credenciais inválidas.' });
+});
+
+// ─── Doorman Auth Route ──────────────────────────────────────────────────────
+app.post('/api/doorman/login', (req, res) => {
+  const { email, doormanCode } = req.body;
+  const prop = properties.find(p => p.doormanEmail === email && p.doormanCode === doormanCode);
+  if (!prop) return res.status(401).json({ error: 'Credenciais do porteiro inválidas.' });
+  res.json({ success: true, propertyId: prop.id, propertyName: prop.name });
 });
 
 // ─── Properties Routes ───────────────────────────────────────────────────────
 app.post('/api/properties', async (req, res) => {
-  const { type, name, units, adminEmail, id: forcedId } = req.body;
+  const { type, name, units, adminEmail, id: forcedId, clientName, clientPhone, clientDocument, clientAddress, doormanEmail } = req.body;
   const id = forcedId || uuidv4();
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const url = `${frontendUrl}/chamada/${id}`;
@@ -79,27 +93,34 @@ app.post('/api/properties', async (req, res) => {
     color: { dark: '#000', light: '#FFF' }
   });
 
-  // Check if property with this ID already exists (for "activation" flow)
   const existingIndex = properties.findIndex(p => p.id === id);
-  
   const isCollective = type === 'village' || type === 'condo' || type === 'collective';
   
-  // Calculate next payment date (30 days from now)
   const nextPaymentDate = new Date();
   nextPaymentDate.setDate(nextPaymentDate.getDate() + 30);
+
+  const clientCode = existingIndex > -1 ? properties[existingIndex].clientCode : generateAccessCode();
+  const doormanCode = isCollective ? (existingIndex > -1 && properties[existingIndex].doormanCode ? properties[existingIndex].doormanCode : generateAccessCode()) : null;
 
   const property = {
     id,
     type: type || 'house',
     name: name || 'Nova Propriedade',
+    clientName: clientName || '',
+    clientPhone: clientPhone || '',
+    clientDocument: clientDocument || '',
+    clientAddress: clientAddress || '',
+    clientCode,
+    doormanCode,
+    doormanEmail: doormanEmail || null,
     units: isCollective
       ? (units && units.length > 0 ? units.map(u => ({ id: uuidv4(), name: u.name, accessCode: generateAccessCode() })) : [])
       : [{ id: uuidv4(), name: 'Principal', accessCode: generateAccessCode() }],
     qrCodeUrl: qrCodeDataUrl,
     url,
     adminEmail: adminEmail || null,
-    createdAt: new Date().toISOString(),
-    nextPaymentDate: nextPaymentDate.toISOString()
+    createdAt: existingIndex > -1 ? properties[existingIndex].createdAt : new Date().toISOString(),
+    nextPaymentDate: existingIndex > -1 ? properties[existingIndex].nextPaymentDate : nextPaymentDate.toISOString()
   };
 
   if (existingIndex > -1) {
@@ -250,9 +271,17 @@ app.post('/api/resident/login-by-code', (req, res) => {
 });
 
 const residentSockets = new Map();
+const doormanSockets = new Map();
 
 io.on('connection', (socket) => {
   console.log('[WS] conectado:', socket.id);
+
+  socket.on('register_doorman', ({ propertyId }) => {
+    socket.join(`doorman_${propertyId}`);
+    if (!doormanSockets.has(propertyId)) doormanSockets.set(propertyId, new Set());
+    doormanSockets.get(propertyId).add(socket.id);
+    console.log(`[WS] Porteiro ${socket.id} → property_${propertyId}`);
+  });
 
   socket.on('register_resident', ({ unitId }) => {
     socket.join(`unit_${unitId}`);
@@ -313,10 +342,20 @@ io.on('connection', (socket) => {
     if (target) io.to(target).emit('quick_message', { message });
   });
 
+  socket.on('authorize_entry', ({ unitId, propertyId, visitorId }) => {
+    // Notify the doorman that entry was authorized by the resident
+    io.to(`doorman_${propertyId}`).emit('entry_authorized', { unitId, visitorId, timestamp: new Date().toISOString() });
+    // Notify visitor if needed
+  });
+
   socket.on('disconnect', () => {
     residentSockets.forEach((sockets, unitId) => {
       sockets.delete(socket.id);
       if (sockets.size === 0) residentSockets.delete(unitId);
+    });
+    doormanSockets.forEach((sockets, propId) => {
+      sockets.delete(socket.id);
+      if (sockets.size === 0) doormanSockets.delete(propId);
     });
   });
 });
