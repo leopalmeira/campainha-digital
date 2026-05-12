@@ -106,14 +106,13 @@ export default function LandingPage() {
             <div className="animate-fade-up delay-400" style={{ display: 'flex', gap: '16px', flexDirection: 'column' }}>
               <Link to="/auth" style={{ textDecoration: 'none' }}>
                 <button className="btn-primary" style={{ padding: '16px 24px', fontSize: '16px' }}>
-                  Começar Agora <ArrowRight size={20} />
+                  Assinar por R$ 39,90/mês <ArrowRight size={20} />
                 </button>
               </Link>
-              <a href="#features" style={{ textDecoration: 'none' }}>
-                <button className="btn-secondary" style={{ padding: '16px 24px', fontSize: '16px' }}>
-                  Conheça as 8 Vantagens
-                </button>
-              </a>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
+                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary)' }}></div>
+                 Para condomínios, consulte nossos planos especiais com preços reduzidos por unidade.
+              </div>
             </div>
           </div>
 
@@ -163,6 +162,58 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" style={{ padding: '100px 0', background: 'linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-deep) 100%)' }}>
+        <div className="container" style={{ textAlign: 'center' }}>
+          <h2 style={{ fontSize: '40px', fontWeight: 800, marginBottom: '48px' }}>Planos <span className="text-gradient-primary">Acessíveis</span></h2>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px', maxWidth: '1000px', margin: '0 auto' }}>
+            {/* Simple House */}
+            <div className="premium-card" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Casa Simples</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Ideal para quem busca segurança e praticidade individual.</p>
+              </div>
+              <div style={{ marginBottom: '32px' }}>
+                <span style={{ fontSize: '48px', fontWeight: 800 }}>R$ 39,90</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '16px' }}>/mês</span>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <li style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={16} color="#10B981" /> 1 Placa QR Code Premium</li>
+                <li style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={16} color="#10B981" /> Chamadas de Vídeo Ilimitadas</li>
+                <li style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={16} color="#10B981" /> App PWA Gratuito</li>
+              </ul>
+              <Link to="/auth" style={{ textDecoration: 'none' }}>
+                <button className="btn-primary w-full">Começar Agora</button>
+              </Link>
+            </div>
+
+            {/* Condos */}
+            <div className="premium-card" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', height: '100%', border: '2px solid var(--primary)', transform: 'scale(1.05)' }}>
+              <div style={{ position: 'absolute', top: '16px', right: '16px', background: 'var(--primary)', color: '#fff', padding: '4px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 700 }}>ECONÔMICO</div>
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Condomínios & Vilas</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Planos otimizados para múltiplas unidades e portarias.</p>
+              </div>
+              <div style={{ marginBottom: '32px' }}>
+                <span style={{ fontSize: '32px', fontWeight: 800 }}>Sob Consulta</span>
+                <p style={{ color: 'var(--primary)', fontSize: '14px', fontWeight: 700, marginTop: '8px' }}>Planos muito mais atrativos por unidade!</p>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <li style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={16} color="#10B981" /> Placas por Unidade ou Portão</li>
+                <li style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={16} color="#10B981" /> Painel Admin para Síndico</li>
+                <li style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><Check size={16} color="#10B981" /> Suporte 24/7 Prioritário</li>
+              </ul>
+              <Link to="/auth" style={{ textDecoration: 'none' }}>
+                <button className="btn-secondary w-full" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>Falar com Consultor</button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
         </div>
       </section>
 
