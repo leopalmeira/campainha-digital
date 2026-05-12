@@ -212,6 +212,16 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
+## 🎥 v2.9.8 — Integração de Avatar IA na Home (12/05/2026)
+
+### Conteúdo & UX
+- **Vídeo de Apresentação**: Integrei o vídeo do avatar (IA) diretamente no início da Landing Page para aumentar a conversão e explicar o produto visualmente.
+- **Edição e Corte (Cropping)**: Apliquei técnicas de CSS (`overflow: hidden` + `object-fit: cover`) para remover as barras brancas superiores e inferiores do vídeo original, deixando o foco apenas no avatar falando.
+- **Autoplay Inteligente**: O vídeo inicia automaticamente em modo mudo (padrão de navegadores modernos) com loop infinito, funcionando como um elemento dinâmico de destaque no Hero.
+- **Badge de Status**: Adicionei um indicador visual ("Apresentação Oficial") sobre o vídeo para dar um toque mais premium à interface.
+
+---
+
 ## 🛠️ Próximos Passos
 - [ ] Implementação real dos gráficos no módulo de Analytics.
 - [ ] Integração Pix automatizada via API de pagamentos.
