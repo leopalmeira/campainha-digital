@@ -1,14 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  ShieldCheck, Plus, ScanLine, Search, Mail, Building2, Trash2, 
-  LogOut, Check, X, Camera, RefreshCw, Copy, ExternalLink, 
-  Activity, Users, Globe, Database, Phone, CreditCard, 
-  MapPin, User, Key, BarChart3, Settings, Bell, Briefcase
+  Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle, CreditCard, Users, LayoutDashboard, Database, Activity, History, Settings2, Search, Bell, AlertTriangle
 } from 'lucide-react';
+import Logo from '../components/Logo';
 import { useNavigate } from 'react-router-dom';
 import jsQR from 'jsqr';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+const SidebarLink = ({ icon: Icon, label, active, onClick }) => (
+  <button 
+    onClick={onClick}
+    style={{
+      width: '100%',
+      padding: '12px 16px',
+      borderRadius: '12px',
+      background: active ? '#EFF6FF' : 'transparent',
+      border: 'none',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      color: active ? '#3B82F6' : '#64748B',
+      fontWeight: 600,
+      cursor: 'pointer',
+      fontSize: '14px',
+      marginBottom: '4px'
+    }}
+  >
+    <Icon size={18} /> {label}
+  </button>
+);
+
+const SectionTitle = ({ icon: Icon, title }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#0F172A' }}>
+    <Icon size={20} color="#3B82F6" />
+    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>{title}</h4>
+  </div>
+);
+
+const Label = ({ children }) => <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: '8px', textTransform: 'uppercase' }}>{children}</label>;
+const Input = (props) => <input {...props} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '14px', outline: 'none' }} />;
+const inputStyle = { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '14px', outline: 'none', background: '#FFF' };
 
 export default function MasterAdminDashboard() {
   const [activeTab, setActiveTab] = useState('clients');
@@ -187,15 +219,10 @@ export default function MasterAdminDashboard() {
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       
       {/* SIDEBAR */}
-      <aside style={{ width: '280px', background: '#FFF', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'fixed', height: '100vh', zIndex: 50 }}>
+      <aside style={{ width: '280px', background: '#FFF', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', zIndex: 100 }}>
         <div style={{ padding: '32px 24px', borderBottom: '1px solid #F1F5F9' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-            <div style={{ background: '#3B82F6', padding: '8px', borderRadius: '12px' }}>
-              <ShieldCheck size={24} color="#FFF" />
-            </div>
-            <h1 style={{ fontWeight: 800, fontSize: '18px', color: '#0F172A' }}>Master HQ</h1>
-          </div>
-          <p style={{ fontSize: '12px', color: '#64748B', fontWeight: 500 }}>SISTEMA DE CONTROLE DIGITAL</p>
+          <Logo size={40} />
+          <p style={{ fontSize: '10px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginTop: '4px' }}>SISTEMA DE CONTROLE DIGITAL</p>
         </div>
 
         <nav style={{ padding: '24px 16px', flex: 1 }}>

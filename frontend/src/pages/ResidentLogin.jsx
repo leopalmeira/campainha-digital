@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, ShieldCheck, Home, BellRing, Hash, Building2, Download, CheckCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
+import Logo from '../components/Logo';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -122,13 +123,13 @@ export default function ResidentLogin() {
       <div className="fade-in" style={{ width: '100%', maxWidth: '420px', zIndex: 1, position: 'relative', marginBottom: installPrompt ? '100px' : '0' }}>
         
         {/* Logo superior */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ width: '64px', height: '64px', margin: '0 auto 24px', borderRadius: '20px', background: '#FFF', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }}>
-             <ShieldCheck size={32} color="var(--primary)" />
-          </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 900, letterSpacing: '-1px', marginBottom: '8px', color: 'var(--text-main)' }}>
-            Acesso Morador
-          </h1>
+        <div style={{ textAlign: 'center', marginBottom: '40px', zIndex: 1 }}>
+        <div style={{ marginBottom: '24px' }}>
+          <Logo size={60} />
+        </div>
+        <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', letterSpacing: '-1.5px', marginBottom: '8px' }}>
+          Acesso Morador
+        </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>Conecte-se à sua campainha digital</p>
         </div>
 

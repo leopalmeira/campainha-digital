@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Building2, House, TreePine } from 'lucide-react';
+import Logo from '../components/Logo';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -88,8 +89,8 @@ export default function AuthPage() {
         {isLogin && (
           <>
             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-              <div style={{ display: 'inline-flex', padding: '16px', background: '#FFF', borderRadius: '20px', border: '1px solid var(--border-subtle)', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
-                 <ShieldCheck size={40} color="var(--primary)" />
+              <div style={{ marginBottom: '24px' }}>
+                 <Logo size={60} />
               </div>
               <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '12px', color: 'var(--text-main)' }}>Acessar Painel</h2>
               <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-muted)' }}>Entre com seu e-mail e código único de cliente.</p>

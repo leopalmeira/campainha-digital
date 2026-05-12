@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { Bell, CheckCircle, ShieldCheck, MapPin, ChevronRight, Mic, Video, PhoneOff, WifiOff, KeyRound } from 'lucide-react';
+import Logo from '../components/Logo';
 
 // ─── Configuração do Socket.io ────────────────────────────────────────────────
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -292,8 +293,8 @@ export default function VisitorCall() {
 
       {/* Header */}
       <header style={{ textAlign: 'center', marginBottom: '40px' }}>
-        <div style={{ display: 'inline-flex', padding: '12px', background: 'rgba(0, 229, 255, 0.05)', borderRadius: '16px', border: '1px solid var(--border-subtle)', marginBottom: '16px' }}>
-          <ShieldCheck size={32} color="var(--primary)" />
+        <div style={{ marginBottom: '16px' }}>
+          <Logo size={50} showText={false} />
         </div>
         <h1 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '8px' }}>Campainha Digital</h1>
         {property && (

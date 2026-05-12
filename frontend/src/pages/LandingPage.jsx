@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, Smartphone, Zap, Clock, Check, X, ArrowRight, Video, MapPin, EyeOff, Lock, Globe2, BellRing, UserCheck, Home } from 'lucide-react';
+import Logo from '../components/Logo';
 
 export default function LandingPage() {
   const advantages = [
@@ -19,13 +20,7 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav style={{ position: 'fixed', top: 0, width: '100%', padding: '16px 0', zIndex: 100, background: 'rgba(5, 11, 20, 0.9)', backdropFilter: 'blur(16px)', borderBottom: '1px solid var(--border-subtle)' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* Logo inline SVG — sem dependência de arquivo */}
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #00E5FF, #10B981)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,229,255,0.3)' }}>
-              <BellRing size={20} color="#000" strokeWidth={2.5} />
-            </div>
-            <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.5px', background: 'linear-gradient(90deg, #fff 60%, var(--primary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Campainha Digital</span>
-          </div>
+          <Logo size={36} light={true} />
           <div className="desktop-nav-links" style={{ gap: '24px', alignItems: 'center' }}>
             <a href="#features" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color='#fff'} onMouseOut={e => e.target.style.color='var(--text-muted)'}>Recursos</a>
             <a href="#compare" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 500, transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color='#fff'} onMouseOut={e => e.target.style.color='var(--text-muted)'}>Comparativo</a>

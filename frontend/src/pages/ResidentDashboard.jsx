@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { Phone, MicOff, PhoneOff, Bell, ShieldCheck, EyeOff, Download, AlertCircle, Video, VideoOff, LogOut, History, Settings, Home, KeyRound } from 'lucide-react';
 import { HistoryPanel, SettingsPanel, DEFAULT_CATEGORIES } from './ResidentPanels';
+import Logo from '../components/Logo';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const ICE = {
@@ -238,7 +239,7 @@ export default function ResidentDashboard() {
 
       {/* Header */}
       <div style={{ padding: '20px 24px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <ShieldCheck size={24} color="var(--primary)" />
+        <Logo size={28} showText={false} />
         <div>
           <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>{unitName}</h2>
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>ID: {id.slice(0, 8)} • {status === 'idle' ? '🟢 Online' : '🔴 Em chamada'}</p>

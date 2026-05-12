@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { LogOut, Building2, Phone, Search, KeyRound, CheckCircle2 } from 'lucide-react';
+import Logo from '../components/Logo';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -82,9 +83,7 @@ export default function PorteiroDashboard() {
       {/* HEADER */}
       <header className="glass-panel" style={{ padding: '20px 24px', borderRadius: '0 0 24px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10, background: '#FFF', borderBottom: '1px solid var(--border-subtle)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Building2 size={24} color="#F59E0B" />
-          </div>
+          <Logo size={40} showText={false} />
           <div>
             <h1 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>Portaria - {property.name}</h1>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Status: <span style={{ color: '#10B981', fontWeight: 600 }}>Operacional</span></p>
