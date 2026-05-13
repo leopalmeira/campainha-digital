@@ -110,9 +110,8 @@ export default function LandingPage() {
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '200px', lineHeight: 1.3, fontWeight: 600 }}>
                  Pagamento único anual. Condomínios: assinatura mensal por unidade.
               </div>
-            </div>
           </div>
-          </div>
+        </div>
 
           {/* Premium UI Mockup (iPhone) */}
           <div className="animate-fade-up delay-400" style={{ display: 'flex', justifyContent: 'center', position: 'relative', marginTop: '40px' }}>
