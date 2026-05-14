@@ -204,7 +204,7 @@ export default function MasterAdminDashboard() {
         </div>
 
         <nav style={{ padding: '24px 16px', flex: 1, overflowY: 'auto' }}>
-          <SidebarLink icon={Users} label="Gerenciar Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
+          <SidebarLink icon={Users} label="Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
           <SidebarLink icon={Plus} label="Novo Registro" active={activeTab === 'register'} onClick={() => setActiveTab('register')} />
           <div style={{ height: '1px', background: '#F1F5F9', margin: '16px 0' }} />
           <SidebarLink icon={PieChart} label="Analytics & Uso" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
@@ -332,15 +332,31 @@ export default function MasterAdminDashboard() {
                           </div>
                         </td>
                         <td style={{ padding: '20px 16px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 800 }}>ADMIN:</span>
-                              <code style={{ background: '#F8FAFC', padding: '2px 6px', border: '1px solid #E2E8F0', borderRadius: '4px', fontWeight: 800, color: '#3B82F6' }}>{client.clientCode}</code>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F8FAFC', padding: '6px 10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 800 }}>ADMIN</div>
+                                <code style={{ fontWeight: 800, color: '#3B82F6', fontSize: '13px' }}>{client.clientCode}</code>
+                              </div>
+                              <button 
+                                onClick={() => { navigator.clipboard.writeText(client.clientCode); alert('Código Admin copiado!'); }}
+                                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
+                              >
+                                <Copy size={14} />
+                              </button>
                             </div>
                             {client.doormanCode && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 800 }}>PORT:</span>
-                                <code style={{ background: '#F8FAFC', padding: '2px 6px', border: '1px solid #E2E8F0', borderRadius: '4px', fontWeight: 800, color: '#F59E0B' }}>{client.doormanCode}</code>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F8FAFC', padding: '6px 10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 800 }}>PORTARIA</div>
+                                  <code style={{ fontWeight: 800, color: '#F59E0B', fontSize: '13px' }}>{client.doormanCode}</code>
+                                </div>
+                                <button 
+                                  onClick={() => { navigator.clipboard.writeText(client.doormanCode); alert('Código Portaria copiado!'); }}
+                                  style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', display: 'flex' }}
+                                >
+                                  <Copy size={14} />
+                                </button>
                               </div>
                             )}
                           </div>
@@ -707,12 +723,39 @@ export default function MasterAdminDashboard() {
                 <DetailRow label="UNIDADES" value={selectedClient.units?.length || 0} />
                 <DetailRow label="PLANO" value={selectedClient.plan || "PRO"} />
                 <DetailRow label="ACESSOS" value={`ADMIN: ${selectedClient.clientCode} | PORTARIA: ${selectedClient.doormanCode || 'N/A'}`} />
+                <DetailRow label="ID DA PLACA" value={selectedClient.id} />
+                <DetailRow label="URL DE ACESSO" value={`${window.location.origin}/chamada/${selectedClient.id}`} />
               </div>
             </div>
 
             <div style={{ marginTop: '40px', display: 'flex', gap: '16px' }}>
+              <button 
+                onClick={() => {
+                  const data = `
+CLIENTE: ${selectedClient.clientName}
+CPF/CNPJ: ${selectedClient.clientDocument}
+EMPRESA: ${selectedClient.companyName}
+EMAIL: ${selectedClient.adminEmail}
+TELEFONE: ${selectedClient.clientPhone}
+ENDEREÇO: ${selectedClient.clientAddress}
+
+PROPRIEDADE: ${selectedClient.name}
+TIPO: ${selectedClient.type}
+PLANO: ${selectedClient.plan}
+
+CÓDIGO ADMIN: ${selectedClient.clientCode}
+CÓDIGO PORTARIA: ${selectedClient.doormanCode || 'N/A'}
+ID PLACA: ${selectedClient.id}
+URL: ${selectedClient.url}
+                  `;
+                  navigator.clipboard.writeText(data);
+                  alert('Todos os dados foram copiados para a área de transferência!');
+                }}
+                style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#0F172A', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                <Copy size={18} /> COPIAR TODOS OS DADOS
+              </button>
               <button style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer' }}>EDITAR DADOS</button>
-              <button style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#F1F5F9', color: '#1E293B', border: 'none', fontWeight: 700, cursor: 'pointer' }}>VER HISTÓRICO DE PAGAMENTO</button>
             </div>
           </div>
         </div>
