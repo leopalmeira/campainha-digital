@@ -8,8 +8,7 @@ function PricingCalculator() {
 
   const calculatePrice = (u) => {
     if (u <= 100) return 159.90;
-    if (u <= 200) return 159.90 + ((u - 100) * 3.25);
-    return 159.90 + (100 * 3.25) + ((u - 200) * 2.25);
+    return 159.90 + ((u - 100) * 1.55);
   };
 
   const total = calculatePrice(units);
@@ -61,8 +60,7 @@ function PricingCalculator() {
       <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '24px', lineHeight: 1.6, padding: '12px', background: '#FFFBEB', borderRadius: '12px', border: '1px solid #FEF3C7' }}>
         <strong style={{ color: '#D97706', display: 'block', marginBottom: '4px' }}>Regra de Cobrança:</strong>
         • Até 100 unidades: R$ 159,90 fixos.<br/>
-        • De 101 a 200: R$ 3,25 por unidade extra.<br/>
-        • Acima de 200: R$ 2,25 por unidade extra.
+        • Acima de 100 unidades: R$ 1,55 por unidade extra.
       </div>
 
       <Link to="/auth" style={{ textDecoration: 'none', display: 'block' }}>
