@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle, CreditCard } from 'lucide-react';
+import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle, CreditCard, Users, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
+import UnitManager from '../components/UnitManager';
+import BroadcastPanel from '../components/BroadcastPanel';
+import ResidentManager from '../components/ResidentManager';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -77,8 +80,17 @@ export default function AdminPanel() {
       const data = await res.json();
       
       setProperties(data);
-      if (data.length === 0) setOnboardingStep('type');
-      if (data.length > 0) setSelectedProperty(data[0].id);
+
+      // Auto-seleciona propriedade salva no login ou a primeira disponível
+      const savedPropertyId = localStorage.getItem('cd_admin_propertyId');
+      if (data.length === 0) {
+        setOnboardingStep('type');
+      } else {
+        const toSelect = savedPropertyId && data.find(p => p.id === savedPropertyId)
+          ? savedPropertyId
+          : data[0].id;
+        setSelectedProperty(toSelect);
+      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -355,12 +367,15 @@ export default function AdminPanel() {
       </header>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', padding: '0 24px', gap: '0' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', padding: '0 24px', gap: '0', overflowX: 'auto' }}>
         {[
           { key: 'properties', label: '🏠 Propriedades' },
-          { key: 'history',    label: '📋 Histórico de Visitantes' }
+          { key: 'units',      label: '🏢 Unidades' },
+          { key: 'people',     label: '👥 Pessoas' },
+          { key: 'broadcast',  label: '📢 Mensagens' },
+          { key: 'history',    label: '📋 Histórico' }
         ].map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{ padding: '16px 20px', background: 'none', border: 'none', borderBottom: activeTab === tab.key ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === tab.key ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 700, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s' }}>
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{ padding: '14px 16px', background: 'none', border: 'none', borderBottom: activeTab === tab.key ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === tab.key ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
             {tab.label}
           </button>
         ))}
@@ -437,6 +452,26 @@ export default function AdminPanel() {
               </div>
             )}
           </>
+        )}
+
+        {/* ── ABA: UNIDADES ── */}
+        {activeTab === 'units' && selectedProperty && (
+          <UnitManager propertyId={selectedProperty} adminEmail={localStorage.getItem('cd_admin_email')} onRefresh={fetchProperties} />
+        )}
+        {activeTab === 'units' && !selectedProperty && properties.length > 0 && (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p style={{ color: 'var(--text-muted)' }}>Selecione uma propriedade na aba Propriedades primeiro.</p>
+          </div>
+        )}
+
+        {/* ── ABA: PESSOAS ── */}
+        {activeTab === 'people' && selectedProperty && (
+          <ResidentManager propertyId={selectedProperty} property={properties.find(p => p.id === selectedProperty)} adminEmail={localStorage.getItem('cd_admin_email')} onRefresh={fetchProperties} />
+        )}
+
+        {/* ── ABA: MENSAGENS ── */}
+        {activeTab === 'broadcast' && selectedProperty && (
+          <BroadcastPanel propertyId={selectedProperty} adminEmail={localStorage.getItem('cd_admin_email')} />
         )}
 
         {/* ── ABA: HISTÓRICO ── */}

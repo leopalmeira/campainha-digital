@@ -4,7 +4,7 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-leopalmeira%2Fcampainha--digital-black?logo=github)](https://github.com/leopalmeira/campainha-digital)
 [![Deploy](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render)](https://render.com)
-[![Version](https://img.shields.io/badge/Versão-2.2.0-green)](#)
+[![Version](https://img.shields.io/badge/Versão-3.0.0-green)](#)
 [![License](https://img.shields.io/badge/Licença-MIT-gray)](#)
 
 ---
@@ -65,9 +65,11 @@ Campainha Digital transforma um QR Code em uma campainha inteligente com **video
 - ✅ **Modo Oculto:** visitante não sabe que está sendo monitorado
 - ✅ **Toggle câmera e mute** durante a chamada
 - ✅ **Mensagens rápidas** por categoria (Água, Light, Entregador, Geral)
+- ✅ **Interfone Digital:** busca vizinhos por Bloco/Rua + Nº da Casa
+- ✅ **Avisos do Condomínio:** recebe mensagens broadcast em tempo real
+- ✅ **Badge de notificação** para mensagens não lidas
 - ✅ **Histórico profissional** com grupos por data, filtros e foto expandível
-- ✅ **Tempo relativo** (Agora, 5min atrás, Ontem...)
-- ✅ **Navegação inferior** com Campainha / Histórico / Configurações / Sair
+- ✅ **Navegação inferior** com Campainha / Avisos / Histórico / Config / Sair
 - ✅ PWA instalável
 
 ### Para o Visitante (VisitorCall)
@@ -77,12 +79,21 @@ Campainha Digital transforma um QR Code em uma campainha inteligente com **video
 - ✅ Banner de mensagem rápida enviada pelo morador (5s)
 - ✅ Modo monitor invisível (não revela que está sendo observado)
 
-### Para o Proprietário (AdminPanel)
+### Para o Síndico / Administrador (AdminPanel)
 - ✅ Geração automática de QR Code único (UUID v4)
+- ✅ **Gestão de Unidades:** cadastrar, editar, excluir (bloco/rua, número)
+- ✅ **Gestão de Pessoas:** visualizar códigos, regenerar (bloquear morador)
+- ✅ **Gestão de Porteiro:** cadastrar/remover e-mail do porteiro
+- ✅ **Broadcast:** enviar mensagens (normal/urgente) a todos moradores
+- ✅ **Seleção de papel:** Síndico ou Administrador de Vila no cadastro
+- ✅ Códigos de acesso copiáveis + compartilháveis via WhatsApp
 - ✅ Aba "Histórico de Visitantes"
-- ✅ Códigos de acesso copiáveis por unidade
 - ✅ Paywall R$15/mês para endereços adicionais
-- ✅ Suporte a Casa / Vila / Condomínio
+
+### Para o Porteiro (PorteiroDashboard)
+- ✅ **Busca por endereço:** localiza unidades por Bloco/Rua + Número
+- ✅ **Chamada direta:** liga para qualquer morador pelo painel
+- ✅ Notificação de entrada autorizada em tempo real
 
 ---
 
@@ -137,17 +148,25 @@ a cada **10 minutos** — evita o spin-down de 15min.
 campainha-digital/
 ├── backend/
 │   ├── server.js          # Express + Socket.io + WebRTC signaling
-│   ├── db.json            # Propriedades
+│   ├── db.json            # Propriedades + unidades com endereço
 │   ├── residents.json     # Moradores
-│   └── visitors.json      # Histórico (foto + timestamp)
-└── frontend/src/pages/
-    ├── LandingPage.jsx
-    ├── AdminPanel.jsx         # Proprietário: QR, histórico, paywall
-    ├── ResidentDashboard.jsx  # Morador: WebRTC + som + vibração
-    ├── ResidentPanels.jsx     # Histórico pro + configurações
-    ├── VisitorCall.jsx        # Visitante: câmera + WebRTC offer
-    ├── ResidentLogin.jsx
-    └── AuthPage.jsx
+│   ├── visitors.json      # Histórico (foto + timestamp)
+│   └── messages.json      # Mensagens broadcast do condomínio
+└── frontend/src/
+    ├── components/
+    │   ├── Logo.jsx
+    │   ├── UnitManager.jsx      # CRUD de unidades (bloco/rua/número)
+    │   ├── BroadcastPanel.jsx   # Envio de mensagens para moradores
+    │   └── ResidentManager.jsx  # Gestão de moradores e porteiros
+    └── pages/
+        ├── LandingPage.jsx
+        ├── AdminPanel.jsx         # Síndico: unidades, pessoas, mensagens
+        ├── ResidentDashboard.jsx  # Morador: WebRTC + interfone + avisos
+        ├── ResidentPanels.jsx     # Histórico pro + configurações
+        ├── VisitorCall.jsx        # Visitante: câmera + WebRTC offer
+        ├── PorteiroDashboard.jsx  # Porteiro: busca por endereço + chamada
+        ├── ResidentLogin.jsx
+        └── AuthPage.jsx           # Login + cadastro com seleção de papel
 ```
 
 ---

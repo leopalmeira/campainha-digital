@@ -29,21 +29,25 @@ app.use(express.json({ limit: '10mb' }));
 const dbPath           = path.join(__dirname, 'db.json');
 const residentsDbPath  = path.join(__dirname, 'residents.json');
 const visitorsDbPath   = path.join(__dirname, 'visitors.json');
+const messagesDbPath   = path.join(__dirname, 'messages.json');
 
 let properties = [];
 let residents  = [];
 let visitors   = []; // histórico de visitantes
+let messages   = []; // mensagens do condomínio
 
 function loadDb() {
   if (fs.existsSync(dbPath))          properties = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
   if (fs.existsSync(residentsDbPath)) residents  = JSON.parse(fs.readFileSync(residentsDbPath, 'utf8'));
   if (fs.existsSync(visitorsDbPath))  visitors   = JSON.parse(fs.readFileSync(visitorsDbPath, 'utf8'));
+  if (fs.existsSync(messagesDbPath))  messages   = JSON.parse(fs.readFileSync(messagesDbPath, 'utf8'));
 }
 loadDb();
 
 const saveDb        = () => fs.writeFileSync(dbPath,          JSON.stringify(properties, null, 2));
 const saveResidents = () => fs.writeFileSync(residentsDbPath, JSON.stringify(residents,  null, 2));
 const saveVisitors  = () => fs.writeFileSync(visitorsDbPath,  JSON.stringify(visitors,   null, 2));
+const saveMessages  = () => fs.writeFileSync(messagesDbPath,  JSON.stringify(messages,   null, 2));
 
 // ─── Keep-Alive endpoint (previne spin-down no Render Free) ──────────────────
 app.get('/api/ping', (_req, res) => res.json({ ok: true, ts: Date.now() }));
@@ -64,21 +68,34 @@ app.post('/api/admin/login', (req, res) => {
     return res.json({ success: true, role: 'master', email });
   }
   
-  // 2. Property Admin (Client)
-  const codeToUse = clientCode || password;
-  const propAdmin = properties.find(p => p.adminEmail === email && p.clientCode === codeToUse);
+  // 2. Property Admin (Client) - aceita clientCode OU password como código
+  const codeToUse = (clientCode || password || '').trim().toUpperCase();
+  const propAdmin = properties.find(p =>
+    p.adminEmail === email &&
+    (p.clientCode === codeToUse || p.clientCode === (clientCode || password || '').trim())
+  );
   if (propAdmin) {
-    return res.json({ success: true, role: 'admin', email });
+    return res.json({
+      success: true, role: 'admin', email,
+      propertyId: propAdmin.id, propertyName: propAdmin.name,
+      clientCode: propAdmin.clientCode
+    });
   }
 
-  // 3. Doorman
-  const doorCode = doormanCode || password;
-  const propDoor = properties.find(p => p.doormanEmail === email && p.doormanCode === doorCode);
+  // 3. Doorman - aceita doormanCode OU password
+  const doorCode = (doormanCode || password || '').trim().toUpperCase();
+  const propDoor = properties.find(p =>
+    p.doormanEmail === email &&
+    (p.doormanCode === doorCode || p.doormanCode === (doormanCode || password || '').trim())
+  );
   if (propDoor) {
-    return res.json({ success: true, role: 'doorman', email, propertyId: propDoor.id, propertyName: propDoor.name });
+    return res.json({
+      success: true, role: 'doorman', email,
+      propertyId: propDoor.id, propertyName: propDoor.name
+    });
   }
 
-  res.status(401).json({ error: 'Credenciais inválidas. Verifique seu e-mail e código.' });
+  res.status(401).json({ error: 'Credenciais inválidas. Verifique seu e-mail e código de acesso.' });
 });
 
 // ─── Doorman Auth Route ──────────────────────────────────────────────────────
@@ -134,8 +151,15 @@ app.post('/api/properties', async (req, res) => {
     doormanCode,
     doormanEmail: doormanEmail || null,
     units: isCollective
-      ? (units && units.length > 0 ? units.map(u => ({ id: uuidv4(), name: u.name, accessCode: generateAccessCode() })) : [])
-      : [{ id: uuidv4(), name: 'Principal', accessCode: clientCode }], // Use clientCode as accessCode for single units
+      ? (units && units.length > 0 ? units.map(u => ({
+          id: uuidv4(),
+          name: u.name,
+          block: u.block || '',
+          street: u.street || '',
+          number: u.number || '',
+          accessCode: generateAccessCode()
+        })) : [])
+      : [{ id: uuidv4(), name: 'Principal', block: '', street: '', number: '', accessCode: clientCode }], // Use clientCode as accessCode for single units
     qrCodeUrl: qrCodeDataUrl,
     url,
     adminEmail: adminEmail || null,
@@ -177,8 +201,8 @@ app.get('/api/properties/:id', (req, res) => {
 app.get('/api/properties/:id/units', (req, res) => {
   const prop = properties.find(p => p.id === req.params.id);
   if (!prop) return res.status(404).json({ error: 'Property not found' });
-  // Return just the unit list with names and IDs
-  res.json(prop.units.map(u => ({ id: u.id, name: u.name })));
+  // Return unit list with names, IDs, and address info
+  res.json(prop.units.map(u => ({ id: u.id, name: u.name, block: u.block || '', street: u.street || '', number: u.number || '' })));
 });
 
 app.delete('/api/properties/:id', (req, res) => {
@@ -193,6 +217,217 @@ app.delete('/api/properties/:id', (req, res) => {
 
   properties = properties.filter(p => p.id !== req.params.id);
   saveDb();
+  res.json({ success: true });
+});
+
+// ─── Unit Management Routes (Admin Panel do Condomínio) ───────────────────────
+
+// Adicionar nova unidade a uma propriedade
+app.post('/api/properties/:id/units', (req, res) => {
+  const { adminEmail } = req.body;
+  const prop = properties.find(p => p.id === req.params.id);
+  if (!prop) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+  
+  // Verificação de permissão
+  if (adminEmail !== MASTER_ADMIN_EMAIL && prop.adminEmail !== adminEmail) {
+    return res.status(403).json({ error: 'Sem permissão para editar esta propriedade.' });
+  }
+
+  const { name, block, street, number } = req.body;
+  if (!name) return res.status(400).json({ error: 'Nome da unidade é obrigatório.' });
+
+  const newUnit = {
+    id: uuidv4(),
+    name: name.trim(),
+    block: (block || '').trim(),
+    street: (street || '').trim(),
+    number: (number || '').trim(),
+    accessCode: generateAccessCode()
+  };
+
+  prop.units.push(newUnit);
+  saveDb();
+  res.status(201).json(newUnit);
+});
+
+// Editar unidade existente
+app.put('/api/properties/:propId/units/:unitId', (req, res) => {
+  const { adminEmail, name, block, street, number } = req.body;
+  const prop = properties.find(p => p.id === req.params.propId);
+  if (!prop) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+  
+  if (adminEmail !== MASTER_ADMIN_EMAIL && prop.adminEmail !== adminEmail) {
+    return res.status(403).json({ error: 'Sem permissão para editar esta propriedade.' });
+  }
+
+  const unit = prop.units.find(u => u.id === req.params.unitId);
+  if (!unit) return res.status(404).json({ error: 'Unidade não encontrada.' });
+
+  if (name !== undefined) unit.name = name.trim();
+  if (block !== undefined) unit.block = block.trim();
+  if (street !== undefined) unit.street = street.trim();
+  if (number !== undefined) unit.number = number.trim();
+
+  saveDb();
+  res.json(unit);
+});
+
+// Deletar unidade
+app.delete('/api/properties/:propId/units/:unitId', (req, res) => {
+  const { adminEmail } = req.query;
+  const prop = properties.find(p => p.id === req.params.propId);
+  if (!prop) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+  
+  if (adminEmail !== MASTER_ADMIN_EMAIL && prop.adminEmail !== adminEmail) {
+    return res.status(403).json({ error: 'Sem permissão para editar esta propriedade.' });
+  }
+
+  const unitIndex = prop.units.findIndex(u => u.id === req.params.unitId);
+  if (unitIndex === -1) return res.status(404).json({ error: 'Unidade não encontrada.' });
+
+  prop.units.splice(unitIndex, 1);
+  saveDb();
+  res.json({ success: true });
+});
+
+// ─── Gerenciar Porteiro ───────────────────────────────────────────────────────
+app.put('/api/properties/:id/doorman', (req, res) => {
+  const { adminEmail, doormanEmail } = req.body;
+  const prop = properties.find(p => p.id === req.params.id);
+  if (!prop) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+  
+  if (adminEmail !== MASTER_ADMIN_EMAIL && prop.adminEmail !== adminEmail) {
+    return res.status(403).json({ error: 'Sem permissão.' });
+  }
+
+  prop.doormanEmail = doormanEmail || null;
+  // Gera código de porteiro se não existir e email foi fornecido
+  if (doormanEmail && !prop.doormanCode) {
+    prop.doormanCode = generateAccessCode();
+  }
+  // Remove código se email foi removido
+  if (!doormanEmail) {
+    prop.doormanCode = null;
+  }
+
+  saveDb();
+  res.json({ success: true, doormanCode: prop.doormanCode, doormanEmail: prop.doormanEmail });
+});
+
+// ─── Regenerar código de acesso (bloqueia morador atual) ──────────────────────
+app.post('/api/properties/:propId/units/:unitId/regenerate-code', (req, res) => {
+  const { adminEmail } = req.body;
+  const prop = properties.find(p => p.id === req.params.propId);
+  if (!prop) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+  
+  if (adminEmail !== MASTER_ADMIN_EMAIL && prop.adminEmail !== adminEmail) {
+    return res.status(403).json({ error: 'Sem permissão.' });
+  }
+
+  const unit = prop.units.find(u => u.id === req.params.unitId);
+  if (!unit) return res.status(404).json({ error: 'Unidade não encontrada.' });
+
+  unit.accessCode = generateAccessCode();
+  saveDb();
+  res.json({ success: true, newCode: unit.accessCode });
+});
+
+// ─── Buscar vizinho por endereço (bloco/rua + número) ─────────────────────────
+app.get('/api/properties/:id/search-unit', (req, res) => {
+  const { block, street, number } = req.query;
+  const prop = properties.find(p => p.id === req.params.id);
+  if (!prop) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+
+  // Busca por combinação de bloco/rua + número
+  const results = prop.units.filter(u => {
+    const matchBlock = block ? (u.block || '').toLowerCase().includes(block.toLowerCase()) : true;
+    const matchStreet = street ? (u.street || '').toLowerCase().includes(street.toLowerCase()) : true;
+    const matchNumber = number ? (u.number || '').toLowerCase() === number.toLowerCase() : true;
+    
+    // Precisa ter pelo menos bloco ou rua + número para ser encontrado
+    const hasAddress = (u.block || u.street) && u.number;
+    if (!hasAddress) return false;
+    
+    return matchBlock && matchStreet && matchNumber;
+  });
+
+  if (results.length === 0) {
+    return res.status(404).json({ error: 'Nenhuma unidade encontrada com esse endereço. Verifique se os dados estão cadastrados.' });
+  }
+
+  res.json(results.map(u => ({ id: u.id, name: u.name, block: u.block || '', street: u.street || '', number: u.number || '' })));
+});
+
+// ─── Mensagens do Condomínio (Broadcast) ──────────────────────────────────────
+
+// Enviar mensagem para todos os moradores de uma propriedade
+app.post('/api/properties/:id/broadcast', (req, res) => {
+  const { adminEmail, title, body, priority } = req.body;
+  const prop = properties.find(p => p.id === req.params.id);
+  if (!prop) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+  
+  if (adminEmail !== MASTER_ADMIN_EMAIL && prop.adminEmail !== adminEmail) {
+    return res.status(403).json({ error: 'Sem permissão para enviar mensagens.' });
+  }
+
+  if (!body || !body.trim()) {
+    return res.status(400).json({ error: 'O corpo da mensagem é obrigatório.' });
+  }
+
+  const message = {
+    id: uuidv4(),
+    propertyId: prop.id,
+    propertyName: prop.name,
+    title: (title || 'Aviso do Condomínio').trim(),
+    body: body.trim(),
+    priority: priority || 'normal', // normal | urgent
+    senderEmail: adminEmail,
+    createdAt: new Date().toISOString(),
+    readBy: []
+  };
+
+  messages.push(message);
+  if (messages.length > 1000) messages = messages.slice(-1000);
+  saveMessages();
+
+  // Emitir via WebSocket para todos os moradores da propriedade
+  prop.units.forEach(unit => {
+    io.to(`unit_${unit.id}`).emit('broadcast_message', {
+      id: message.id,
+      title: message.title,
+      body: message.body,
+      priority: message.priority,
+      propertyName: prop.name,
+      createdAt: message.createdAt
+    });
+  });
+
+  res.status(201).json(message);
+});
+
+// Buscar mensagens de uma propriedade
+app.get('/api/properties/:id/messages', (req, res) => {
+  const prop = properties.find(p => p.id === req.params.id);
+  if (!prop) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+
+  const propMessages = messages
+    .filter(m => m.propertyId === req.params.id)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 50);
+
+  res.json(propMessages);
+});
+
+// Marcar mensagem como lida
+app.post('/api/messages/:msgId/read', (req, res) => {
+  const { unitId } = req.body;
+  const msg = messages.find(m => m.id === req.params.msgId);
+  if (!msg) return res.status(404).json({ error: 'Mensagem não encontrada.' });
+  
+  if (!msg.readBy.includes(unitId)) {
+    msg.readBy.push(unitId);
+    saveMessages();
+  }
   res.json({ success: true });
 });
 
@@ -391,6 +626,34 @@ io.on('connection', (socket) => {
     if (target) io.to(target).emit('quick_message', { message });
   });
 
+  // Porteiro envia mensagem de texto para uma unidade específica
+  socket.on('doorman_message', ({ unitId, propertyId, message, senderName }) => {
+    if (!unitId || !message) return;
+    console.log(`[WS] Porteiro → unit_${unitId}: ${message}`);
+    io.to(`unit_${unitId}`).emit('doorman_message', {
+      message,
+      senderName: senderName || 'Portaria',
+      propertyId,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Porteiro inicia chamada (interfone) para uma unidade
+  socket.on('doorman_call', ({ unitId, propertyId, callerName }) => {
+    if (!unitId) return;
+    console.log(`[WS] Porteiro chamando unit_${unitId}`);
+    io.to(`unit_${unitId}`).emit('incoming_call', {
+      visitorSocketId: socket.id,
+      photo: null,
+      callerName: callerName || 'Portaria',
+      timestamp: new Date().toISOString(),
+      visitId: uuidv4(),
+      propertyId,
+      fromDoorman: true
+    });
+  });
+
+
   socket.on('authorize_entry', ({ unitId, propertyId, visitorId }) => {
     // Notify the doorman that entry was authorized by the resident
     io.to(`doorman_${propertyId}`).emit('entry_authorized', { unitId, visitorId, timestamp: new Date().toISOString() });
@@ -417,4 +680,3 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
 });
-

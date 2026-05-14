@@ -280,20 +280,62 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
-## [v2.9.15] - 2026-05-14
-### Adicionado
-- **Interfone entre Moradores**: Implementado sistema de busca e chamada entre unidades do mesmo condomínio.
-- **Liberação de Entrada**: Adicionado botão "LIBERAR ENTRADA" no dashboard do morador que notifica instantaneamente o porteiro e o visitante.
-- **Identificação de Chamada**: Sistema agora diferencia chamadas externas (Portão) de chamadas internas (Interfone entre vizinhos).
+## 🏢 v3.0.0 — Painel do Condomínio, Comunicação entre Moradores & Gestão Completa (14/05/2026)
 
-### Corrigido
-- **Crash no Dashboard do Morador**: Corrigido erro de "tela branca" causado por importações ausentes de ícones do Lucide (MessageCircle e MapPin).
+### Gestão de Unidades (Backend + Frontend)
+- **CRUD Completo de Unidades**: Novo componente `UnitManager.jsx` permite cadastrar, editar e excluir unidades com campos de **Bloco/Rua**, **Número da Casa/Apto** e **Nome**.
+- **Endpoints REST**: `POST/PUT/DELETE /api/properties/:id/units/:unitId` com validação de permissão por `adminEmail`.
+- **Endereço Obrigatório**: Unidades sem bloco/rua e número exibem aviso visual de que não poderão ser localizadas pelo interfone.
+
+### Comunicação entre Moradores (Interfone Digital)
+- **Busca por Endereço**: Moradores buscam vizinhos digitando **Bloco/Rua + Número** (não mais por nome).
+- **Endpoint de Busca**: `GET /api/properties/:id/search-unit?block=&number=` retorna apenas unidades com endereço cadastrado.
+- **Chamada Direta**: Ao encontrar o vizinho, o morador pode iniciar chamada WebRTC instantânea.
+
+### Broadcast de Mensagens do Condomínio
+- **Componente BroadcastPanel**: Síndico envia mensagens com prioridade (Normal/Urgente) para todos os moradores.
+- **WebSocket em Tempo Real**: Evento `broadcast_message` emitido para todas as unidades da propriedade.
+- **Persistência**: Mensagens salvas em `messages.json` com histórico e controle de leitura.
+- **Aba Avisos no App**: Moradores recebem avisos com badge de notificação (não lidos) e notificação push.
+
+### Gestão de Pessoas
+- **Componente ResidentManager**: Visualização de códigos de acesso por unidade, com botão de cópia e WhatsApp.
+- **Bloqueio de Morador**: Regeneração de código de acesso (`POST /units/:unitId/regenerate-code`) invalida acesso anterior.
+- **Gestão de Porteiro**: Cadastro/remoção de e-mail do porteiro (`PUT /api/properties/:id/doorman`), com geração automática de código.
+
+### Porteiro — Busca por Endereço
+- **Campos de Busca**: Porteiro agora busca unidades por **Bloco/Rua** e **Número** em vez de texto livre.
+- **Chamada Direta**: Botão "Chamar Morador" emite `initiate_call` via Socket.io direto do painel.
+- **Cards com Endereço**: Cada unidade exibe bloco, rua e número cadastrados.
+
+### Cadastro com Seleção de Papel
+- **Novos Papéis**: Na tela de cadastro (`AuthPage`), o usuário seleciona se é **Síndico/Admin de Condomínio** ou **Administrador de Vila**.
+- **Armazenamento**: Papel salvo em `localStorage` para controle de acesso ao painel de administração.
+
+### Modelo de Preços Atualizado
+- **Condomínios e Vilas**: R$ 159,90/mês para até 100 unidades + R$ 3,25/unidade extra.
+- **Tablet Comodado**: Porteiro recebe tablet em comodato para uso na portaria.
+- **Contrato de Prestação de Serviços**: Geração de contrato com cláusulas de serviço, deveres, quebra de contrato e datas de pagamento.
+
+### Estrutura de Novos Arquivos
+- `frontend/src/components/UnitManager.jsx` — CRUD de unidades
+- `frontend/src/components/BroadcastPanel.jsx` — Envio de comunicados
+- `frontend/src/components/ResidentManager.jsx` — Gestão de moradores e porteiros
+- `backend/messages.json` — Persistência de mensagens broadcast
+
+### AdminPanel — Novas Abas
+- 🏠 **Propriedades** — QR Codes e configuração
+- 🏢 **Unidades** — Cadastro com endereço completo
+- 👥 **Pessoas** — Moradores e porteiro
+- 📢 **Mensagens** — Broadcast para moradores
+- 📋 **Histórico** — Visitantes
 
 ---
 
 ## 🛠️ Próximos Passos
-- [ ] Implementação real dos gráficos no módulo de Analytics.
 - [ ] Integração Pix automatizada via API de pagamentos.
-- [ ] Sistema de notificações push (FCM) para o Master Admin sobre novas ativações.
+- [ ] Geração de contrato PDF com assinatura digital.
+- [ ] Sistema de notificações push (FCM).
 - [ ] Migração final para PostgreSQL/Neon.
+- [ ] Dashboard de analytics com gráficos.
 

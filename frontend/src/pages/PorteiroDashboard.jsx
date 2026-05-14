@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { LogOut, Building2, Phone, Search, KeyRound, CheckCircle2 } from 'lucide-react';
+import { LogOut, Building2, Phone, Search, KeyRound, CheckCircle2, MessageSquare, Send, X } from 'lucide-react';
 import Logo from '../components/Logo';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -10,7 +10,11 @@ export default function PorteiroDashboard() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [searchNumber, setSearchNumber] = useState('');
   const [authorizedEntry, setAuthorizedEntry] = useState(null);
+  const [msgUnit, setMsgUnit] = useState(null);   // unitId sendo enviada msg
+  const [msgText, setMsgText] = useState('');     // texto da mensagem
+  const [msgSent, setMsgSent] = useState(false);  // feedback de enviado
   const navigate = useNavigate();
   const socketRef = useRef(null);
 
@@ -63,13 +67,35 @@ export default function PorteiroDashboard() {
     return () => s.disconnect();
   }, [navigate]);
 
+  const sendMessage = (unit) => {
+    if (!msgText.trim() || !socketRef.current) return;
+    socketRef.current.emit('doorman_message', {
+      unitId: unit.id,
+      propertyId: unit.propertyId,
+      message: msgText.trim(),
+      senderName: 'Portaria'
+    });
+    setMsgSent(true);
+    setTimeout(() => { setMsgSent(false); setMsgUnit(null); setMsgText(''); }, 2000);
+  };
+
+  const callUnit = (unit) => {
+    if (!socketRef.current) return;
+    socketRef.current.emit('doorman_call', {
+      unitId: unit.id,
+      propertyId: unit.propertyId,
+      callerName: 'Portaria'
+    });
+  };
+
   if (loading) return <div style={{ minHeight: '100vh', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Carregando painel de controle...</div>;
 
   const allUnits = properties.flatMap(p => (p.units || []).map(u => ({ ...u, propertyName: p.name, propertyId: p.id })));
-  const filteredUnits = allUnits.filter(u => 
-    u.name.toLowerCase().includes(search.toLowerCase()) || 
-    u.propertyName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUnits = allUnits.filter(u => {
+    const blockMatch = !search || (u.block || '').toLowerCase().includes(search.toLowerCase()) || (u.street || '').toLowerCase().includes(search.toLowerCase()) || u.name.toLowerCase().includes(search.toLowerCase()) || u.propertyName.toLowerCase().includes(search.toLowerCase());
+    const numberMatch = !searchNumber || (u.number || '').toLowerCase() === searchNumber.toLowerCase();
+    return blockMatch && numberMatch;
+  });
 
   return (
     <div style={{ minHeight: '100vh', background: '#F8FAFC', color: '#1E293B' }}>
@@ -91,31 +117,60 @@ export default function PorteiroDashboard() {
       )}
 
       <main style={{ padding: '40px', maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '40px' }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={24} style={{ position: 'absolute', left: '24px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-            <input 
-              type="text" 
-              placeholder="Pesquisar por condomínio, apartamento ou morador..." 
-              value={search} 
-              onChange={e => setSearch(e.target.value)} 
-              style={{ width: '100%', padding: '24px 24px 24px 72px', fontSize: '20px', borderRadius: '24px', border: '1px solid #E2E8F0', background: '#FFF', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', outline: 'none' }} 
-            />
+        {/* Busca por Endereço */}
+        <div style={{ marginBottom: '40px', background: '#FFF', borderRadius: '24px', padding: '32px', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><Phone size={18} color="#3B82F6"/> Chamar Unidade por Endereço</h3>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '120px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', marginBottom: '6px', display: 'block' }}>BLOCO / RUA</label>
+              <input type="text" placeholder="Ex: Bloco A" value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', padding: '16px', fontSize: '16px', borderRadius: '14px', border: '1px solid #E2E8F0', background: '#F8FAFC', outline: 'none' }} />
+            </div>
+            <div style={{ flex: 1, minWidth: '120px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', marginBottom: '6px', display: 'block' }}>Nº CASA/APTO</label>
+              <input type="text" placeholder="Ex: 101" value={searchNumber} onChange={e => setSearchNumber(e.target.value)} style={{ width: '100%', padding: '16px', fontSize: '16px', borderRadius: '14px', border: '1px solid #E2E8F0', background: '#F8FAFC', outline: 'none' }} />
+            </div>
           </div>
+          <p style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '0' }}>Digite o bloco/rua e número para localizar a unidade. Ou veja todas abaixo.</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
           {filteredUnits.map(unit => (
-            <div key={`${unit.propertyId}-${unit.id}`} style={{ background: '#FFF', padding: '24px', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s', cursor: 'pointer' }} onClick={() => navigate(`/chamada/${unit.id}`)}>
+            <div key={`${unit.propertyId}-${unit.id}`} style={{ background: '#FFF', padding: '24px', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s' }}>
               <div style={{ fontSize: '11px', fontWeight: 800, color: '#3B82F6', textTransform: 'uppercase', marginBottom: '8px' }}>{unit.propertyName}</div>
-              <h3 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 16px' }}>{unit.name}</h3>
-              <button style={{ width: '100%', padding: '12px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <Phone size={16} /> Chamar Morador
-              </button>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 6px' }}>{unit.name}</h3>
+              {(unit.block || unit.street || unit.number) && (
+                <p style={{ fontSize: '12px', color: '#64748B', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Building2 size={13}/> {unit.block && `Bloco ${unit.block}`} {unit.street && `${unit.street}`} {unit.number && `Nº ${unit.number}`}
+                </p>
+              )}
+              {/* Botões de ação */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: msgUnit === unit.id ? '12px' : '0' }}>
+                <button onClick={() => callUnit(unit)} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: 'linear-gradient(135deg,#10B981,#059669)', border: 'none', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', boxShadow: '0 4px 12px rgba(16,185,129,0.25)' }}>
+                  <Phone size={15} /> Interfone
+                </button>
+                <button onClick={() => { setMsgUnit(msgUnit === unit.id ? null : unit.id); setMsgText(''); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: msgUnit === unit.id ? '#F1F5F9' : 'linear-gradient(135deg,#3B82F6,#2563EB)', border: 'none', color: msgUnit === unit.id ? '#64748B' : '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                  {msgUnit === unit.id ? <><X size={14}/>Fechar</> : <><MessageSquare size={15}/>Mensagem</>}
+                </button>
+              </div>
+              {/* Área de mensagem inline */}
+              {msgUnit === unit.id && (
+                <div style={{ marginTop: '0' }}>
+                  <textarea
+                    placeholder="Digite sua mensagem para o morador..."
+                    value={msgText}
+                    onChange={e => setMsgText(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', outline: 'none', resize: 'none', minHeight: '72px', fontFamily: 'inherit', background: '#F8FAFC' }}
+                  />
+                  <button onClick={() => sendMessage(unit)} disabled={!msgText.trim()} style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: '10px', background: msgSent ? '#10B981' : '#3B82F6', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', opacity: msgText.trim() ? 1 : 0.5 }}>
+                    {msgSent ? '✓ Mensagem Enviada!' : <><Send size={14}/>Enviar</>}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
       </main>
+
 
       <style>{`
         @keyframes pulse {

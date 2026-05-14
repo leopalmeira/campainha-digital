@@ -10,6 +10,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [propertyType, setPropertyType] = useState('');
+  const [adminRole, setAdminRole] = useState(''); // 'sindico' | 'admin_vila'
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -38,7 +39,9 @@ export default function AuthPage() {
           localStorage.setItem('cd_doorman_propertyName', data.propertyName);
           navigate('/portaria');
         } else {
+          // Admin de condomínio — salva propertyId para carregar painel correto
           localStorage.setItem('cd_admin_role', 'client');
+          if (data.propertyId) localStorage.setItem('cd_admin_propertyId', data.propertyId);
           navigate('/admin');
         }
       } else {
@@ -66,7 +69,8 @@ export default function AuthPage() {
 
   const handleRegisterStep2 = () => {
     if (!propertyType) return;
-    // In production: save user + property type to backend
+    localStorage.setItem('cd_admin_role', adminRole || 'client');
+    localStorage.setItem('cd_property_type', propertyType);
     navigate('/admin');
   };
 
@@ -169,10 +173,26 @@ export default function AuthPage() {
         {/* REGISTER STEP 2 - Property Type */}
         {!isLogin && step === 2 && (
           <>
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '8px', color: 'var(--text-main)' }}>Tipo de Imóvel</h2>
-              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-muted)' }}>Selecione para configurarmos sua campainha corretamente.</p>
+             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '8px', color: 'var(--text-main)' }}>Qual seu papel?</h2>
+              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-muted)' }}>Selecione seu perfil e tipo de imóvel.</p>
             </div>
+
+            {/* Seleção de Papel */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+              {[
+                { val: 'sindico', label: 'Síndico / Admin', desc: 'Gerencio condomínio', icon: '🏢' },
+                { val: 'admin_vila', label: 'Administrador', desc: 'Gerencio vila de casas', icon: '🏘️' },
+              ].map(r => (
+                <button key={r.val} onClick={() => setAdminRole(r.val)} style={{ flex: 1, padding: '16px', borderRadius: '14px', cursor: 'pointer', textAlign: 'center', background: adminRole === r.val ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.03)', border: `2px solid ${adminRole === r.val ? '#3B82F6' : 'var(--border-subtle)'}`, transition: 'all 0.2s' }}>
+                  <div style={{ fontSize: '24px', marginBottom: '6px' }}>{r.icon}</div>
+                  <strong style={{ color: 'var(--text-main)', fontSize: '13px', display: 'block' }}>{r.label}</strong>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{r.desc}</span>
+                </button>
+              ))}
+            </div>
+
+            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px' }}>TIPO DE IMÓVEL</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
               {propertyTypes.map(pt => (

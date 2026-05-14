@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { Phone, MicOff, PhoneOff, Bell, ShieldCheck, EyeOff, Download, AlertCircle, Video, VideoOff, LogOut, History, Settings, Home, KeyRound, MessageCircle, Search, User, MapPin } from 'lucide-react';
+import { Phone, MicOff, PhoneOff, Bell, ShieldCheck, EyeOff, Download, AlertCircle, Video, VideoOff, LogOut, History, Settings, Home, KeyRound, MessageCircle, Search, User, MapPin, Hash, Building2, Mail } from 'lucide-react';
 import { HistoryPanel, SettingsPanel, DEFAULT_CATEGORIES } from './ResidentPanels';
 import Logo from '../components/Logo';
 
@@ -65,7 +65,7 @@ function stopDoorbell() {
 export default function ResidentDashboard() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('home'); // home | history | settings
+  const [tab, setTab] = useState('home'); // home | history | settings | messages
   const [call, setCall] = useState(null);
   const [status, setStatus] = useState('idle'); // idle|ringing|active|monitoring
   const [audioError, setAudioError] = useState(false);
@@ -80,9 +80,14 @@ export default function ResidentDashboard() {
   });
   const [activeMsgCat, setActiveMsgCat] = useState('general');
   const [sentMsg, setSentMsg] = useState('');
-  const [neighborSearch, setNeighborSearch] = useState('');
-  const [neighbors, setNeighbors] = useState([]);
+  const [neighborBlock, setNeighborBlock] = useState('');
+  const [neighborNumber, setNeighborNumber] = useState('');
+  const [neighborResults, setNeighborResults] = useState([]);
+  const [neighborSearching, setNeighborSearching] = useState(false);
+  const [neighborError, setNeighborError] = useState('');
   const [propertyId, setPropertyId] = useState(() => localStorage.getItem('residentPropertyId'));
+  const [broadcastMessages, setBroadcastMessages] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const audioRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -101,18 +106,20 @@ export default function ResidentDashboard() {
     socketRef.current = s;
     s.emit('register_resident', { unitId: id, propertyId: savedPropId });
 
-    const fetchNeighbors = async () => {
+    // Fetch broadcast messages
+    const fetchMessages = async () => {
       if (!savedPropId) return;
       try {
-        const res = await fetch(`${API}/api/properties/${savedPropId}/units`);
-        const data = await res.json();
-        // Filter out self
-        setNeighbors(data.filter(u => u.id !== id));
-      } catch (err) {
-        console.error('Failed to fetch neighbors', err);
-      }
+        const res = await fetch(`${API}/api/properties/${savedPropId}/messages`);
+        if (res.ok) {
+          const data = await res.json();
+          setBroadcastMessages(data);
+          const readIds = JSON.parse(localStorage.getItem('cd_read_msgs') || '[]');
+          setUnreadCount(data.filter(m => !readIds.includes(m.id)).length);
+        }
+      } catch {}
     };
-    fetchNeighbors();
+    fetchMessages();
 
 
     s.on('incoming_call', (data) => {
@@ -133,6 +140,32 @@ export default function ResidentDashboard() {
     });
     s.on('call_ended', () => { setStatus('idle'); setCall(null); stopAll(); });
 
+    // Receber mensagens broadcast do condomínio
+    s.on('broadcast_message', (msg) => {
+      setBroadcastMessages(prev => [msg, ...prev]);
+      setUnreadCount(prev => prev + 1);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification(`📢 ${msg.title}`, { body: msg.body, icon: '/logo.png' }); } catch {}
+      }
+    });
+
+    // Receber mensagem direta do porteiro
+    s.on('doorman_message', (msg) => {
+      const porteiroMsg = {
+        id: Date.now().toString(),
+        title: `📋 Mensagem da ${msg.senderName || 'Portaria'}`,
+        body: msg.message,
+        priority: 'normal',
+        createdAt: msg.timestamp || new Date().toISOString()
+      };
+      setBroadcastMessages(prev => [porteiroMsg, ...prev]);
+      setUnreadCount(prev => prev + 1);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification(`📋 Portaria`, { body: msg.message, icon: '/logo.png' }); } catch {}
+      }
+    });
+
+
     const bip = (e) => { e.preventDefault(); setInstallPrompt(e); };
     window.addEventListener('beforeinstallprompt', bip);
     if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
@@ -146,16 +179,41 @@ export default function ResidentDashboard() {
     if (pcRef.current) { pcRef.current.close(); pcRef.current = null; }
   };
 
+  const searchNeighbor = async () => {
+    if (!neighborBlock && !neighborNumber) return;
+    setNeighborSearching(true); setNeighborError(''); setNeighborResults([]);
+    try {
+      const params = new URLSearchParams();
+      if (neighborBlock) params.set('block', neighborBlock);
+      if (neighborNumber) params.set('number', neighborNumber);
+      const r = await fetch(`${API}/api/properties/${propertyId}/search-unit?${params}`);
+      if (r.ok) {
+        const data = await r.json();
+        setNeighborResults(data.filter(u => u.id !== id));
+      } else {
+        const d = await r.json();
+        setNeighborError(d.error || 'Unidade não encontrada.');
+      }
+    } catch { setNeighborError('Erro de conexão.'); }
+    setNeighborSearching(false);
+  };
+
   const handleIntercomCall = (neighbor) => {
     if (!socketRef.current || !propertyId) return;
-    setStatus('active'); // Local state to indicate we are calling
+    setStatus('active');
     socketRef.current.emit('initiate_call', {
       unitId: neighbor.id,
       propertyId: propertyId,
       callerName: unitName,
       photoBase64: null
     });
-    setVisitorSocketId(null); // We are the "visitor" in this case
+    setVisitorSocketId(null);
+  };
+
+  const markMessagesRead = () => {
+    const ids = broadcastMessages.map(m => m.id);
+    localStorage.setItem('cd_read_msgs', JSON.stringify(ids));
+    setUnreadCount(0);
   };
 
   const handleOffer = useCallback(async (senderSocketId, offer) => {
@@ -252,11 +310,14 @@ export default function ResidentDashboard() {
     <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg-surface-elevated)', borderTop: '1px solid var(--border-subtle)', display: 'flex', zIndex: 100 }}>
       {[
         { key: 'home', icon: <Home size={20} />, label: 'Campainha' },
+        { key: 'messages', icon: <Mail size={20} />, label: 'Avisos', badge: unreadCount },
         { key: 'history', icon: <History size={20} />, label: 'Histórico' },
         { key: 'settings', icon: <Settings size={20} />, label: 'Config.' },
       ].map(n => (
-        <button key={n.key} onClick={() => setTab(n.key)} style={{ flex: 1, padding: '12px 4px 8px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: tab === n.key ? 'var(--primary)' : 'var(--text-muted)', fontSize: '10px', fontWeight: 700, transition: 'color 0.2s' }}>
-          {n.icon}{n.label}
+        <button key={n.key} onClick={() => { setTab(n.key); if (n.key === 'messages') markMessagesRead(); }} style={{ flex: 1, padding: '12px 4px 8px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: tab === n.key ? 'var(--primary)' : 'var(--text-muted)', fontSize: '10px', fontWeight: 700, transition: 'color 0.2s', position: 'relative' }}>
+          {n.icon}
+          {n.badge > 0 && <div style={{ position:'absolute',top:'6px',right:'calc(50% - 18px)',width:'16px',height:'16px',borderRadius:'50%',background:'#EF4444',color:'#fff',fontSize:'9px',fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center' }}>{n.badge}</div>}
+          {n.label}
         </button>
       ))}
       <button onClick={() => navigate('/')} style={{ flex: 1, padding: '12px 4px 8px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: 'var(--text-muted)', fontSize: '10px', fontWeight: 700 }}>
@@ -332,36 +393,34 @@ export default function ResidentDashboard() {
                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981' }} />Conectado
               </div>
 
-              {/* Intercom Search */}
+              {/* Intercom Search by Address */}
               <div style={{ width: '100%', maxWidth: '300px', marginTop: '32px', textAlign: 'left' }}>
-                <h4 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>Interfone (Vizinhos)</h4>
-                <div style={{ position: 'relative', marginBottom: '12px' }}>
-                  <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input 
-                    type="text" 
-                    placeholder="Buscar casa, apto ou bloco..." 
-                    value={neighborSearch}
-                    onChange={e => setNeighborSearch(e.target.value)}
-                    style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '12px', border: '1px solid var(--border-subtle)', background: '#FFF', fontSize: '14px', outline: 'none' }}
-                  />
+                <h4 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}><Phone size={13}/> Interfone Digital</h4>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', marginBottom: '4px', display: 'block' }}>BLOCO / RUA</label>
+                    <input type="text" placeholder="Ex: A ou Rua 1" value={neighborBlock} onChange={e => setNeighborBlock(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: '#FFF', fontSize: '13px', outline: 'none' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', marginBottom: '4px', display: 'block' }}>Nº CASA/APTO</label>
+                    <input type="text" placeholder="Ex: 101" value={neighborNumber} onChange={e => setNeighborNumber(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: '#FFF', fontSize: '13px', outline: 'none' }} />
+                  </div>
                 </div>
-                <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {neighbors
-                    .filter(n => n.name.toLowerCase().includes(neighborSearch.toLowerCase()))
-                    .map(neighbor => (
-                      <button 
-                        key={neighbor.id}
-                        onClick={() => handleIntercomCall(neighbor)}
-                        style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-subtle)', background: '#FFF', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', textAlign: 'left' }}
-                      >
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <User size={16} />
-                        </div>
-                        <span style={{ fontWeight: 600, fontSize: '14px' }}>{neighbor.name}</span>
-                        <Phone size={14} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
-                      </button>
-                    ))
-                  }
+                <button onClick={searchNeighbor} disabled={neighborSearching} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg,#3B82F6,#2563EB)', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px', opacity: neighborSearching ? 0.7 : 1 }}>
+                  <Search size={16}/> {neighborSearching ? 'Buscando...' : 'Buscar Vizinho'}
+                </button>
+                {neighborError && <p style={{ fontSize: '12px', color: '#EF4444', fontWeight: 600, marginBottom: '8px', textAlign: 'center' }}>{neighborError}</p>}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {neighborResults.map(neighbor => (
+                    <button key={neighbor.id} onClick={() => handleIntercomCall(neighbor)} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-subtle)', background: '#FFF', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', textAlign: 'left' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Building2 size={16}/></div>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontWeight: 600, fontSize: '14px', display: 'block' }}>{neighbor.name}</span>
+                        <span style={{ fontSize: '11px', color: '#64748B' }}>{neighbor.block && `Bloco ${neighbor.block} `}{neighbor.street && `${neighbor.street} `}{neighbor.number && `Nº ${neighbor.number}`}</span>
+                      </div>
+                      <Phone size={14} style={{ color: '#10B981' }}/>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -511,6 +570,33 @@ export default function ResidentDashboard() {
         </>
       )}
 
+      {tab === 'messages' && (
+        <div style={{ padding: '20px 24px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '4px' }}>📢 Avisos do Condomínio</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '16px' }}>{broadcastMessages.length} mensagen{broadcastMessages.length !== 1 ? 's' : ''}</p>
+          {broadcastMessages.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>
+              <Mail size={40} style={{ opacity: 0.2, marginBottom: '12px' }}/>
+              <p style={{ fontWeight: 600 }}>Nenhum aviso recebido</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {broadcastMessages.map(m => (
+                <div key={m.id} style={{ background: '#FFF', border: `1px solid ${m.priority === 'urgent' ? 'rgba(239,68,68,0.3)' : '#E2E8F0'}`, borderRadius: '14px', padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {m.priority === 'urgent' && <span style={{ color: '#EF4444' }}>🚨</span>}
+                      {m.title}
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#94A3B8' }}>{new Date(m.createdAt).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                  <p style={{ fontSize: '13px', color: '#475569', margin: 0, lineHeight: 1.6 }}>{m.body}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {tab === 'history' && <HistoryPanel unitId={id} propertyId={localStorage.getItem('residentPropertyId')} />}
       {tab === 'settings' && <SettingsPanel unitName={unitName} setUnitName={setUnitName} onSave={saveSettings} unitId={id} propertyId={localStorage.getItem('residentPropertyId')} />}
 
