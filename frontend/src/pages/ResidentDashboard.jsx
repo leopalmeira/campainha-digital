@@ -391,6 +391,7 @@ export default function ResidentDashboard() {
               <ServicesPanel/>
 
             </div>
+          )}
 
           {/* RINGING */}
           {status === 'ringing' && call && (

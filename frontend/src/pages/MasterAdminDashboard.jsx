@@ -450,10 +450,12 @@ export default function MasterAdminDashboard() {
 
                   <SectionTitle icon={Building2} title="Instalação Local" />
 
-                  <div>
-                    <Label>Nome do Condomínio / Local da Instalação {newClient.type !== 'house' && '*'}</Label>
-                    <Input type="text" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} required={newClient.type !== 'house'} placeholder={newClient.type === 'house' ? "Ex: Minha Casa (Opcional)" : "Ex: Edifício Solar das Palmeiras"} />
-                  </div>
+                  {newClient.type !== 'house' && (
+                    <div>
+                      <Label>Nome do Condomínio / Local da Instalação *</Label>
+                      <Input type="text" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} required placeholder="Ex: Edifício Solar das Palmeiras" />
+                    </div>
+                  )}
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <div>

@@ -114,7 +114,6 @@ export default function PorteiroDashboard() {
   return (
     <div style={{ minHeight: '100vh', background: '#F8FAFC', color: '#1E293B' }}>
       <header style={{ padding: '20px 40px', background: '#FFF', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Logo size={28} showText={false} />
           <h1 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Painel da Portaria</h1>
