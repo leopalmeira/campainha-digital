@@ -17,6 +17,7 @@ export default function PorteiroDashboard() {
   const [msgSent, setMsgSent] = useState(false);  // feedback de enviado
   const [residentMsg, setResidentMsg] = useState(null); // Mensagem recebida do morador
   const [incomingCall, setIncomingCall] = useState(null); // Chamada recebida do morador
+  const [preAuthorized, setPreAuthorized] = useState({}); // { unitId: true }
   const navigate = useNavigate();
   const socketRef = useRef(null);
 
@@ -66,10 +67,13 @@ export default function PorteiroDashboard() {
       setTimeout(() => setAuthorizedEntry(null), 15000);
     });
 
-    s.on('resident_message', ({ message, senderName, timestamp }) => {
-      setResidentMsg({ message, senderName, timestamp });
+    s.on('resident_message', ({ message, senderName, timestamp, authorizeEntry, unitId }) => {
+      setResidentMsg({ message, senderName, timestamp, authorizeEntry, unitId });
+      if (authorizeEntry && unitId) {
+        setPreAuthorized(prev => ({ ...prev, [unitId]: true }));
+      }
       try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(() => {}); } catch {}
-      setTimeout(() => setResidentMsg(null), 20000); // Mostra por 20 segundos
+      setTimeout(() => setResidentMsg(null), 20000); 
     });
 
     s.on('incoming_resident_call', ({ callerName, unitId }) => {
@@ -147,6 +151,11 @@ export default function PorteiroDashboard() {
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 4px', color: '#1E293B' }}>Mensagem de: {residentMsg.senderName}</h2>
               <p style={{ margin: 0, color: '#475569', fontSize: '14px', lineHeight: 1.5 }}>"{residentMsg.message}"</p>
+              {residentMsg.authorizeEntry && (
+                <div style={{ marginTop: '8px', background: '#DCFCE7', color: '#166534', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, display: 'inline-block' }}>
+                  🔓 ACESSO ANTECIPADO LIBERADO
+                </div>
+              )}
               <div style={{ marginTop: '12px' }}>
                 <button onClick={() => setResidentMsg(null)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#3B82F6', color: '#FFF', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>Ciente</button>
               </div>
@@ -187,7 +196,14 @@ export default function PorteiroDashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
           {filteredUnits.map(unit => (
             <div key={`${unit.propertyId}-${unit.id}`} style={{ background: '#FFF', padding: '24px', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s' }}>
-              <div style={{ fontSize: '11px', fontWeight: 800, color: '#3B82F6', textTransform: 'uppercase', marginBottom: '8px' }}>{unit.propertyName}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#3B82F6', textTransform: 'uppercase', marginBottom: '8px' }}>{unit.propertyName}</div>
+                {preAuthorized[unit.id] && (
+                  <div className="blink" style={{ background: '#10B981', color: '#fff', padding: '4px 8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckCircle2 size={12}/> ACESSO LIBERADO
+                  </div>
+                )}
+              </div>
               <h3 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 6px' }}>{unit.name}</h3>
               {(unit.block || unit.street || unit.number) && (
                 <p style={{ fontSize: '12px', color: '#64748B', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -225,9 +241,15 @@ export default function PorteiroDashboard() {
 
       <style>{`
         @keyframes pulse {
-          0% { transform: translateX(-50%) scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-          100% { transform: translateX(-50%) scale(1.05); box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+          100% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
         }
+        @keyframes blink {
+          0% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(0.95); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        .blink { animation: blink 1s infinite; }
       `}</style>
     </div>
   );

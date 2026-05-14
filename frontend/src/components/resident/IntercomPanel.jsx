@@ -128,10 +128,17 @@ function DoormanMessage({ socketRef, propertyId, unitName }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [sent, setSent] = useState(false);
+  const [authorizeEntry, setAuthorizeEntry] = useState(false);
   const send = () => {
     if (!text.trim() || !socketRef?.current) return;
-    socketRef.current.emit('resident_message_doorman', { propertyId, message: text.trim(), senderName: unitName || 'Morador' });
-    setSent(true); setText('');
+    socketRef.current.emit('resident_message_doorman', { 
+      propertyId, 
+      unitId,
+      message: text.trim(), 
+      senderName: unitName || 'Morador',
+      authorizeEntry: authorizeEntry 
+    });
+    setSent(true); setText(''); setAuthorizeEntry(false);
     setTimeout(() => setSent(false), 2500);
   };
   if (!open) return (
@@ -143,6 +150,14 @@ function DoormanMessage({ socketRef, propertyId, unitName }) {
     <div>
       <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Digite sua mensagem para a portaria..."
         style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '13px', outline: 'none', resize: 'none', minHeight: '64px', fontFamily: 'inherit', background: '#F8FAFC' }}/>
+      
+      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 0' }}>
+        <input type="checkbox" checked={authorizeEntry} onChange={e => setAuthorizeEntry(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: '#10B981' }} />
+        <span style={{ fontSize: '12px', fontWeight: 700, color: authorizeEntry ? '#10B981' : '#64748B' }}>
+          {authorizeEntry ? '✓ Acesso Antecipado Liberado!' : 'Liberar Acesso Antecipado'}
+        </span>
+      </label>
+
       <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
         <button onClick={() => setOpen(false)} style={{ flex: 1, padding: '9px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#FFF', color: '#64748B', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
         <button onClick={send} disabled={!text.trim()} style={{ flex: 2, padding: '9px', borderRadius: '8px', border: 'none', background: sent ? '#10B981' : '#3B82F6', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>

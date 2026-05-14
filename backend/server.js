@@ -722,12 +722,14 @@ io.on('connection', (socket) => {
   });
 
   // Morador envia mensagem para a portaria
-  socket.on('resident_message_doorman', ({ propertyId, message, senderName }) => {
+  socket.on('resident_message_doorman', ({ propertyId, unitId, message, senderName, authorizeEntry }) => {
     if (!propertyId || !message) return;
-    console.log(`[WS] Morador → doorman_${propertyId}: ${message}`);
+    console.log(`[WS] Morador → doorman_${propertyId}: ${message} (Auth: ${!!authorizeEntry})`);
     io.to(`doorman_${propertyId}`).emit('resident_message', {
       message,
       senderName: senderName || 'Morador',
+      unitId,
+      authorizeEntry: !!authorizeEntry,
       timestamp: new Date().toISOString()
     });
   });
