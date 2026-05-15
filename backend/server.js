@@ -30,17 +30,20 @@ const dbPath           = path.join(__dirname, 'db.json');
 const residentsDbPath  = path.join(__dirname, 'residents.json');
 const visitorsDbPath   = path.join(__dirname, 'visitors.json');
 const messagesDbPath   = path.join(__dirname, 'messages.json');
+const usersDbPath      = path.join(__dirname, 'users.json');
 
 let properties = [];
 let residents  = [];
 let visitors   = []; // histórico de visitantes
 let messages   = []; // mensagens do condomínio
+let users      = []; // usuários registrados aguardando ou com acesso
 
 function loadDb() {
   if (fs.existsSync(dbPath))          properties = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
   if (fs.existsSync(residentsDbPath)) residents  = JSON.parse(fs.readFileSync(residentsDbPath, 'utf8'));
   if (fs.existsSync(visitorsDbPath))  visitors   = JSON.parse(fs.readFileSync(visitorsDbPath, 'utf8'));
   if (fs.existsSync(messagesDbPath))  messages   = JSON.parse(fs.readFileSync(messagesDbPath, 'utf8'));
+  if (fs.existsSync(usersDbPath))     users      = JSON.parse(fs.readFileSync(usersDbPath, 'utf8'));
 }
 loadDb();
 
@@ -48,6 +51,7 @@ const saveDb        = () => fs.writeFileSync(dbPath,          JSON.stringify(pro
 const saveResidents = () => fs.writeFileSync(residentsDbPath, JSON.stringify(residents,  null, 2));
 const saveVisitors  = () => fs.writeFileSync(visitorsDbPath,  JSON.stringify(visitors,   null, 2));
 const saveMessages  = () => fs.writeFileSync(messagesDbPath,  JSON.stringify(messages,   null, 2));
+const saveUsers     = () => fs.writeFileSync(usersDbPath,      JSON.stringify(users,      null, 2));
 
 // ─── Keep-Alive endpoint (previne spin-down no Render Free) ──────────────────
 app.get('/api/ping', (_req, res) => res.json({ ok: true, ts: Date.now() }));
@@ -71,7 +75,29 @@ app.post('/api/admin/login', (req, res) => {
     return res.json({ success: true, role: 'master', email: MASTER_ADMIN_EMAIL });
   }
   
-  // 2. Property Admin (Client) - aceita clientCode OU password como código OU adminPassword
+  // 2. Check in standard users first (New flow)
+  const user = users.find(u => u.email.toLowerCase() === rawEmail && u.password === rawPassword);
+  if (user) {
+    if (user.status === 'pending') {
+      return res.status(403).json({ error: 'Seu cadastro está aguardando aprovação do administrador do projeto.' });
+    }
+    if (user.status === 'denied') {
+      return res.status(403).json({ error: 'Seu cadastro foi recusado pelo administrador.' });
+    }
+    
+    // If approved, check if they have a property linked
+    const prop = properties.find(p => p.adminEmail.toLowerCase() === rawEmail);
+    return res.json({
+      success: true, 
+      role: user.role === 'manager' ? 'admin' : 'user', 
+      email: user.email,
+      propertyId: prop ? prop.id : null,
+      propertyName: prop ? prop.name : null,
+      clientCode: prop ? prop.clientCode : null
+    });
+  }
+
+  // 3. Property Admin (Client) - Legacy/Direct login by code
   const codeToUse = (clientCode || password || '').trim().toUpperCase();
   const propAdmin = properties.find(p =>
     (p.adminEmail || '').toLowerCase() === rawEmail &&
@@ -87,7 +113,7 @@ app.post('/api/admin/login', (req, res) => {
     });
   }
 
-  // 3. Doorman - aceita doormanCode OU password
+  // 4. Doorman - aceita doormanCode OU password
   const doorCode = (doormanCode || password || '').trim().toUpperCase();
   const propDoor = properties.find(p =>
     (p.doormanEmail || '').toLowerCase() === rawEmail &&
@@ -101,6 +127,115 @@ app.post('/api/admin/login', (req, res) => {
   }
 
   res.status(401).json({ error: 'Credenciais inválidas. Verifique seu e-mail e senha/código.' });
+});
+
+// ─── Unified Registration Routes ──────────────────────────────────────────────
+app.post('/api/auth/register', (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) return res.status(400).json({ error: 'Nome, e-mail e senha são obrigatórios.' });
+
+  const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (existing) return res.status(400).json({ error: 'Este e-mail já está cadastrado.' });
+
+  const newUser = {
+    id: uuidv4(),
+    name,
+    email: email.toLowerCase(),
+    password,
+    role: 'user', // Starts as a simple user
+    status: 'pending', // Waiting for QR link and admin approval
+    scannedPropertyId: null,
+    createdAt: new Date().toISOString()
+  };
+
+  users.push(newUser);
+  saveUsers();
+  res.status(201).json({ success: true, message: 'Cadastro realizado. Agora escaneie sua placa.', userId: newUser.id });
+});
+
+app.post('/api/auth/link-qr', (req, res) => {
+  const { userId, propertyId } = req.body;
+  const user = users.find(u => u.id === userId);
+  if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
+
+  // Check if propertyId is already linked to someone else
+  const existingProp = properties.find(p => p.id === propertyId);
+  if (existingProp && existingProp.adminEmail && existingProp.adminEmail !== user.email) {
+    return res.status(400).json({ error: 'Esta placa já está vinculada a outro administrador.' });
+  }
+
+  user.scannedPropertyId = propertyId;
+  saveUsers();
+  res.json({ success: true, message: 'Placa vinculada. Aguarde a autorização do administrador.' });
+});
+
+// ─── Master Admin Authorization Endpoints ─────────────────────────────────────
+app.get('/api/admin/pending-users', (req, res) => {
+  const { adminEmail } = req.query;
+  if (adminEmail !== MASTER_ADMIN_EMAIL) return res.status(403).json({ error: 'Unauthorized' });
+  
+  const pending = users.filter(u => u.status === 'pending');
+  res.json(pending);
+});
+
+app.post('/api/admin/authorize-user', async (req, res) => {
+  const { adminEmail, userId, action, propertyType } = req.body; // action: 'approve' | 'deny'
+  if (adminEmail !== MASTER_ADMIN_EMAIL) return res.status(403).json({ error: 'Unauthorized' });
+
+  const user = users.find(u => u.id === userId);
+  if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
+
+  if (action === 'deny') {
+    user.status = 'denied';
+    saveUsers();
+    return res.json({ success: true, message: 'Usuário recusado.' });
+  }
+
+  // Approve
+  user.status = 'approved';
+  user.role = 'manager'; // Promote to manager
+
+  // If they scanned a property, we must create/update that property in db.json
+  if (user.scannedPropertyId) {
+    const propId = user.scannedPropertyId;
+    let prop = properties.find(p => p.id === propId);
+    
+    if (!prop) {
+      // Create new property
+      const clientCode = generateAccessCode();
+      const mappedType = propertyType === 'house' ? 'individual' : (propertyType || 'individual');
+      const isCollective = mappedType === 'condo' || mappedType === 'village';
+      
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const url = `${frontendUrl}/chamada/${propId}`;
+      const qrCodeDataUrl = await QRCode.toDataURL(url, { width: 500 });
+
+      prop = {
+        id: propId,
+        type: mappedType,
+        name: `Propriedade de ${user.name}`,
+        adminEmail: user.email,
+        adminPassword: user.password,
+        clientName: user.name,
+        clientCode,
+        doormanCode: isCollective ? generateAccessCode() : null,
+        units: isCollective ? [] : [{ id: uuidv4(), name: 'Principal', accessCode: clientCode }],
+        qrCodeUrl: qrCodeDataUrl,
+        url,
+        createdAt: new Date().toISOString(),
+        nextPaymentDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
+      };
+      properties.push(prop);
+    } else {
+      // Update existing
+      prop.adminEmail = user.email;
+      prop.adminPassword = user.password;
+    }
+  }
+
+  saveUsers();
+  saveDb();
+  res.json({ success: true, message: 'Usuário aprovado e promovido a administrador.' });
 });
 
 // ─── Doorman Auth Route ──────────────────────────────────────────────────────

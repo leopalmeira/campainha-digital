@@ -1,26 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Building2, House, TreePine } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle2 } from 'lucide-react';
 import Logo from '../components/Logo';
+import jsQR from 'jsqr';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const [step, setStep] = useState(1); // step 1: dados pessoais, step 2: tipo de imóvel
+  const [step, setStep] = useState(1); // 1: Cadastro, 2: Scan QR, 3: Aguardando
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [propertyType, setPropertyType] = useState('');
-  const [adminRole, setAdminRole] = useState(''); // 'sindico' | 'admin_vila'
+  const [userId, setUserId] = useState('');
+  const [scannedId, setScannedId] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const emailInput = formData.get('email');
-    const authInput = formData.get('authInput'); // Can be password or client code
+    const authInput = formData.get('authInput');
 
     try {
-      const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const res = await fetch(`${API}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,10 +43,8 @@ export default function AuthPage() {
         } else if (data.role === 'doorman') {
           localStorage.setItem('cd_admin_role', 'doorman');
           localStorage.setItem('cd_doorman_propertyId', data.propertyId);
-          localStorage.setItem('cd_doorman_propertyName', data.propertyName);
           navigate('/portaria');
         } else {
-          // Admin de condomínio — salva propertyId para carregar painel correto
           localStorage.setItem('cd_admin_role', 'client');
           if (data.propertyId) localStorage.setItem('cd_admin_propertyId', data.propertyId);
           navigate('/admin');
@@ -48,190 +53,221 @@ export default function AuthPage() {
         alert(data.error || 'Erro ao fazer login.');
       }
     } catch (err) {
-      // Fallback behavior if API fails or for offline dev
-      if (emailInput === 'leandro2703palmeira@gmail.com' && authInput === '27031981') {
-        localStorage.setItem('cd_admin_email', emailInput);
-        localStorage.setItem('cd_admin_role', 'master');
-        navigate('/master-admin');
-      } else {
-        localStorage.setItem('cd_admin_email', emailInput);
-        navigate('/admin');
-      }
+      alert('Erro ao conectar com o servidor.');
     }
   };
 
-  const handleRegisterStep1 = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    if (!name || !email || !password) return;
-    localStorage.setItem('cd_admin_name', name);
-    localStorage.setItem('cd_admin_email', email);
-    localStorage.setItem('cd_admin_password', password);
-    setStep(2);
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUserId(data.userId);
+        setStep(2);
+      } else {
+        alert(data.error || 'Erro no cadastro.');
+      }
+    } catch (err) {
+      alert('Erro de conexão.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRegisterStep2 = () => {
-    if (!propertyType) return;
-    localStorage.setItem('cd_admin_role', adminRole || 'client');
-    localStorage.setItem('cd_property_type', propertyType);
-    navigate('/admin');
+  const startScanner = async () => {
+    setShowScanner(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", "true");
+        videoRef.current.play();
+        requestAnimationFrame(tick);
+      }
+    } catch (err) {
+      alert("Erro ao acessar câmera.");
+      setShowScanner(false);
+    }
   };
 
-  const propertyTypes = [
-    { value: 'house', icon: House, label: 'Casa Simples', desc: '1 QR Code para 1 residência', color: '#10B981' },
-    { value: 'village', icon: TreePine, label: 'Vila de Casas', desc: '1 QR Code para várias casas', color: '#F59E0B' },
-    { value: 'condo', icon: Building2, label: 'Condomínio', desc: '1 QR Code para vários apartamentos', color: 'var(--primary)' }
-  ];
+  const stopScanner = () => {
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    }
+    setShowScanner(false);
+  };
+
+  const tick = () => {
+    if (videoRef.current?.readyState === videoRef.current?.HAVE_ENOUGH_DATA) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const context = canvas.getContext("2d");
+      canvas.height = videoRef.current.videoHeight;
+      canvas.width = videoRef.current.videoWidth;
+      context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+
+      if (code) {
+        const url = code.data;
+        // Tentativa de extrair ID de chamada ou ID puro
+        const match = url.match(/\/chamada\/([a-zA-Z0-9-]+)/);
+        const finalId = match ? match[1] : url;
+        setScannedId(finalId);
+        stopScanner();
+        linkQR(finalId);
+        return;
+      }
+    }
+    if (showScanner) requestAnimationFrame(tick);
+  };
+
+  const linkQR = async (propId) => {
+    try {
+      const res = await fetch(`${API}/api/auth/link-qr`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, propertyId: propId })
+      });
+      if (res.ok) {
+        setStep(3);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao vincular placa.');
+      }
+    } catch (err) {
+      alert('Erro de conexão.');
+    }
+  };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative', overflow: 'hidden', background: '#F8FAFC' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: '#F8FAFC' }}>
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
       
-      <div style={{ position: 'absolute', top: '20%', left: '10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 60%)', filter: 'blur(60px)', zIndex: 0 }}></div>
-      <div style={{ position: 'absolute', bottom: '10%', right: '10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 60%)', filter: 'blur(60px)', zIndex: 0 }}></div>
-      
-      <div style={{ position: 'absolute', top: '32px', left: '32px', zIndex: 10 }}>
-         <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600 }}>
-            <Home size={16} /> Voltar ao Início
-         </Link>
-      </div>
-
-      <div className="glass-panel fade-in" style={{ width: '100%', maxWidth: '440px', padding: '48px 40px', zIndex: 1, position: 'relative' }}>
+      <div className="glass-panel fade-in" style={{ width: '100%', maxWidth: '440px', padding: '48px 40px', position: 'relative' }}>
         
-        {/* LOGIN */}
         {isLogin && (
           <>
             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-              <div style={{ marginBottom: '24px' }}>
-                 <Logo size={42} />
-              </div>
-              <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '12px', color: 'var(--text-main)' }}>Acessar Painel</h2>
-              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-muted)' }}>Entre com seu e-mail e código único de cliente.</p>
+              <Logo size={42} />
+              <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '24px', color: 'var(--text-main)' }}>Acessar Painel</h2>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Entre com seu e-mail e senha.</p>
             </div>
 
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Mail size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px', pointerEvents: 'none' }} />
+              <div style={{ position: 'relative' }}>
+                <Mail size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
                 <input type="email" name="email" placeholder="Seu e-mail" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
               </div>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px', pointerEvents: 'none' }} />
-                <input type="password" name="authInput" placeholder="Código Único de Acesso" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
+              <div style={{ position: 'relative' }}>
+                <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
+                <input type="password" name="authInput" placeholder="Sua senha ou Código" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
               </div>
-              <button type="submit" className="btn-primary w-full" style={{ padding: '16px', marginTop: '12px', fontSize: '16px' }}>
-                Acessar Sistema <ArrowRight size={20} />
+              <button type="submit" className="btn-primary w-full" style={{ padding: '16px', fontSize: '16px' }}>
+                Entrar no Sistema <ArrowRight size={20} />
               </button>
             </form>
 
-            <div style={{ textAlign: 'center', marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border-subtle)' }}>
+            <div style={{ textAlign: 'center', marginTop: '32px' }}>
               <p className="text-muted" style={{ fontSize: '14px' }}>
-                Ainda não tem conta?
-                <button onClick={() => { setIsLogin(false); setStep(1); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, marginLeft: '8px', cursor: 'pointer', fontSize: '14px' }}>
-                  Cadastre-se aqui
+                Novo por aqui? 
+                <button onClick={() => setIsLogin(false)} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, marginLeft: '8px', cursor: 'pointer' }}>
+                  Criar conta grátis
                 </button>
               </p>
-              <Link to="/morador-login" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: '12px', display: 'block', marginTop: '8px' }}>
-                Sou morador, quero receber chamadas →
-              </Link>
             </div>
           </>
         )}
 
-        {/* REGISTER STEP 1 - Personal Data */}
         {!isLogin && step === 1 && (
           <>
             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-              <div style={{ display: 'inline-flex', padding: '16px', background: '#FFF', borderRadius: '20px', border: '1px solid var(--border-subtle)', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
-                 <User size={40} color="var(--primary)" />
-              </div>
-              <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '12px', color: 'var(--text-main)' }}>Criar Conta</h2>
-              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-muted)' }}>Primeiro, seus dados pessoais. Depois escolha o tipo de imóvel.</p>
+              <h2 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-main)' }}>Criar Conta</h2>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Comece seu cadastro padrão Campainha Digital.</p>
             </div>
 
-            <form onSubmit={handleRegisterStep1} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <User size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px', pointerEvents: 'none' }} />
-                <input type="text" placeholder="Seu nome completo" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={name} onChange={e => setName(e.target.value)} required />
+            <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ position: 'relative' }}>
+                <User size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
+                <input type="text" placeholder="Nome Completo" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={name} onChange={e => setName(e.target.value)} required />
               </div>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Mail size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px', pointerEvents: 'none' }} />
-                <input type="email" placeholder="Seu e-mail" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={email} onChange={e => setEmail(e.target.value)} required />
+              <div style={{ position: 'relative' }}>
+                <Mail size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
+                <input type="email" placeholder="E-mail" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={email} onChange={e => setEmail(e.target.value)} required />
               </div>
-              <div style={{ position: 'relative', width: '100%' }}>
-                <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px', pointerEvents: 'none' }} />
+              <div style={{ position: 'relative' }}>
+                <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
                 <input type="password" placeholder="Crie uma senha" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={password} onChange={e => setPassword(e.target.value)} required />
               </div>
-              <button type="submit" className="btn-primary w-full" style={{ padding: '16px', marginTop: '12px', fontSize: '16px' }}>
-                Continuar <ArrowRight size={20} />
+              <button type="submit" disabled={loading} className="btn-primary w-full" style={{ padding: '16px', fontSize: '16px' }}>
+                {loading ? 'Processando...' : 'Cadastrar e Continuar'} <ArrowRight size={20} />
               </button>
             </form>
-
+            
             <div style={{ textAlign: 'center', marginTop: '24px' }}>
-              <button onClick={() => setIsLogin(true)} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
-                ← Já tenho conta, fazer login
-              </button>
+               <button onClick={() => setIsLogin(true)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '13px', cursor: 'pointer' }}>Voltar para login</button>
             </div>
           </>
         )}
 
-        {/* REGISTER STEP 2 - Property Type */}
         {!isLogin && step === 2 && (
-          <>
-             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-1px', marginBottom: '8px', color: 'var(--text-main)' }}>Qual seu papel?</h2>
-              <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-muted)' }}>Selecione seu perfil e tipo de imóvel.</p>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                <Camera size={40} color="var(--primary)" />
+              </div>
+              <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Escaneie seu QR Code</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '8px' }}>
+                Para finalizar seu cadastro, você precisa escanear o QR Code da sua placa Campainha Digital.
+              </p>
             </div>
 
-            {/* Seleção de Papel */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
-              {[
-                { val: 'sindico', label: 'Síndico / Admin', desc: 'Gerencio condomínio', icon: '🏢' },
-                { val: 'admin_vila', label: 'Administrador', desc: 'Gerencio vila de casas', icon: '🏘️' },
-              ].map(r => (
-                <button key={r.val} onClick={() => setAdminRole(r.val)} style={{ flex: 1, padding: '16px', borderRadius: '14px', cursor: 'pointer', textAlign: 'center', background: adminRole === r.val ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.03)', border: `2px solid ${adminRole === r.val ? '#3B82F6' : 'var(--border-subtle)'}`, transition: 'all 0.2s' }}>
-                  <div style={{ fontSize: '24px', marginBottom: '6px' }}>{r.icon}</div>
-                  <strong style={{ color: 'var(--text-main)', fontSize: '13px', display: 'block' }}>{r.label}</strong>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{r.desc}</span>
-                </button>
-              ))}
-            </div>
-
-            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px' }}>TIPO DE IMÓVEL</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-              {propertyTypes.map(pt => (
-                <button
-                  key={pt.value}
-                  onClick={() => setPropertyType(pt.value)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '16px',
-                    padding: '20px', borderRadius: '16px', cursor: 'pointer',
-                    background: propertyType === pt.value ? `${pt.color}15` : 'rgba(255,255,255,0.03)',
-                    border: `2px solid ${propertyType === pt.value ? pt.color : 'var(--border-subtle)'}`,
-                    transition: 'all 0.2s', textAlign: 'left', width: '100%'
-                  }}
-                >
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${pt.color}10`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <pt.icon size={24} color={pt.color} />
-                  </div>
-                  <div>
-                    <strong style={{ color: 'var(--text-main)', fontSize: '16px', display: 'block' }}>{pt.label}</strong>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{pt.desc}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <button onClick={handleRegisterStep2} className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '16px', opacity: propertyType ? 1 : 0.5 }} disabled={!propertyType}>
-              Finalizar Cadastro <ArrowRight size={20} />
+            <button onClick={startScanner} className="btn-primary w-full" style={{ padding: '18px', borderRadius: '16px' }}>
+              <Camera size={20} /> Abrir Câmera
             </button>
+            
+            <p style={{ marginTop: '24px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              Tente até conseguir ler o código da placa.
+            </p>
+          </div>
+        )}
 
-            <div style={{ textAlign: 'center', marginTop: '16px' }}>
-              <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}>
-                ← Voltar
-              </button>
+        {!isLogin && step === 3 && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+              <CheckCircle2 size={40} color="#10B981" />
             </div>
-          </>
+            <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Tudo Pronto!</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px', lineHeight: 1.6 }}>
+              Sua solicitação foi enviada. Agora o administrador do projeto irá autorizar seu cadastro como administrador de condomínio.
+            </p>
+            <div style={{ marginTop: '32px', padding: '16px', background: '#F1F5F9', borderRadius: '12px', fontSize: '13px', color: '#475569' }}>
+               Você receberá um e-mail assim que for aprovado.
+            </div>
+            <button onClick={() => setIsLogin(true)} className="btn-primary w-full" style={{ marginTop: '32px' }}>
+              Voltar ao Início
+            </button>
+          </div>
         )}
       </div>
+
+      {showScanner && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+           <div style={{ position: 'relative', width: '90%', maxWidth: '400px', aspectRatio: '1', borderRadius: '24px', overflow: 'hidden', border: '4px solid #3B82F6' }}>
+              <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ position: 'absolute', inset: '60px', border: '2px solid rgba(255,255,255,0.5)', borderRadius: '20px' }}></div>
+           </div>
+           <button onClick={stopScanner} style={{ marginTop: '32px', background: '#FFF', border: 'none', padding: '12px 32px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <X size={20} /> Fechar Câmera
+           </button>
+        </div>
+      )}
     </div>
   );
 }

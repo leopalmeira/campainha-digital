@@ -21,6 +21,8 @@ export default function MasterAdminDashboard() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [pendingUsers, setPendingUsers] = useState([]);
+  const [isApproving, setIsApproving] = useState(false);
 
   const [newClient, setNewClient] = useState({
     name: '', // Property Name
@@ -47,7 +49,19 @@ export default function MasterAdminDashboard() {
       return;
     }
     fetchClients();
+    fetchPendingUsers();
   }, [navigate]);
+
+  const fetchPendingUsers = async () => {
+    try {
+      const email = localStorage.getItem('cd_admin_email');
+      const res = await fetch(`${API}/api/admin/pending-users?adminEmail=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      setPendingUsers(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchClients = async () => {
     setLoading(true);
@@ -169,6 +183,30 @@ export default function MasterAdminDashboard() {
     }
   };
 
+  const handleAuthorizeUser = async (userId, action, propertyType) => {
+    const adminEmail = localStorage.getItem('cd_admin_email');
+    setIsApproving(true);
+    try {
+      const res = await fetch(`${API}/api/admin/authorize-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminEmail, userId, action, propertyType })
+      });
+      if (res.ok) {
+        alert(action === 'approve' ? 'Usuário aprovado com sucesso!' : 'Usuário recusado.');
+        fetchPendingUsers();
+        fetchClients();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao processar autorização.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
   const handleSaveEdit = async () => {
     try {
       const email = localStorage.getItem('cd_admin_email');
@@ -226,6 +264,7 @@ export default function MasterAdminDashboard() {
         <nav style={{ padding: '24px 16px', flex: 1, overflowY: 'auto' }}>
           <SidebarLink icon={Users} label="Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
           <SidebarLink icon={Plus} label="Novo Registro" active={activeTab === 'register'} onClick={() => setActiveTab('register')} />
+          <SidebarLink icon={ShieldCheck} label="Autorizações" active={activeTab === 'authorizations'} onClick={() => setActiveTab('authorizations')} count={pendingUsers.length} />
           <div style={{ height: '1px', background: '#F1F5F9', margin: '16px 0' }} />
           <SidebarLink icon={PieChart} label="Analytics & Uso" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
           <SidebarLink icon={Shield} label="Equipe / Porteiros" active={activeTab === 'doormen'} onClick={() => setActiveTab('doormen')} />
@@ -260,6 +299,7 @@ export default function MasterAdminDashboard() {
             <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', letterSpacing: '-1.5px' }}>
               {activeTab === 'clients' && "Visão Geral de Clientes"}
               {activeTab === 'register' && "Registrar Nova Placa"}
+              {activeTab === 'authorizations' && "Aguardando Autorização"}
               {activeTab === 'analytics' && "Analytics de Produção"}
               {activeTab === 'doormen' && "Gestão de Portarias"}
               {activeTab === 'billing' && "Financeiro & Assinaturas"}
@@ -410,6 +450,33 @@ export default function MasterAdminDashboard() {
                 </table>
               </div>
             </>
+          )}
+
+          {activeTab === 'authorizations' && (
+            <div style={{ padding: '10px' }}>
+              <SectionTitle icon={ShieldCheck} title="Aprovação de Novos Administradores" />
+              <p style={{ color: '#64748B', marginTop: '8px' }}>Usuários que se cadastraram e aguardam autorização para gerenciar um imóvel.</p>
+              
+              <div style={{ marginTop: '32px' }}>
+                {pendingUsers.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '60px', background: '#F8FAFC', borderRadius: '24px', border: '1px dashed #E2E8F0' }}>
+                    <Users size={48} color="#CBD5E1" style={{ marginBottom: '16px' }} />
+                    <h3 style={{ color: '#64748B' }}>Nenhuma solicitação pendente</h3>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {pendingUsers.map(user => (
+                      <PendingUserCard 
+                        key={user.id} 
+                        user={user} 
+                        onAuthorize={handleAuthorizeUser} 
+                        disabled={isApproving}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {activeTab === 'register' && (
@@ -828,11 +895,73 @@ URL: ${selectedClient.url}
   );
 }
 
-function SidebarLink({ icon: Icon, label, active, onClick }) {
+function SidebarLink({ icon: Icon, label, active, onClick, count }) {
   return (
-    <button onClick={onClick} style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', background: active ? '#3B82F610' : 'transparent', color: active ? '#3B82F6' : '#64748B', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '14px', transition: 'all 0.2s', marginBottom: '4px', textAlign: 'left' }}>
-      <Icon size={18} color={active ? '#3B82F6' : '#94A3B8'} /> {label}
+    <button onClick={onClick} style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', background: active ? '#3B82F610' : 'transparent', color: active ? '#3B82F6' : '#64748B', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '14px', transition: 'all 0.2s', marginBottom: '4px', textAlign: 'left', position: 'relative' }}>
+      <Icon size={18} color={active ? '#3B82F6' : '#94A3B8'} /> 
+      <span style={{ flex: 1 }}>{label}</span>
+      {count > 0 && (
+        <span style={{ background: '#EF4444', color: '#FFF', fontSize: '10px', fontWeight: 800, padding: '2px 6px', borderRadius: '100px', position: 'absolute', right: '12px' }}>
+          {count}
+        </span>
+      )}
     </button>
+  );
+}
+
+function PendingUserCard({ user, onAuthorize, disabled }) {
+  const [propertyType, setPropertyType] = useState('house');
+
+  return (
+    <div style={{ background: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <User size={20} color="#94A3B8" />
+          </div>
+          <div>
+            <h4 style={{ margin: 0, fontWeight: 700 }}>{user.name}</h4>
+            <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>{user.email}</p>
+          </div>
+        </div>
+        <div style={{ marginTop: '12px', fontSize: '12px', color: '#94A3B8' }}>
+          Placa vinculada: <code style={{ color: '#3B82F6', fontWeight: 700 }}>{user.scannedPropertyId || 'Nenhuma'}</code>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ textAlign: 'right' }}>
+          <Label>TIPO DE IMÓVEL</Label>
+          <select 
+            value={propertyType} 
+            onChange={e => setPropertyType(e.target.value)}
+            style={{ ...inputStyle, padding: '8px 12px', width: 'auto' }}
+          >
+            <option value="house">Casa Simples</option>
+            <option value="village">Vila / Village</option>
+            <option value="condo">Condomínio Vertical</option>
+            <option value="collective">Escritórios</option>
+          </select>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            onClick={() => onAuthorize(user.id, 'approve', propertyType)}
+            disabled={disabled}
+            style={{ padding: '10px 20px', borderRadius: '10px', background: '#10B981', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}
+          >
+            Aprovar
+          </button>
+          <button 
+            onClick={() => onAuthorize(user.id, 'deny')}
+            disabled={disabled}
+            style={{ padding: '10px 20px', borderRadius: '10px', background: '#FFF', border: '1px solid #EF4444', color: '#EF4444', fontWeight: 700, cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}
+          >
+            Recusar
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
