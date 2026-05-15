@@ -18,6 +18,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [accessCode, setAccessCode] = useState('');
   const [loginType, setLoginType] = useState('password'); // 'password' | 'code'
+  const [error, setError] = useState('');
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
