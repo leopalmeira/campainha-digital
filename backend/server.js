@@ -141,7 +141,7 @@ app.post('/api/auth/register', (req, res) => {
     email: email.toLowerCase(),
     password,
     role: 'user', // Starts as a simple user
-    status: 'pending', // Waiting for QR link and admin approval
+    status: 'active', // Active immediately so they appear in the dashboard
     scannedPropertyId: null,
     createdAt: new Date().toISOString()
   };
@@ -152,7 +152,7 @@ app.post('/api/auth/register', (req, res) => {
 });
 
 app.post('/api/auth/link-qr', (req, res) => {
-  const { userId, propertyId } = req.body;
+  const { userId, propertyId, qrImage, paymentChoice } = req.body;
   const user = users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
@@ -163,21 +163,48 @@ app.post('/api/auth/link-qr', (req, res) => {
   }
 
   user.scannedPropertyId = propertyId;
+  if (qrImage) user.qrImage = qrImage;
+  if (paymentChoice) user.paymentChoice = paymentChoice; // 'trial' | 'annual'
   saveUsers();
   res.json({ success: true, message: 'Placa vinculada. Aguarde a autorização do administrador.' });
 });
 
-// ─── Master Admin Authorization Endpoints ─────────────────────────────────────
-app.get('/api/admin/pending-users', (req, res) => {
+// ─── Master Admin User Management Endpoints ──────────────────────────────────
+
+// Retorna TODOS os usuários registrados (não só pending)
+app.get('/api/admin/all-users', (req, res) => {
   const { adminEmail } = req.query;
   if (adminEmail !== MASTER_ADMIN_EMAIL) return res.status(403).json({ error: 'Unauthorized' });
   
-  const pending = users.filter(u => u.status === 'pending');
+  // Enriquecer cada user com dados da propriedade vinculada
+  const enriched = users.map(u => {
+    const prop = properties.find(p => p.adminEmail?.toLowerCase() === u.email.toLowerCase());
+    return {
+      ...u,
+      property: prop ? {
+        id: prop.id,
+        name: prop.name,
+        type: prop.type,
+        unitsCount: prop.units?.length || 0,
+        clientCode: prop.clientCode,
+        doormanCode: prop.doormanCode
+      } : null
+    };
+  });
+  
+  res.json(enriched);
+});
+
+// Manter compatibilidade com endpoint antigo - agora filtra quem tem ID de placa mas não é gestor ainda
+app.get('/api/admin/pending-users', (req, res) => {
+  const { adminEmail } = req.query;
+  if (adminEmail !== MASTER_ADMIN_EMAIL) return res.status(403).json({ error: 'Unauthorized' });
+  const pending = users.filter(u => u.role === 'user' && u.scannedPropertyId);
   res.json(pending);
 });
 
 app.post('/api/admin/authorize-user', async (req, res) => {
-  const { adminEmail, userId, action, propertyType } = req.body; // action: 'approve' | 'deny'
+  const { adminEmail, userId, action, propertyType } = req.body; // action: 'approve' | 'deny' | 'promote' | 'demote'
   if (adminEmail !== MASTER_ADMIN_EMAIL) return res.status(403).json({ error: 'Unauthorized' });
 
   const user = users.find(u => u.id === userId);
@@ -189,9 +216,18 @@ app.post('/api/admin/authorize-user', async (req, res) => {
     return res.json({ success: true, message: 'Usuário recusado.' });
   }
 
-  // Approve
+  if (action === 'demote') {
+    user.role = 'user';
+    saveUsers();
+    return res.json({ success: true, message: 'Usuário rebaixado para usuário comum.' });
+  }
+
+  // Approve or Promote
   user.status = 'approved';
-  user.role = 'manager'; // Promote to manager
+  
+  if (action === 'promote' || action === 'approve') {
+    user.role = 'manager'; // Promote to manager/gestor
+  }
 
   // If they scanned a property, we must create/update that property in db.json
   if (user.scannedPropertyId) {
@@ -233,7 +269,7 @@ app.post('/api/admin/authorize-user', async (req, res) => {
 
   saveUsers();
   saveDb();
-  res.json({ success: true, message: 'Usuário aprovado e promovido a administrador.' });
+  res.json({ success: true, message: action === 'promote' ? 'Usuário promovido a gestor!' : 'Usuário aprovado e promovido a administrador.' });
 });
 
 // ─── Doorman Auth Route ──────────────────────────────────────────────────────

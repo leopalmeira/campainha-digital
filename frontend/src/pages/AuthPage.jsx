@@ -19,6 +19,8 @@ export default function AuthPage() {
   const [accessCode, setAccessCode] = useState('');
   const [loginType, setLoginType] = useState('password'); // 'password' | 'code'
   const [error, setError] = useState('');
+  const [scanningActive, setScanningActive] = useState(false);
+  const [scannedImage, setScannedImage] = useState(null);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -113,67 +115,94 @@ export default function AuthPage() {
 
   const startScanner = async () => {
     setShowScanner(true);
+    setScanningActive(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.setAttribute("playsinline", "true");
         videoRef.current.play();
-        requestAnimationFrame(tick);
+        scanLoop();
       }
     } catch (err) {
       alert("Erro ao acessar câmera.");
       setShowScanner(false);
+      setScanningActive(false);
     }
   };
 
   const stopScanner = () => {
+    setScanningActive(false);
     if (videoRef.current?.srcObject) {
       videoRef.current.srcObject.getTracks().forEach(track => track.stop());
     }
     setShowScanner(false);
   };
 
-  const tick = () => {
-    if (videoRef.current?.readyState === videoRef.current?.HAVE_ENOUGH_DATA) {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const context = canvas.getContext("2d");
-      canvas.height = videoRef.current.videoHeight;
-      canvas.width = videoRef.current.videoWidth;
-      context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+  const scanLoop = () => {
+    const doTick = () => {
+      if (!videoRef.current || !canvasRef.current) return;
+      if (videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+        const canvas = canvasRef.current;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        canvas.height = videoRef.current.videoHeight;
+        canvas.width = videoRef.current.videoWidth;
+        context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
 
-      if (code) {
-        const url = code.data;
-        // Tentativa de extrair ID de chamada ou ID puro
-        const match = url.match(/\/chamada\/([a-zA-Z0-9-]+)/);
-        const finalId = match ? match[1] : url;
-        setScannedId(finalId);
-        stopScanner();
-        linkQR(finalId);
-        return;
+        if (code) {
+          const rawData = code.data;
+          // Extrair o ID: tenta /chamada/ID, depois pega a última parte da URL, ou usa o valor bruto
+          let finalId = rawData;
+          const chamadaMatch = rawData.match(/\/chamada\/([a-zA-Z0-9_-]+)/);
+          if (chamadaMatch) {
+            finalId = chamadaMatch[1];
+          } else {
+            // Tenta extrair último segmento de URL (caso seja https://site.com/algo/ID)
+            try {
+              const urlObj = new URL(rawData);
+              const segments = urlObj.pathname.split('/').filter(Boolean);
+              if (segments.length > 0) finalId = segments[segments.length - 1];
+            } catch {
+              // Não é URL válida, usa o valor bruto como ID
+              finalId = rawData.trim();
+            }
+          }
+
+          // Capturar a imagem do QR Code
+          const qrImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+          
+          setScannedId(finalId);
+          setScannedImage(qrImageBase64);
+          stopScanner();
+          setStep(3); // Vai para escolha de plano
+          return;
+        }
       }
-    }
-    if (showScanner) requestAnimationFrame(tick);
+      requestAnimationFrame(doTick);
+    };
+    requestAnimationFrame(doTick);
   };
 
-  const linkQR = async (propId) => {
+  const submitPlan = async (paymentChoice) => {
+    setLoading(true);
     try {
       const res = await fetch(`${API}/api/auth/link-qr`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, propertyId: propId })
+        body: JSON.stringify({ userId, propertyId: scannedId, qrImage: scannedImage, paymentChoice })
       });
       if (res.ok) {
-        setStep(3);
+        setStep(4);
       } else {
         const data = await res.json();
-        alert(data.error || 'Erro ao vincular placa.');
+        alert(data.error || 'Erro ao vincular placa e plano.');
       }
     } catch (err) {
       alert('Erro de conexão.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -279,13 +308,59 @@ export default function AuthPage() {
               <Camera size={20} /> Abrir Câmera
             </button>
             
-            <p style={{ marginTop: '24px', fontSize: '12px', color: 'var(--text-muted)' }}>
-              Tente até conseguir ler o código da placa.
+            <p style={{ marginTop: '24px', fontSize: '13px', color: 'var(--text-muted)' }}>
+              Teve problemas com a câmera? <br/>
+              <button 
+                onClick={() => {
+                  const id = window.prompt("Digite o ID impresso na sua placa:");
+                  if (id) { 
+                    setScannedId(id); 
+                    setStep(3); 
+                  }
+                }}
+                style={{ background: 'none', border: 'none', color: '#3B82F6', fontWeight: 700, cursor: 'pointer', marginTop: '8px', textDecoration: 'underline' }}
+              >
+                Digitar ID manualmente
+              </button>
             </p>
           </div>
         )}
 
         {!isLogin && step === 3 && (
+          <div style={{ textAlign: 'center' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Escolha seu Plano</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px', lineHeight: 1.6 }}>
+              Sua placa foi escaneada com sucesso. Como deseja prosseguir?
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '32px' }}>
+              <button 
+                onClick={() => submitPlan('trial')}
+                disabled={loading}
+                style={{ padding: '20px', borderRadius: '16px', background: '#F8FAFC', border: '2px solid #E2E8F0', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', opacity: loading ? 0.7 : 1 }}
+                onMouseOver={(e) => e.currentTarget.style.borderColor = '#3B82F6'}
+                onMouseOut={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
+              >
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Teste Grátis</div>
+                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '4px' }}>Experimente por 15 dias sem compromisso.</div>
+              </button>
+
+              <button 
+                onClick={() => submitPlan('annual')}
+                disabled={loading}
+                style={{ padding: '20px', borderRadius: '16px', background: '#FFF', border: '2px solid #3B82F6', cursor: 'pointer', textAlign: 'left', boxShadow: '0 8px 24px rgba(59, 130, 246, 0.15)', opacity: loading ? 0.7 : 1 }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#3B82F6' }}>Assinatura Anual</div>
+                  <div style={{ fontSize: '12px', background: '#DBEAFE', color: '#1E40AF', padding: '4px 8px', borderRadius: '100px', fontWeight: 700 }}>Mais Escolhido</div>
+                </div>
+                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>R$ 39,90/ano (Pagamento Único)</div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!isLogin && step === 4 && (
           <div style={{ textAlign: 'center' }}>
             <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <CheckCircle2 size={40} color="#10B981" />

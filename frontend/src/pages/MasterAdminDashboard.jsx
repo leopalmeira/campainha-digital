@@ -22,7 +22,9 @@ export default function MasterAdminDashboard() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [pendingUsers, setPendingUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [isApproving, setIsApproving] = useState(false);
+  const [userFilter, setUserFilter] = useState('all'); // all | pending | approved | manager
 
   const [newClient, setNewClient] = useState({
     name: '', // Property Name
@@ -50,6 +52,7 @@ export default function MasterAdminDashboard() {
     }
     fetchClients();
     fetchPendingUsers();
+    fetchAllUsers();
   }, [navigate]);
 
   const fetchPendingUsers = async () => {
@@ -58,6 +61,17 @@ export default function MasterAdminDashboard() {
       const res = await fetch(`${API}/api/admin/pending-users?adminEmail=${encodeURIComponent(email)}`);
       const data = await res.json();
       setPendingUsers(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    try {
+      const email = localStorage.getItem('cd_admin_email');
+      const res = await fetch(`${API}/api/admin/all-users?adminEmail=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      setAllUsers(data);
     } catch (err) {
       console.error(err);
     }
@@ -193,8 +207,10 @@ export default function MasterAdminDashboard() {
         body: JSON.stringify({ adminEmail, userId, action, propertyType })
       });
       if (res.ok) {
-        alert(action === 'approve' ? 'Usuário aprovado com sucesso!' : 'Usuário recusado.');
+        const msgs = { approve: 'Usuário aprovado!', deny: 'Usuário recusado.', promote: 'Usuário promovido a Gestor!', demote: 'Usuário rebaixado.' };
+        alert(msgs[action] || 'Ação realizada.');
         fetchPendingUsers();
+        fetchAllUsers();
         fetchClients();
       } else {
         const data = await res.json();
@@ -206,6 +222,13 @@ export default function MasterAdminDashboard() {
       setIsApproving(false);
     }
   };
+
+  const filteredUsers = allUsers.filter(u => {
+    if (userFilter === 'pending') return u.status === 'pending';
+    if (userFilter === 'approved') return u.status === 'approved' && u.role === 'user';
+    if (userFilter === 'manager') return u.role === 'manager';
+    return true;
+  });
 
   const handleSaveEdit = async () => {
     try {
@@ -246,8 +269,8 @@ export default function MasterAdminDashboard() {
   const stats = [
     { label: 'Clientes Ativos', value: clients.length, icon: Users, color: '#3B82F6' },
     { label: 'Total de Unidades', value: totalUnits, icon: Building2, color: '#10B981' },
-    { label: 'Status Global', value: 'Operacional', icon: Activity, color: '#6366F1' },
-    { label: 'Faturamento Estimado', value: `R$ ${(totalUnits * 15).toLocaleString()}`, icon: CreditCard, color: '#F59E0B' }
+    { label: 'Usuários Cadastrados', value: allUsers.length, icon: User, color: '#6366F1' },
+    { label: 'Gestores Ativos', value: allUsers.filter(u => u.role === 'manager').length, icon: ShieldCheck, color: '#F59E0B' }
   ];
 
   return (
@@ -262,9 +285,10 @@ export default function MasterAdminDashboard() {
         </div>
 
         <nav style={{ padding: '24px 16px', flex: 1, overflowY: 'auto' }}>
-          <SidebarLink icon={Users} label="Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
+          <SidebarLink icon={Users} label="Gestão de Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
+          <SidebarLink icon={User} label="Base de Usuários" active={activeTab === 'users'} onClick={() => setActiveTab('users')} count={allUsers.length} />
+          <SidebarLink icon={ShieldCheck} label="Solicitações de Gestão" active={activeTab === 'authorizations'} onClick={() => setActiveTab('authorizations')} count={pendingUsers.length} />
           <SidebarLink icon={Plus} label="Novo Registro" active={activeTab === 'register'} onClick={() => setActiveTab('register')} />
-          <SidebarLink icon={ShieldCheck} label="Autorizações" active={activeTab === 'authorizations'} onClick={() => setActiveTab('authorizations')} count={pendingUsers.length} />
           <div style={{ height: '1px', background: '#F1F5F9', margin: '16px 0' }} />
           <SidebarLink icon={PieChart} label="Analytics & Uso" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
           <SidebarLink icon={Shield} label="Equipe / Porteiros" active={activeTab === 'doormen'} onClick={() => setActiveTab('doormen')} />
@@ -298,6 +322,7 @@ export default function MasterAdminDashboard() {
           <div>
             <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', letterSpacing: '-1.5px' }}>
               {activeTab === 'clients' && "Visão Geral de Clientes"}
+              {activeTab === 'users' && "Gestão de Usuários"}
               {activeTab === 'register' && "Registrar Nova Placa"}
               {activeTab === 'authorizations' && "Aguardando Autorização"}
               {activeTab === 'analytics' && "Analytics de Produção"}
@@ -452,10 +477,47 @@ export default function MasterAdminDashboard() {
             </>
           )}
 
+          {activeTab === 'users' && (
+            <div style={{ padding: '10px' }}>
+              <SectionTitle icon={User} title="Todos os Usuários Registrados" />
+              <p style={{ color: '#64748B', marginTop: '8px' }}>Todos que fizeram cadastro no sistema. Gerencie papéis e autorizações.</p>
+              
+              {/* Filtros */}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '20px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                {[
+                  { key: 'all', label: `Todos (${allUsers.length})` },
+                  { key: 'pending', label: `Pendentes (${allUsers.filter(u => u.status === 'pending').length})` },
+                  { key: 'approved', label: `Usuários (${allUsers.filter(u => u.status === 'approved' && u.role === 'user').length})` },
+                  { key: 'manager', label: `Gestores (${allUsers.filter(u => u.role === 'manager').length})` },
+                ].map(f => (
+                  <button key={f.key} onClick={() => setUserFilter(f.key)} style={{ padding: '8px 16px', borderRadius: '100px', border: userFilter === f.key ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: userFilter === f.key ? '#EFF6FF' : '#FFF', color: userFilter === f.key ? '#3B82F6' : '#64748B', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>{f.label}</button>
+                ))}
+              </div>
+
+              {filteredUsers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px', background: '#F8FAFC', borderRadius: '24px', border: '1px dashed #E2E8F0' }}>
+                  <Users size={48} color="#CBD5E1" style={{ marginBottom: '16px' }} />
+                  <h3 style={{ color: '#64748B' }}>Nenhum usuário encontrado neste filtro</h3>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {filteredUsers.map(user => (
+                    <UserManagementCard 
+                      key={user.id} 
+                      user={user} 
+                      onAction={handleAuthorizeUser} 
+                      disabled={isApproving}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'authorizations' && (
             <div style={{ padding: '10px' }}>
-              <SectionTitle icon={ShieldCheck} title="Aprovação de Novos Administradores" />
-              <p style={{ color: '#64748B', marginTop: '8px' }}>Usuários que se cadastraram e aguardam autorização para gerenciar um imóvel.</p>
+              <SectionTitle icon={ShieldCheck} title="Promoção de Administradores" />
+              <p style={{ color: '#64748B', marginTop: '8px' }}>Usuários que já vincularam uma placa e desejam converter sua conta em Gestor de Condomínio.</p>
               
               <div style={{ marginTop: '32px' }}>
                 {pendingUsers.length === 0 ? (
@@ -960,6 +1022,133 @@ function PendingUserCard({ user, onAuthorize, disabled }) {
             Recusar
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function UserManagementCard({ user, onAction, disabled }) {
+  const [propertyType, setPropertyType] = useState('house');
+  const isManager = user.role === 'manager';
+  const isPending = user.role === 'user' && !!user.scannedPropertyId;
+  const isDenied = user.status === 'denied';
+
+  const statusColors = {
+    pending: { bg: '#FEF3C7', color: '#92400E', label: 'Pendente' },
+    approved: { bg: '#D1FAE5', color: '#065F46', label: 'Aprovado' },
+    denied: { bg: '#FEE2E2', color: '#991B1B', label: 'Recusado' },
+  };
+  const roleColors = {
+    user: { bg: '#E0E7FF', color: '#3730A3', label: 'Usuário' },
+    manager: { bg: '#DBEAFE', color: '#1E40AF', label: 'Gestor' },
+  };
+
+  const st = statusColors[user.status] || statusColors.pending;
+  const rl = roleColors[user.role] || roleColors.user;
+
+  return (
+    <div style={{ background: '#FFF', padding: '20px 24px', borderRadius: '16px', border: `1px solid ${isManager ? '#BFDBFE' : '#E2E8F0'}`, display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: isManager ? '#EFF6FF' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '16px', color: isManager ? '#3B82F6' : '#64748B' }}>
+            {user.name?.charAt(0)?.toUpperCase() || '?'}
+          </div>
+          <div>
+            <h4 style={{ margin: 0, fontWeight: 700, fontSize: '15px', color: '#0F172A' }}>{user.name}</h4>
+            <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748B' }}>{user.email}</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '100px', background: st.bg, color: st.color }}>{st.label}</span>
+          <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '100px', background: rl.bg, color: rl.color }}>{rl.label}</span>
+        </div>
+      </div>
+
+      {/* Info */}
+      <div style={{ display: 'flex', gap: '24px', fontSize: '12px', color: '#64748B', borderTop: '1px solid #F1F5F9', paddingTop: '12px', flexWrap: 'wrap' }}>
+        <div><strong style={{ color: '#94A3B8' }}>Cadastro:</strong> {new Date(user.createdAt).toLocaleDateString('pt-BR')}</div>
+        <div><strong style={{ color: '#94A3B8' }}>Placa:</strong> <code style={{ color: '#3B82F6', fontWeight: 700 }}>{user.scannedPropertyId || 'Nenhuma'}</code></div>
+        {user.paymentChoice && (
+          <div><strong style={{ color: '#94A3B8' }}>Plano Selecionado:</strong> <span style={{ color: user.paymentChoice === 'annual' ? '#3B82F6' : '#F59E0B', fontWeight: 700 }}>{user.paymentChoice === 'annual' ? 'Anual' : 'Teste 15 dias'}</span></div>
+        )}
+        {user.property && (
+          <>
+            <div><strong style={{ color: '#94A3B8' }}>Propriedade:</strong> {user.property.name}</div>
+            <div><strong style={{ color: '#94A3B8' }}>Tipo:</strong> {user.property.type?.toUpperCase()}</div>
+            <div><strong style={{ color: '#94A3B8' }}>Unidades:</strong> {user.property.unitsCount}</div>
+          </>
+        )}
+      </div>
+
+      {/* Imagem do QR Code Capturada */}
+      {user.qrImage && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#F8FAFC', padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+          <img src={user.qrImage} alt="QR Escaneado" style={{ width: '64px', height: '64px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #CBD5E1' }} />
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Imagem Capturada da Placa</div>
+            <div style={{ fontSize: '12px', color: '#64748B' }}>Confirmando vínculo físico.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Property card if manager */}
+      {isManager && user.property && (
+        <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '12px', padding: '12px 16px', display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Building2 size={16} color="#0369A1" />
+            <span style={{ fontWeight: 700, fontSize: '13px', color: '#0C4A6E' }}>{user.property.name}</span>
+          </div>
+          <div style={{ fontSize: '12px', color: '#0369A1' }}><strong>Admin:</strong> <code>{user.property.clientCode}</code></div>
+          {user.property.doormanCode && <div style={{ fontSize: '12px', color: '#0369A1' }}><strong>Portaria:</strong> <code>{user.property.doormanCode}</code></div>}
+          <div style={{ fontSize: '12px', color: '#0369A1' }}><strong>{user.property.unitsCount}</strong> unidade{user.property.unitsCount !== 1 ? 's' : ''}</div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid #F1F5F9', paddingTop: '12px', flexWrap: 'wrap' }}>
+        {isPending && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto' }}>
+              <select value={propertyType} onChange={e => setPropertyType(e.target.value)} style={{ ...inputStyle, padding: '6px 10px', width: 'auto', fontSize: '12px' }}>
+                <option value="house">Casa Simples</option>
+                <option value="village">Vila / Village</option>
+                <option value="condo">Condomínio</option>
+              </select>
+            </div>
+            <button onClick={() => onAction(user.id, 'approve', propertyType)} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#10B981', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Promover a Gestor</button>
+            <button onClick={() => onAction(user.id, 'deny')} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#FFF', border: '1px solid #EF4444', color: '#EF4444', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Recusar</button>
+          </>
+        )}
+        {!isPending && !isDenied && !isManager && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto' }}>
+              <select value={propertyType} onChange={e => setPropertyType(e.target.value)} style={{ ...inputStyle, padding: '6px 10px', width: 'auto', fontSize: '12px' }}>
+                <option value="house">Casa Simples</option>
+                <option value="village">Vila / Village</option>
+                <option value="condo">Condomínio</option>
+              </select>
+            </div>
+            <button onClick={() => onAction(user.id, 'promote', propertyType)} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ShieldCheck size={14} /> Converter em Gestor
+            </button>
+          </>
+        )}
+        {isManager && (
+          <button onClick={() => onAction(user.id, 'demote')} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#FFF', border: '1px solid #F59E0B', color: '#D97706', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Remover Gestão</button>
+        )}
+        {isDenied && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto' }}>
+              <select value={propertyType} onChange={e => setPropertyType(e.target.value)} style={{ ...inputStyle, padding: '6px 10px', width: 'auto', fontSize: '12px' }}>
+                <option value="house">Casa Simples</option>
+                <option value="village">Vila / Village</option>
+                <option value="condo">Condomínio</option>
+              </select>
+            </div>
+            <button onClick={() => onAction(user.id, 'approve', propertyType)} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#10B981', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Reativar</button>
+          </>
+        )}
       </div>
     </div>
   );
