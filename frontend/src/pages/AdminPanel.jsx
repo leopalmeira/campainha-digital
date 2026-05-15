@@ -75,7 +75,10 @@ export default function AdminPanel() {
   const fetchProperties = async () => {
     try {
       const adminEmail = localStorage.getItem('cd_admin_email');
-      const url = adminEmail ? `${API}/api/properties?email=${encodeURIComponent(adminEmail)}` : `${API}/api/properties`;
+      const adminRole = localStorage.getItem('cd_admin_role');
+      const url = (adminRole === 'master' || !adminEmail) 
+        ? `${API}/api/properties` 
+        : `${API}/api/properties?email=${encodeURIComponent(adminEmail)}`;
       const res  = await fetch(url);
       const data = await res.json();
       

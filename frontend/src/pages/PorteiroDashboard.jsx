@@ -17,9 +17,23 @@ export default function PorteiroDashboard() {
   const [msgSent, setMsgSent] = useState(false);  // feedback de enviado
   const [residentMsg, setResidentMsg] = useState(null); // Mensagem recebida do morador
   const [incomingCall, setIncomingCall] = useState(null); // Chamada recebida do morador
+  const [activeCall, setActiveCall] = useState(null); // Chamada em andamento
   const [preAuthorized, setPreAuthorized] = useState({}); // { unitId: true }
+  const [isMuted, setIsMuted] = useState(false);
   const navigate = useNavigate();
   const socketRef = useRef(null);
+  const pcRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteAudioRef = useRef(null);
+
+  const ICE_CONFIG = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+    ]
+  };
 
   useEffect(() => {
     const role = localStorage.getItem('cd_admin_role');
@@ -76,14 +90,148 @@ export default function PorteiroDashboard() {
       setTimeout(() => setResidentMsg(null), 20000); 
     });
 
-    s.on('incoming_resident_call', ({ callerName, unitId }) => {
-      setIncomingCall({ callerName, unitId });
+    s.on('incoming_resident_call', ({ callerName, unitId, unitDetails, residentSocketId }) => {
+      setIncomingCall({ callerName, unitId, unitDetails, residentSocketId });
       try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(() => {}); } catch {}
-      setTimeout(() => setIncomingCall(null), 20000);
     });
 
-    return () => s.disconnect();
-  }, [navigate]);
+    s.on('call_answered', async ({ residentSocketId, mode, unitId }) => {
+      setActiveCall({ callerName: 'Morador', unitId });
+      await startWebRTCAsCaller(residentSocketId);
+    });
+
+    s.on('webrtc_offer', async ({ sender, offer }) => {
+      if (pcRef.current) pcRef.current.close();
+      const pc = new RTCPeerConnection(ICE_CONFIG);
+      pcRef.current = pc;
+
+      pc.ontrack = (e) => {
+        if (remoteAudioRef.current && e.streams[0]) {
+          remoteAudioRef.current.srcObject = e.streams[0];
+          remoteAudioRef.current.play().catch(() => {});
+        }
+      };
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate) s.emit('webrtc_ice_candidate', { target: sender, candidate: e.candidate });
+      };
+
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+      stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      s.emit('webrtc_answer', { target: sender, answer: pc.localDescription });
+      
+      setActiveCall({ callerName: incomingCall?.callerName || 'Morador', unitId: incomingCall?.unitId });
+      setIncomingCall(null);
+    });
+
+    s.on('webrtc_answer', async ({ answer }) => {
+      if (pcRef.current) await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+    });
+
+    s.on('webrtc_ice_candidate', async ({ candidate }) => {
+      if (pcRef.current && candidate) await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+    });
+
+    s.on('call_ended', () => {
+      stopCall();
+    });
+
+    return () => {
+      s.disconnect();
+      stopCall();
+    };
+  }, [navigate, incomingCall]);
+
+  const stopCall = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(t => t.stop());
+      localStreamRef.current = null;
+    }
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+    setActiveCall(null);
+    setIncomingCall(null);
+  };
+
+  const answerCall = async () => {
+    if (!incomingCall || !socketRef.current) return;
+    
+    const pc = new RTCPeerConnection(ICE_CONFIG);
+    pcRef.current = pc;
+
+    pc.ontrack = (e) => {
+      if (remoteAudioRef.current && e.streams[0]) {
+        remoteAudioRef.current.srcObject = e.streams[0];
+        remoteAudioRef.current.play().catch(() => {});
+      }
+    };
+
+    pc.onicecandidate = (e) => {
+      if (e.candidate) socketRef.current.emit('webrtc_ice_candidate', { target: incomingCall.residentSocketId, candidate: e.candidate });
+    };
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+      stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+      socketRef.current.emit('answer_call', { visitorSocketId: incomingCall.residentSocketId, mode: 'active', unitId: incomingCall.unitId });
+      setActiveCall({ callerName: incomingCall.callerName, unitId: incomingCall.unitId });
+      setIncomingCall(null);
+    } catch (err) {
+      console.error('Error accessing microphone', err);
+      alert('Erro ao acessar microfone.');
+    }
+  };
+
+  const endCall = () => {
+    if (socketRef.current) {
+      socketRef.current.emit('call_ended', { target: incomingCall?.residentSocketId || activeCall?.residentSocketId });
+    }
+    stopCall();
+  };
+
+  const toggleMute = () => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMuted(!audioTrack.enabled);
+      }
+    }
+  };
+
+  const startWebRTCAsCaller = async (targetSocketId) => {
+    const pc = new RTCPeerConnection(ICE_CONFIG);
+    pcRef.current = pc;
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    localStreamRef.current = stream;
+    stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+    pc.ontrack = (e) => {
+      if (remoteAudioRef.current && e.streams[0]) {
+        remoteAudioRef.current.srcObject = e.streams[0];
+        remoteAudioRef.current.play().catch(() => {});
+      }
+    };
+
+    pc.onicecandidate = (e) => {
+      if (e.candidate && socketRef.current) socketRef.current.emit('webrtc_ice_candidate', { target: targetSocketId, candidate: e.candidate });
+    };
+
+    const offer = await pc.createOffer({ offerToReceiveAudio: true });
+    await pc.setLocalDescription(offer);
+    socketRef.current.emit('webrtc_offer', { target: targetSocketId, offer: pc.localDescription });
+  };
 
   const sendMessage = (unit) => {
     if (!msgText.trim() || !socketRef.current) return;
@@ -126,6 +274,8 @@ export default function PorteiroDashboard() {
           <LogOut size={16}/> Sair
         </button>
       </header>
+      
+      <audio ref={remoteAudioRef} autoPlay playsInline />
 
       <main style={{ padding: '32px 24px', maxWidth: '1000px', margin: '0 auto' }}>
         
@@ -171,9 +321,35 @@ export default function PorteiroDashboard() {
             </div>
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 4px', color: '#1E293B' }}>Chamada de: {incomingCall.callerName}</h2>
-              <p style={{ margin: 0, color: '#64748B', fontSize: '13px' }}>O morador está interfonando para a portaria.</p>
+              <p style={{ margin: 0, color: '#64748B', fontSize: '13px' }}>
+                {incomingCall.unitDetails?.block ? `Bloco ${incomingCall.unitDetails.block} ` : ''}
+                {incomingCall.unitDetails?.number ? `Nº ${incomingCall.unitDetails.number}` : ''}
+              </p>
+              <p style={{ margin: '4px 0 0', color: '#64748B', fontSize: '12px' }}>O morador está interfonando para a portaria.</p>
             </div>
-            <button onClick={() => setIncomingCall(null)} style={{ padding: '12px 24px', borderRadius: '10px', border: 'none', background: '#10B981', color: '#FFF', fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}>Atender</button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={answerCall} style={{ padding: '12px 24px', borderRadius: '10px', border: 'none', background: '#10B981', color: '#FFF', fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}>Atender</button>
+              <button onClick={() => setIncomingCall(null)} style={{ padding: '12px', borderRadius: '10px', border: 'none', background: '#F1F5F9', color: '#64748B', cursor: 'pointer' }}><X size={20}/></button>
+            </div>
+          </div>
+        )}
+
+        {/* Chamada Ativa */}
+        {activeCall && (
+          <div style={{ background: '#0F172A', color: '#FFF', padding: '20px', borderRadius: '20px', marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#10B981', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Phone size={24} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 4px' }}>Em ligação com: {activeCall.callerName}</h2>
+              <p style={{ margin: 0, opacity: 0.7, fontSize: '13px' }}>A comunicação por voz está ativa.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={toggleMute} style={{ width: '44px', height: '44px', borderRadius: '50%', border: 'none', background: isMuted ? '#EF4444' : 'rgba(255,255,255,0.1)', color: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MicOff size={20} />
+              </button>
+              <button onClick={endCall} style={{ padding: '12px 24px', borderRadius: '12px', border: 'none', background: '#EF4444', color: '#FFF', fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}>Encerrar</button>
+            </div>
           </div>
         )}
 
@@ -199,7 +375,18 @@ export default function PorteiroDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ fontSize: '11px', fontWeight: 800, color: '#3B82F6', textTransform: 'uppercase', marginBottom: '8px' }}>{unit.propertyName}</div>
                 {preAuthorized[unit.id] && (
-                  <div className="blink" style={{ background: '#10B981', color: '#fff', padding: '4px 8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div 
+                    className="blink" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreAuthorized(prev => {
+                        const next = { ...prev };
+                        delete next[unit.id];
+                        return next;
+                      });
+                    }}
+                    style={{ background: '#10B981', color: '#fff', padding: '4px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                  >
                     <CheckCircle2 size={12}/> ACESSO LIBERADO
                   </div>
                 )}

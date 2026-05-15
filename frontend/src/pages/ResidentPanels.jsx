@@ -209,6 +209,40 @@ export function SettingsPanel({ unitName, setUnitName, onSave, unitId, propertyI
   const [saved, setSaved] = useState(false);
   const [accessCode, setAccessCode] = useState(() => localStorage.getItem('residentAccessCode') || '');
   const [codeCopied, setCodeCopied] = useState(false);
+  const [dndEnabled, setDndEnabled] = useState(false);
+  const [dndStart, setDndStart] = useState('22:00');
+  const [dndEnd, setDndEnd] = useState('07:00');
+
+  useEffect(() => {
+    // Load current DND settings
+    const loadDnd = async () => {
+      try {
+        const r = await fetch(`${API}/api/properties/${propertyId}/units/${unitId}`);
+        if (r.ok) {
+          const data = await r.json();
+          const unit = data.units?.find(u => u.id === unitId);
+          if (unit?.dndSettings) {
+            setDndEnabled(unit.dndSettings.enabled);
+            setDndStart(unit.dndSettings.start || '22:00');
+            setDndEnd(unit.dndSettings.end || '07:00');
+          }
+        }
+      } catch (err) { console.error('Error loading DND settings', err); }
+    };
+    if (unitId && propertyId) loadDnd();
+  }, [unitId, propertyId]);
+
+  const saveDnd = async (enabled, start, end) => {
+    try {
+      await fetch(`${API}/api/properties/${propertyId}/units/${unitId}/dnd`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dndSettings: { enabled, start, end }
+        })
+      });
+    } catch (err) { console.error('Error saving DND settings', err); }
+  };
 
   // Removido o fetch para /api/properties por motivos de segurança e isolamento
 
@@ -266,6 +300,40 @@ export function SettingsPanel({ unitName, setUnitName, onSave, unitId, propertyI
       <div className="glass-panel" style={{ padding: '20px', marginBottom: '16px' }}>
         <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '8px', letterSpacing: '1px' }}>NOME DE EXIBIÇÃO</label>
         <input type="text" className="input-glass" value={unitName} onChange={e => setUnitName(e.target.value)} style={{ width: '100%', marginBottom: '12px' }} />
+        
+        <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0', paddingTop: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div>
+              <label style={{ fontSize: '14px', fontWeight: 700, display: 'block', color: 'var(--text-main)' }}>🚫 Não Perturbe</label>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Bloquear chamadas em horários específicos</span>
+            </div>
+            <div 
+              onClick={() => {
+                const newVal = !dndEnabled;
+                setDndEnabled(newVal);
+                saveDnd(newVal, dndStart, dndEnd);
+              }} 
+              style={{ 
+                width: '44px', height: '24px', borderRadius: '12px', background: dndEnabled ? '#10B981' : '#E2E8F0', position: 'relative', cursor: 'pointer', transition: 'all 0.2s' 
+              }}>
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#FFF', position: 'absolute', top: '2px', left: dndEnabled ? '22px' : '2px', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }} />
+            </div>
+          </div>
+          
+          {dndEnabled && (
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '12px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>INÍCIO</label>
+                <input type="time" className="input-glass" value={dndStart} onChange={e => { setDndStart(e.target.value); saveDnd(dndEnabled, e.target.value, dndEnd); }} style={{ width: '100%', padding: '8px' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>FIM</label>
+                <input type="time" className="input-glass" value={dndEnd} onChange={e => { setDndEnd(e.target.value); saveDnd(dndEnabled, dndStart, e.target.value); }} style={{ width: '100%', padding: '8px' }} />
+              </div>
+            </div>
+          )}
+        </div>
+
         <button className="btn-primary" onClick={saveAll} style={{ width: '100%', padding: '12px', fontSize: '14px', background: saved ? '#10B981' : undefined, transition: 'background 0.3s' }}>
           {saved ? '✓ Salvo!' : 'Salvar Configurações'}
         </button>

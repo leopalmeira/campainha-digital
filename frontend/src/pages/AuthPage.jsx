@@ -16,6 +16,8 @@ export default function AuthPage() {
   const [scannedId, setScannedId] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [accessCode, setAccessCode] = useState('');
+  const [loginType, setLoginType] = useState('password'); // 'password' | 'code'
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -23,37 +25,65 @@ export default function AuthPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const emailInput = formData.get('email');
-    const authInput = formData.get('authInput');
+    setError('');
+    setLoading(true);
 
     try {
-      const res = await fetch(`${API}/api/admin/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailInput, password: authInput, clientCode: authInput })
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        localStorage.setItem('cd_admin_email', data.email);
-        if (data.role === 'master') {
-          localStorage.setItem('cd_admin_role', 'master');
-          navigate('/master-admin');
-        } else if (data.role === 'doorman') {
-          localStorage.setItem('cd_admin_role', 'doorman');
-          localStorage.setItem('cd_doorman_propertyId', data.propertyId);
-          navigate('/portaria');
+      if (loginType === 'code') {
+        const res = await fetch(`${API}/api/resident/login-by-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessCode: accessCode.trim().toUpperCase() })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (data.role === 'doorman') {
+            localStorage.setItem('cd_admin_role', 'doorman');
+            localStorage.setItem('cd_doorman_propertyId', data.propertyId);
+            navigate('/portaria');
+          } else if (data.unitId) {
+            localStorage.setItem('residentUnitId', data.unitId);
+            localStorage.setItem('residentName', data.unitName || 'Morador');
+            localStorage.setItem('residentPropertyId', data.propertyId || '');
+            localStorage.setItem('residentAccessCode', data.accessCode || accessCode.toUpperCase());
+            navigate(`/morador/${data.unitId}`);
+          }
         } else {
-          localStorage.setItem('cd_admin_role', 'client');
-          if (data.propertyId) localStorage.setItem('cd_admin_propertyId', data.propertyId);
-          navigate('/admin');
+          setError(data.error || 'Código inválido.');
         }
       } else {
-        alert(data.error || 'Erro ao fazer login.');
+        const res = await fetch(`${API}/api/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, clientCode: password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem('cd_admin_email', data.email);
+          if (data.role === 'master') {
+            localStorage.setItem('cd_admin_role', 'master');
+            navigate('/master-admin');
+          } else if (data.role === 'doorman') {
+            localStorage.setItem('cd_admin_role', 'doorman');
+            localStorage.setItem('cd_doorman_propertyId', data.propertyId);
+            navigate('/portaria');
+          } else if (data.role === 'sindico') {
+            localStorage.setItem('cd_admin_role', 'sindico');
+            if (data.propertyId) localStorage.setItem('cd_admin_propertyId', data.propertyId);
+            navigate('/admin');
+          } else {
+            localStorage.setItem('cd_admin_role', 'client');
+            if (data.propertyId) localStorage.setItem('cd_admin_propertyId', data.propertyId);
+            navigate('/admin');
+          }
+        } else {
+          setError(data.error || 'Credenciais inválidas.');
+        }
       }
     } catch (err) {
-      alert('Erro ao conectar com o servidor.');
+      setError('Erro ao conectar com o servidor.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -154,23 +184,39 @@ export default function AuthPage() {
         
         {isLogin && (
           <>
-            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
               <Logo size={42} />
-              <h2 style={{ fontSize: '28px', fontWeight: 800, marginTop: '24px', color: 'var(--text-main)' }}>Acessar Painel</h2>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Entre com seu e-mail e senha.</p>
+              <h2 style={{ fontSize: '24px', fontWeight: 800, marginTop: '16px', color: 'var(--text-main)' }}>Acesso Unificado</h2>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Entre com sua senha ou código de morador.</p>
             </div>
 
+            <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '16px', padding: '4px', marginBottom: '24px' }}>
+              <button onClick={() => { setLoginType('password'); setError(''); }} style={{ flex: 1, padding: '10px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '13px', background: loginType === 'password' ? '#FFF' : 'transparent', color: loginType === 'password' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: loginType === 'password' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}>Senha / E-mail</button>
+              <button onClick={() => { setLoginType('code'); setError(''); }} style={{ flex: 1, padding: '10px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '13px', background: loginType === 'code' ? '#FFF' : 'transparent', color: loginType === 'code' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: loginType === 'code' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}>Código Morador</button>
+            </div>
+
+            {error && <div style={{ background: '#FEE2E2', color: '#EF4444', padding: '12px', borderRadius: '12px', marginBottom: '20px', fontSize: '13px', fontWeight: 600 }}>{error}</div>}
+
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ position: 'relative' }}>
-                <Mail size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
-                <input type="email" name="email" placeholder="Seu e-mail" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
-              </div>
-              <div style={{ position: 'relative' }}>
-                <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
-                <input type="password" name="authInput" placeholder="Sua senha ou Código" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
-              </div>
-              <button type="submit" className="btn-primary w-full" style={{ padding: '16px', fontSize: '16px' }}>
-                Entrar no Sistema <ArrowRight size={20} />
+              {loginType === 'password' ? (
+                <>
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Seu e-mail" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Sua senha" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} required />
+                  </div>
+                </>
+              ) : (
+                <div style={{ position: 'relative' }}>
+                  <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
+                  <input type="text" value={accessCode} onChange={e => setAccessCode(e.target.value.toUpperCase())} placeholder="Código de Acesso" className="input-glass" style={{ paddingLeft: '48px', width: '100%', textTransform: 'uppercase', letterSpacing: '2px' }} required />
+                </div>
+              )}
+              <button type="submit" disabled={loading} className="btn-primary w-full" style={{ padding: '16px', fontSize: '16px' }}>
+                {loading ? 'Entrando...' : 'Entrar no Sistema'} <ArrowRight size={20} />
               </button>
             </form>
 

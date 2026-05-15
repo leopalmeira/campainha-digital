@@ -138,9 +138,18 @@ export default function ResidentDashboard() {
       }
     });
 
+    s.on('call_answered', async ({ residentSocketId, mode }) => {
+      setVisitorSocketId(residentSocketId);
+      setStatus('active');
+      await startWebRTC(residentSocketId, mode);
+    });
+
     s.on('webrtc_offer', async ({ sender, offer }) => handleOffer(sender, offer));
     s.on('webrtc_ice_candidate', async ({ candidate }) => {
       if (pcRef.current && candidate) try { await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)); } catch {}
+    });
+    s.on('call_blocked_dnd', ({ message }) => {
+      alert(message);
     });
     s.on('call_ended', () => { setStatus('idle'); setCall(null); stopAll(); });
 
@@ -223,13 +232,41 @@ export default function ResidentDashboard() {
   const handleOffer = useCallback(async (senderSocketId, offer) => {
     const pc = new RTCPeerConnection(ICE);
     pcRef.current = pc;
-    if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => pc.addTrack(t, localStreamRef.current));
+    
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: camOn });
+    localStreamRef.current = stream;
+    stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
     pc.ontrack = (e) => { if (remoteVideoRef.current && e.streams[0]) { remoteVideoRef.current.srcObject = e.streams[0]; remoteVideoRef.current.play().catch(() => {}); } };
     pc.onicecandidate = (e) => { if (e.candidate) socketRef.current.emit('webrtc_ice_candidate', { target: senderSocketId, candidate: e.candidate }); };
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     socketRef.current.emit('webrtc_answer', { target: senderSocketId, answer: pc.localDescription });
+  }, [camOn]);
+
+  const startWebRTC = useCallback(async (targetSocketId, mode) => {
+    const pc = new RTCPeerConnection(ICE);
+    pcRef.current = pc;
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    localStreamRef.current = stream;
+    stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+    pc.ontrack = (e) => {
+      if (remoteVideoRef.current && e.streams[0]) {
+        remoteVideoRef.current.srcObject = e.streams[0];
+        remoteVideoRef.current.play().catch(() => {});
+      }
+    };
+
+    pc.onicecandidate = (e) => {
+      if (e.candidate) socketRef.current.emit('webrtc_ice_candidate', { target: targetSocketId, candidate: e.candidate });
+    };
+
+    const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+    await pc.setLocalDescription(offer);
+    socketRef.current.emit('webrtc_offer', { target: targetSocketId, offer: pc.localDescription });
   }, []);
 
   const handleMonitor = () => {

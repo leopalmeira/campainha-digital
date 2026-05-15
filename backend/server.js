@@ -89,7 +89,7 @@ app.post('/api/admin/login', (req, res) => {
     const prop = properties.find(p => p.adminEmail.toLowerCase() === rawEmail);
     return res.json({
       success: true, 
-      role: user.role === 'manager' ? 'admin' : 'user', 
+      role: user.role === 'manager' ? 'sindico' : 'user', 
       email: user.email,
       propertyId: prop ? prop.id : null,
       propertyName: prop ? prop.name : null,
@@ -105,13 +105,11 @@ app.post('/api/admin/login', (req, res) => {
      p.clientCode === rawPassword || 
      (p.adminPassword && p.adminPassword === rawPassword))
   );
-  if (propAdmin) {
     return res.json({
-      success: true, role: 'admin', email: propAdmin.adminEmail,
+      success: true, role: 'sindico', email: propAdmin.adminEmail,
       propertyId: propAdmin.id, propertyName: propAdmin.name,
       clientCode: propAdmin.clientCode
     });
-  }
 
   // 4. Doorman - aceita doormanCode OU password
   const doorCode = (doormanCode || password || '').trim().toUpperCase();
@@ -535,6 +533,20 @@ app.post('/api/properties/:propId/units/:unitId/regenerate-code', (req, res) => 
   res.json({ success: true, newCode: unit.accessCode });
 });
 
+// Salvar configurações de Não Perturbe (DND)
+app.post('/api/properties/:propId/units/:unitId/dnd', (req, res) => {
+  const { dndSettings } = req.body;
+  const prop = properties.find(p => p.id === req.params.propId);
+  if (!prop) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+  
+  const unit = prop.units.find(u => u.id === req.params.unitId);
+  if (!unit) return res.status(404).json({ error: 'Unidade não encontrada.' });
+
+  unit.dndSettings = dndSettings;
+  saveDb();
+  res.json({ success: true });
+});
+
 // ─── Buscar vizinho por endereço (bloco/rua + número) ─────────────────────────
 app.get('/api/properties/:id/search-unit', (req, res) => {
   const { block, street, number } = req.query;
@@ -774,6 +786,34 @@ io.on('connection', (socket) => {
   socket.on('initiate_call', ({ unitId, propertyId, photoBase64, callerName }) => {
     console.log(`[WS] Chamada para unit_${unitId} na prop_${propertyId} de ${socket.id} (${callerName || 'visitante'})`);
 
+    // Check for DND (Do Not Disturb)
+    const prop = properties.find(p => p.id === propertyId);
+    if (prop) {
+      const unit = prop.units.find(u => u.id === unitId);
+      if (unit && unit.dndSettings && unit.dndSettings.enabled) {
+        const now = new Date();
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const [startH, startM] = unit.dndSettings.start.split(':').map(Number);
+        const [endH, endM] = unit.dndSettings.end.split(':').map(Number);
+        const startMins = startH * 60 + startM;
+        const endMins = endH * 60 + endM;
+
+        let isDnd = false;
+        if (startMins <= endMins) {
+          if (currentMins >= startMins && currentMins <= endMins) isDnd = true;
+        } else {
+          // Overlap midnight
+          if (currentMins >= startMins || currentMins <= endMins) isDnd = true;
+        }
+
+        if (isDnd) {
+          console.log(`[WS] Chamada bloqueada por DND para unit_${unitId}`);
+          socket.emit('call_blocked_dnd', { message: 'O morador configurou para não receber chamadas neste horário.' });
+          return;
+        }
+      }
+    }
+
     const visit = {
       id: uuidv4(),
       unitId,
@@ -845,6 +885,34 @@ io.on('connection', (socket) => {
   socket.on('doorman_call', ({ unitId, propertyId, callerName }) => {
     if (!unitId) return;
     console.log(`[WS] Porteiro chamando unit_${unitId}`);
+
+    // Check for DND
+    const prop = properties.find(p => p.id === propertyId);
+    if (prop) {
+      const unit = prop.units.find(u => u.id === unitId);
+      if (unit && unit.dndSettings && unit.dndSettings.enabled) {
+        // ... (DND logic same as above, could refactor into helper)
+        const now = new Date();
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const [startH, startM] = unit.dndSettings.start.split(':').map(Number);
+        const [endH, endM] = unit.dndSettings.end.split(':').map(Number);
+        const startMins = startH * 60 + startM;
+        const endMins = endH * 60 + endM;
+
+        let isDnd = false;
+        if (startMins <= endMins) {
+          if (currentMins >= startMins && currentMins <= endMins) isDnd = true;
+        } else {
+          if (currentMins >= startMins || currentMins <= endMins) isDnd = true;
+        }
+
+        if (isDnd) {
+          socket.emit('call_blocked_dnd', { message: 'O morador está em modo Não Perturbe.' });
+          return;
+        }
+      }
+    }
+
     io.to(`unit_${unitId}`).emit('incoming_call', {
       visitorSocketId: socket.id,
       photo: null,
@@ -873,10 +941,22 @@ io.on('connection', (socket) => {
   socket.on('resident_call_doorman', ({ propertyId, unitId, callerName }) => {
     if (!propertyId) return;
     console.log(`[WS] Morador ${unitId} chamando doorman_${propertyId}`);
+    
+    // Find unit info to provide context to doorman
+    const prop = properties.find(p => p.id === propertyId);
+    let unitInfo = { name: callerName || 'Morador' };
+    if (prop) {
+      const unit = prop.units.find(u => u.id === unitId);
+      if (unit) {
+        unitInfo = { ...unit };
+      }
+    }
+
     io.to(`doorman_${propertyId}`).emit('incoming_resident_call', {
       residentSocketId: socket.id,
       unitId,
-      callerName: callerName || 'Morador',
+      callerName: unitInfo.name,
+      unitDetails: unitInfo,
       timestamp: new Date().toISOString()
     });
   });
