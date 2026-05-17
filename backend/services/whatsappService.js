@@ -52,10 +52,66 @@ CNPJ: 65.628.833/0001-47`;
   }
 
   static async simulateWhatsAppApiCall(phone, text, attachment = null) {
-    // Simulação de chamada de API (Evolution API ou Meta Cloud API)
+    const cleanPhone = phone.replace(/\D/g, ''); // Remove máscara
+
+    // Se tiver configurado CallMeBot API Key
+    const callmeBotKey = process.env.CALLMEBOT_API_KEY;
+    if (callmeBotKey) {
+      try {
+        const axios = require('axios');
+        let fullText = text;
+        if (attachment) fullText += `\n\nLink do Contrato: ${attachment}`;
+        const url = `https://api.callmebot.com/whatsapp.php?phone=${cleanPhone}&text=${encodeURIComponent(fullText)}&apikey=${callmeBotKey}`;
+        await axios.get(url);
+        console.log(`[WhatsApp] CallMeBot API - Mensagem enviada com sucesso para ${cleanPhone}`);
+        return { success: true };
+      } catch (err) {
+        console.error(`[WhatsApp] CallMeBot API Erro:`, err.message);
+        return { success: false, error: err.message };
+      }
+    }
+
+    // Se tiver configurado Evolution API
+    const evolutionUrl = process.env.EVOLUTION_API_URL;
+    const evolutionKey = process.env.EVOLUTION_API_KEY;
+    const instanceName = process.env.EVOLUTION_INSTANCE || 'campainha';
+
+    if (evolutionUrl && evolutionKey) {
+      try {
+        const axios = require('axios');
+        // Mensagem de Texto
+        await axios.post(`${evolutionUrl}/message/sendText/${instanceName}`, {
+          number: cleanPhone,
+          options: { delay: 1200, presence: "composing" },
+          textMessage: { text }
+        }, { headers: { 'apikey': evolutionKey } });
+
+        // Se tiver PDF, envia como documento
+        if (attachment) {
+          await axios.post(`${evolutionUrl}/message/sendMedia/${instanceName}`, {
+            number: cleanPhone,
+            options: { delay: 1200, presence: "composing" },
+            mediaMessage: {
+              mediatype: "document",
+              caption: "Contrato Campainha Digital",
+              media: attachment, // URL do PDF
+              fileName: "Contrato_CampainhaDigital.pdf"
+            }
+          }, { headers: { 'apikey': evolutionKey } });
+        }
+        console.log(`[WhatsApp] Evolution API - Mensagem enviada para ${cleanPhone}`);
+        return { success: true };
+      } catch (err) {
+        console.error(`[WhatsApp] Evolution API Erro:`, err.message);
+        return { success: false, error: err.message };
+      }
+    }
+
+    // Fallback Simulação se nenhuma API gratuita estiver configurada
     return new Promise((resolve) => {
       setTimeout(() => {
-        console.log(`[WhatsApp API] Mensagem enviada para ${phone}: ${text.substring(0, 30)}...`);
+        console.log(`[WhatsApp SIMULADO] Mensagem para ${cleanPhone}: ${text.substring(0, 30)}...`);
+        if (attachment) console.log(`[WhatsApp SIMULADO] Anexo: ${attachment}`);
         resolve({ success: true, messageId: uuidv4(), timestamp: new Date().toISOString() });
       }, 500);
     });

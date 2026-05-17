@@ -1067,6 +1067,35 @@ io.on('connection', (socket) => {
   });
 });
 
+const cron = require('node-cron');
+
+// ─── CRONJOB: Verificação de Teste (Trial) Expirado ──────────────────────────
+// Roda todos os dias às 00:00
+cron.schedule('0 0 * * *', () => {
+  console.log('[CRON] Verificando vencimento de planos de teste (Trial)...');
+  const now = new Date();
+  let updated = false;
+
+  properties.forEach(prop => {
+    if (prop.plan === 'Trial' && prop.nextPaymentDate) {
+      const expirationDate = new Date(prop.nextPaymentDate);
+      if (now > expirationDate) {
+        prop.status = 'suspended';
+        prop.plan = 'Expired';
+        console.log(`[CRON] Propriedade ${prop.name} (ID: ${prop.id}) expirada. Acesso suspenso.`);
+        updated = true;
+      }
+    }
+  });
+
+  if (updated) {
+    saveDb();
+    console.log('[CRON] Banco de dados atualizado com suspensões.');
+  } else {
+    console.log('[CRON] Nenhuma propriedade expirada encontrada hoje.');
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
