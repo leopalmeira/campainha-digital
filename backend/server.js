@@ -155,6 +155,105 @@ app.put('/api/support/:id/close', (req, res) => {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const generateAccessCode = () => crypto.randomBytes(3).toString('hex').toUpperCase();
 
+// ─── Asaas Payment Routes ─────────────────────────────────────────────────────
+
+// POST /api/payment/asaas/create — Gera cobrança Pix para um cliente
+app.post('/api/payment/asaas/create', async (req, res) => {
+  const { propertyId } = req.body;
+  if (!propertyId) return res.status(400).json({ error: 'propertyId é obrigatório.' });
+
+  const property = properties.find(p => p.id === propertyId);
+  if (!property) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+
+  // Se a chave Asaas não estiver configurada, retorna simulação
+  if (!ASAAS_API_KEY) {
+    const fakeQr = Buffer.from(`SIMULADO:PIX:${propertyId}:39.90`).toString('base64');
+    return res.json({
+      success: true,
+      isSimulated: true,
+      pixQrCode: fakeQr,
+      pixCopiaECola: `00020101021226870014br.gov.bcb.pix2565simulado.pix.${propertyId}5204000053039865802BR5925CAMPAINHA DIGITAL6009SAO PAULO62140510${propertyId.slice(0,10)}6304ABCD`,
+      value: 39.90
+    });
+  }
+
+  try {
+    // 1. Criar/buscar cliente no Asaas
+    let asaasCustomerId = property.asaasCustomerId;
+    if (!asaasCustomerId) {
+      const customerRes = await axios.post(`${ASAAS_API_URL}/customers`, {
+        name: property.clientName || property.name,
+        email: property.adminEmail,
+        phone: property.clientPhone || '',
+        cpfCnpj: property.clientDocument?.replace(/\D/g, '') || ''
+      }, {
+        headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' }
+      });
+      asaasCustomerId = customerRes.data.id;
+      // Salvar o ID do cliente Asaas na propriedade
+      property.asaasCustomerId = asaasCustomerId;
+      saveDb();
+    }
+
+    // 2. Criar cobrança Pix
+    const chargeRes = await axios.post(`${ASAAS_API_URL}/payments`, {
+      customer: asaasCustomerId,
+      billingType: 'PIX',
+      value: 39.90,
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      description: `Assinatura Anual - Campainha Digital - ${property.name || property.id}`,
+      externalReference: propertyId
+    }, {
+      headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' }
+    });
+
+    const paymentId = chargeRes.data.id;
+
+    // 3. Buscar QR Code Pix
+    const pixRes = await axios.get(`${ASAAS_API_URL}/payments/${paymentId}/pixQrCode`, {
+      headers: { 'access_token': ASAAS_API_KEY }
+    });
+
+    return res.json({
+      success: true,
+      isSimulated: false,
+      paymentId,
+      pixQrCode: pixRes.data.encodedImage,
+      pixCopiaECola: pixRes.data.payload,
+      value: 39.90
+    });
+
+  } catch (err) {
+    console.error('[ASAAS] Erro ao gerar cobrança:', err.response?.data || err.message);
+    return res.status(500).json({ error: 'Erro ao gerar cobrança no Asaas.', detail: err.response?.data?.errors?.[0]?.description || err.message });
+  }
+});
+
+// POST /api/webhook/asaas — Webhook recebido do Asaas quando pagamento é confirmado
+app.post('/api/webhook/asaas', (req, res) => {
+  const event = req.body;
+  console.log('[ASAAS WEBHOOK]', event?.event, event?.payment?.externalReference);
+
+  if (event?.event === 'PAYMENT_RECEIVED' || event?.event === 'PAYMENT_CONFIRMED') {
+    const propertyId = event?.payment?.externalReference;
+    if (propertyId) {
+      const property = properties.find(p => p.id === propertyId);
+      if (property) {
+        property.plan = 'Anual';
+        property.nextPaymentDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+        property.lastPaymentDate = new Date().toISOString();
+        property.lastPaymentValue = event?.payment?.value || 39.90;
+        saveDb();
+        console.log(`[ASAAS] ✅ Plano Anual ativado para: ${propertyId}`);
+      }
+    }
+  }
+
+  res.status(200).json({ received: true });
+});
+
+
+
 // ─── Master Admin Credentials ────────────────────────────────────────────────
 const MASTER_ADMIN_EMAIL = 'leandro2703palmeira@gmail.com';
 const MASTER_ADMIN_PASSWORD = '27031981';

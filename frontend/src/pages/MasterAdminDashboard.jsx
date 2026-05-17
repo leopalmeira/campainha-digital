@@ -741,21 +741,7 @@ export default function MasterAdminDashboard() {
           )}
 
           {activeTab === 'billing' && (
-            <div style={{ padding: '20px' }}>
-              <SectionTitle icon={CreditCard} title="Financeiro & Assinaturas" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
-                <div style={{ padding: '24px', background: 'linear-gradient(135deg, #0F172A, #1E293B)', borderRadius: '24px', color: '#FFF' }}>
-                  <span style={{ fontSize: '14px', opacity: 0.7 }}>Receita Mensal Recorrente (MRR)</span>
-                  <div style={{ fontSize: '36px', fontWeight: 800, marginTop: '8px' }}>R$ 142.850</div>
-                  <div style={{ marginTop: '20px', fontSize: '12px', color: '#10B981' }}>+8.4% em relação ao mês anterior</div>
-                </div>
-                <div style={{ padding: '24px', background: '#FFF', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
-                  <span style={{ fontSize: '14px', color: '#64748B' }}>Próximos Pagamentos (7 dias)</span>
-                  <div style={{ fontSize: '36px', fontWeight: 800, marginTop: '8px' }}>42 Clientes</div>
-                  <button style={{ marginTop: '20px', color: '#3B82F6', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>Gerar Relatório de Inadimplência →</button>
-                </div>
-              </div>
-            </div>
+            <BillingTab clients={clients} API={API} onRefresh={fetchClients} />
           )}
 
           {activeTab === 'support' && (
@@ -1255,6 +1241,276 @@ function DetailRow({ label, value, isEdit, onChange }) {
       ) : (
         <div style={{ fontSize: '15px', fontWeight: 600, color: '#1E293B' }}>{value || "---"}</div>
       )}
+    </div>
+  );
+}
+
+// ─── COMPONENTE FINANCEIRO COMPLETO ─────────────────────────────────────────
+function BillingTab({ clients, API, onRefresh }) {
+  const [loading, setLoading] = useState(false);
+  const [generatingPix, setGeneratingPix] = useState(null);
+  const [pixData, setPixData] = useState(null);
+  const [billingFilter, setBillingFilter] = useState('all');
+
+  const now = new Date();
+
+  // Cálculos reais
+  const annualClients  = clients.filter(c => c.plan === 'Anual');
+  const trialClients   = clients.filter(c => c.plan !== 'Anual' && new Date(c.nextPaymentDate) > now);
+  const expiredClients = clients.filter(c => new Date(c.nextPaymentDate) <= now);
+  const expiringIn7    = clients.filter(c => {
+    const diff = (new Date(c.nextPaymentDate) - now) / (1000 * 60 * 60 * 24);
+    return diff > 0 && diff <= 7;
+  });
+
+  // MRR: R$ 39,90 por cliente anual (dividido em 12 meses) + trial considera 0 receita garantida
+  const mrr = (annualClients.length * 39.90 / 12).toFixed(2);
+  const arr = (annualClients.length * 39.90).toFixed(2);
+
+  const filtered = billingFilter === 'all'     ? clients
+    : billingFilter === 'annual'   ? annualClients
+    : billingFilter === 'trial'    ? trialClients
+    : billingFilter === 'expired'  ? expiredClients
+    : expiringIn7;
+
+  const handleGeneratePix = async (client) => {
+    setGeneratingPix(client.id);
+    setPixData(null);
+    try {
+      const res = await fetch(`${API}/api/payment/asaas/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId: client.id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPixData({ ...data, clientName: client.clientName || client.name, propertyId: client.id });
+      } else {
+        alert(data.error || 'Erro ao gerar cobrança.');
+      }
+    } catch (e) {
+      alert('Erro de conexão ao gerar Pix.');
+    } finally {
+      setGeneratingPix(null);
+    }
+  };
+
+  const handleActivateAnnual = async (clientId) => {
+    if (!window.confirm('Confirmar pagamento e liberar 12 meses de acesso?')) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/properties/${clientId}/activate-annual`, { method: 'POST' });
+      if (res.ok) { alert('Acesso anual liberado com sucesso! ✅'); onRefresh(); setPixData(null); }
+    } catch (e) { alert('Erro ao processar.'); }
+    finally { setLoading(false); }
+  };
+
+  const handleExtendTrial = async (clientId) => {
+    if (!window.confirm('Liberar mais 15 dias de teste para este cliente?')) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/properties/${clientId}/extend-trial`, { method: 'POST' });
+      if (res.ok) { alert('Mais 15 dias de teste liberados! ✅'); onRefresh(); }
+    } catch (e) { alert('Erro ao processar.'); }
+    finally { setLoading(false); }
+  };
+
+  const getStatusBadge = (client) => {
+    if (client.plan === 'Anual') return { label: 'ANUAL ATIVO', color: '#10B981', bg: '#ECFDF5' };
+    const diff = Math.ceil((new Date(client.nextPaymentDate) - now) / (1000 * 60 * 60 * 24));
+    if (diff <= 0)  return { label: 'VENCIDO', color: '#EF4444', bg: '#FFF1F2' };
+    if (diff <= 7)  return { label: `VENCE EM ${diff}D`, color: '#F59E0B', bg: '#FFFBEB' };
+    return { label: `TRIAL (${diff}d)`, color: '#3B82F6', bg: '#EFF6FF' };
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <SectionTitle icon={CreditCard} title="Financeiro & Assinaturas" />
+
+      {/* ── KPI CARDS ─────────────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '24px', marginBottom: '32px' }}>
+        {[
+          { label: 'Receita Anual (ARR)', value: `R$ ${arr}`, sub: `${annualClients.length} assinantes`, color: '#10B981', bg: 'linear-gradient(135deg,#064E3B,#065F46)' },
+          { label: 'Receita Mensal (MRR)', value: `R$ ${mrr}`, sub: 'Assinaturas ativas', color: '#60A5FA', bg: 'linear-gradient(135deg,#1E3A5F,#1E40AF)' },
+          { label: 'Em Período de Teste', value: trialClients.length, sub: 'Clientes no trial', color: '#F59E0B', bg: '#FFFBEB', dark: false },
+          { label: 'Vencidos / Inadimplentes', value: expiredClients.length, sub: 'Precisam renovar', color: '#EF4444', bg: '#FFF1F2', dark: false },
+        ].map((k, i) => (
+          <div key={i} style={{ padding: '24px', background: k.bg, borderRadius: '20px', border: k.dark === false ? '1px solid #E2E8F0' : 'none' }}>
+            <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: k.dark === false ? '#64748B' : '#FFFFFF99', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{k.label}</p>
+            <div style={{ fontSize: '30px', fontWeight: 800, color: k.dark === false ? k.color : '#FFF', margin: '8px 0 4px' }}>{k.value}</div>
+            <p style={{ margin: 0, fontSize: '12px', color: k.dark === false ? '#94A3B8' : '#FFFFFF80' }}>{k.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── ALERTA VENCENDO ───────────────────────────────────────────────── */}
+      {expiringIn7.length > 0 && (
+        <div style={{ padding: '16px 20px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '14px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <AlertTriangle size={20} color="#F59E0B" />
+          <span style={{ fontSize: '14px', fontWeight: 600, color: '#92400E' }}>
+            <strong>{expiringIn7.length} cliente(s)</strong> com período de teste vencendo nos próximos 7 dias. Envie uma cobrança Pix agora!
+          </span>
+        </div>
+      )}
+
+      {/* ── FILTROS ───────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        {[
+          { key: 'all',     label: `Todos (${clients.length})` },
+          { key: 'annual',  label: `Anuais (${annualClients.length})` },
+          { key: 'trial',   label: `Trial (${trialClients.length})` },
+          { key: 'expiring',label: `Vencendo (${expiringIn7.length})` },
+          { key: 'expired', label: `Vencidos (${expiredClients.length})` },
+        ].map(f => (
+          <button key={f.key} onClick={() => setBillingFilter(f.key)}
+            style={{ padding: '8px 16px', borderRadius: '100px', border: billingFilter === f.key ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: billingFilter === f.key ? '#EFF6FF' : '#FFF', color: billingFilter === f.key ? '#3B82F6' : '#64748B', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+            {f.label}
+          </button>
+        ))}
+        <button onClick={onRefresh} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#3B82F6', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+          <RefreshCw size={14} /> Atualizar
+        </button>
+      </div>
+
+      {/* ── TABELA DE CLIENTES ────────────────────────────────────────────── */}
+      <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+          <thead>
+            <tr style={{ background: '#F8FAFC', textAlign: 'left' }}>
+              {['Cliente', 'Email', 'Tipo / Plano', 'Vencimento', 'Status', 'Ações'].map(h => (
+                <th key={h} style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>Nenhum cliente neste filtro.</td></tr>
+            ) : filtered.map(client => {
+              const badge = getStatusBadge(client);
+              const daysLeft = Math.ceil((new Date(client.nextPaymentDate) - now) / (1000 * 60 * 60 * 24));
+              return (
+                <tr key={client.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#FFF'}>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ fontWeight: 700, color: '#0F172A' }}>{client.clientName || 'N/A'}</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', fontFamily: 'monospace' }}>{client.id.slice(0, 12)}...</div>
+                  </td>
+                  <td style={{ padding: '16px', color: '#475569' }}>{client.adminEmail}</td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{ fontSize: '11px', background: '#DBEAFE', color: '#1E40AF', padding: '3px 8px', borderRadius: '100px', fontWeight: 700, marginRight: '4px' }}>{(client.type || 'house').toUpperCase()}</span>
+                    <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#475569', padding: '3px 8px', borderRadius: '100px', fontWeight: 700 }}>{client.plan || 'Trial'}</span>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ fontWeight: 700, color: '#0F172A' }}>{new Date(client.nextPaymentDate).toLocaleDateString('pt-BR')}</div>
+                    <div style={{ fontSize: '11px', color: daysLeft <= 0 ? '#EF4444' : daysLeft <= 7 ? '#F59E0B' : '#64748B' }}>
+                      {daysLeft <= 0 ? `Vencido há ${Math.abs(daysLeft)} dias` : `${daysLeft} dias restantes`}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{ background: badge.bg, color: badge.color, padding: '4px 10px', borderRadius: '100px', fontWeight: 800, fontSize: '11px', whiteSpace: 'nowrap' }}>
+                      {badge.label}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {/* Gerar Pix */}
+                      <button
+                        onClick={() => handleGeneratePix(client)}
+                        disabled={generatingPix === client.id || loading}
+                        title="Gerar cobrança Pix via Asaas"
+                        style={{ padding: '6px 12px', borderRadius: '8px', background: '#EFF6FF', color: '#3B82F6', border: '1px solid #BFDBFE', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CreditCard size={12} /> {generatingPix === client.id ? 'Gerando...' : 'Gerar Pix'}
+                      </button>
+                      {/* Confirmar Pagamento Manual */}
+                      {client.plan !== 'Anual' && (
+                        <button
+                          onClick={() => handleActivateAnnual(client.id)}
+                          disabled={loading}
+                          title="Confirmar pagamento manual e liberar 12 meses"
+                          style={{ padding: '6px 12px', borderRadius: '8px', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Check size={12} /> Confirmar
+                        </button>
+                      )}
+                      {/* Liberar Teste */}
+                      <button
+                        onClick={() => handleExtendTrial(client.id)}
+                        disabled={loading}
+                        title="Liberar mais 15 dias de teste"
+                        style={{ padding: '6px 12px', borderRadius: '8px', background: '#FFF7ED', color: '#D97706', border: '1px solid #FDE68A', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Clock size={12} /> +15 dias
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── MODAL PIX ─────────────────────────────────────────────────────── */}
+      {pixData && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#FFF', borderRadius: '24px', padding: '40px', maxWidth: '480px', width: '90%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '20px' }}>Cobrança Pix Gerada</h3>
+              <button onClick={() => setPixData(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}><X size={24} /></button>
+            </div>
+
+            <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '16px', marginBottom: '20px' }}>
+              <p style={{ margin: '0 0 8px', fontSize: '14px', color: '#64748B' }}>Cliente: <strong>{pixData.clientName}</strong></p>
+              {pixData.isSimulated && (
+                <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#92400E', padding: '3px 10px', borderRadius: '100px', fontWeight: 700 }}>🧪 MODO SANDBOX (Simulação)</span>
+              )}
+            </div>
+
+            {pixData.pixQrCode ? (
+              <>
+                <img
+                  src={`data:image/png;base64,${pixData.pixQrCode}`}
+                  alt="QR Code Pix"
+                  style={{ width: '200px', height: '200px', borderRadius: '16px', border: '2px solid #E2E8F0', marginBottom: '20px' }}
+                />
+                <div style={{ background: '#F1F5F9', borderRadius: '12px', padding: '12px', marginBottom: '20px' }}>
+                  <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#64748B', fontWeight: 700 }}>Copia e Cola Pix:</p>
+                  <code style={{ fontSize: '10px', wordBreak: 'break-all', color: '#475569' }}>{pixData.pixCopiaECola?.slice(0, 80)}...</code>
+                  <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Código copiado!'); }}
+                    style={{ marginTop: '8px', padding: '6px 16px', borderRadius: '8px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'block', width: '100%' }}>
+                    📋 Copiar Código
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p style={{ color: '#EF4444' }}>Erro ao carregar QR Code.</p>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <button onClick={() => setPixData(null)}
+                style={{ padding: '12px', borderRadius: '12px', background: '#F1F5F9', color: '#64748B', border: 'none', fontWeight: 700, cursor: 'pointer' }}>
+                Fechar
+              </button>
+              <button onClick={() => handleActivateAnnual(pixData.propertyId)}
+                style={{ padding: '12px', borderRadius: '12px', background: '#10B981', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer' }}>
+                ✅ Confirmar Pagamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── RODAPÉ INFORMATIVO ────────────────────────────────────────────── */}
+      <div style={{ marginTop: '32px', padding: '20px 24px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+        <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>ℹ️ Como funciona o Financeiro</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', fontSize: '13px', color: '#64748B' }}>
+          <div><strong style={{ color: '#3B82F6' }}>🔵 Gerar Pix:</strong> Cria uma cobrança real no Asaas e exibe o QR Code para o cliente escanear.</div>
+          <div><strong style={{ color: '#10B981' }}>🟢 Confirmar:</strong> Libera manualmente 12 meses de acesso (use quando o pagamento for confirmado fora do sistema).</div>
+          <div><strong style={{ color: '#F59E0B' }}>🟡 +15 dias:</strong> Estende o período de teste sem cobrança. Útil para clientes em avaliação.</div>
+        </div>
+        <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#94A3B8' }}>
+          💡 Quando o cliente pagar via Pix, o Asaas acionará o Webhook automaticamente e o sistema renovará o plano sozinho, sem necessidade de ação manual.
+        </p>
+      </div>
     </div>
   );
 }
