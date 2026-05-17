@@ -68,9 +68,24 @@ export default function AdminPanel() {
   const [loadingVisitors, setLoadingVisitors] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [supportTickets, setSupportTickets] = useState([]);
+  const [newTicket, setNewTicket] = useState({ title: '', message: '' });
   const videoRef = useRef(null);
 
   useEffect(() => { fetchProperties(); }, []);
+
+  const fetchTickets = async () => {
+    try {
+      const email = sessionStorage.getItem('cd_admin_email');
+      const res = await fetch(`${API}/api/support?email=${encodeURIComponent(email)}&role=manager`);
+      const data = await res.json();
+      setSupportTickets(data);
+    } catch(e) { console.error(e); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'support') fetchTickets();
+  }, [activeTab]);
 
   const fetchProperties = async () => {
     try {
@@ -194,6 +209,48 @@ export default function AdminPanel() {
         setOnboardingStep('scan');
       }
     } catch (err) { console.error(err); }
+  };
+
+  const submitTicket = async (e) => {
+    e.preventDefault();
+    if (!newTicket.title || !newTicket.message) return alert("Preencha todos os campos");
+    try {
+      const email = sessionStorage.getItem('cd_admin_email');
+      const res = await fetch(`${API}/api/support`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newTicket.title,
+          message: newTicket.message,
+          propertyId: selectedProperty,
+          userEmail: email,
+          userRole: 'manager'
+        })
+      });
+      if (res.ok) {
+        alert("Ticket aberto com sucesso! Responderemos em breve.");
+        setNewTicket({ title: '', message: '' });
+        fetchTickets();
+      }
+    } catch(e) { console.error(e); }
+  };
+
+  const handleReplyTicket = async (ticketId) => {
+    const message = window.prompt("Digite sua resposta para o ticket:");
+    if (!message) return;
+    try {
+      const email = sessionStorage.getItem('cd_admin_email');
+      const res = await fetch(`${API}/api/support/${ticketId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, senderEmail: email, senderRole: 'manager' })
+      });
+      if (res.ok) {
+        fetchTickets();
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const deleteProperty = async (id) => {
@@ -393,7 +450,8 @@ export default function AdminPanel() {
           { key: 'units',      label: '🏢 Unidades' },
           { key: 'people',     label: '👥 Pessoas' },
           { key: 'broadcast',  label: '📢 Mensagens' },
-          { key: 'history',    label: '📋 Histórico' }
+          { key: 'history',    label: '📋 Histórico' },
+          { key: 'support',    label: '🎧 Suporte' }
         ].filter(tab => {
           const selectedPropObj = properties.find(p => p.id === selectedProperty);
           const isIndividual = selectedPropObj?.type === 'individual';
@@ -498,6 +556,66 @@ export default function AdminPanel() {
           <ResidentManager propertyId={selectedProperty} property={properties.find(p => p.id === selectedProperty)} adminEmail={sessionStorage.getItem('cd_admin_email')} onRefresh={fetchProperties} />
         )}
 
+        {/* ── ABA: SUPORTE ── */}
+        {activeTab === 'support' && (
+          <div style={{ padding: '20px 0' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '24px' }}>Central de Suporte</h2>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px' }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>Meus Tickets</h3>
+                {supportTickets.length === 0 ? (
+                   <div style={{ padding: '40px', textAlign: 'center', color: '#94A3B8', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                     Você não tem tickets abertos.
+                   </div>
+                ) : (
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                     {supportTickets.map(ticket => (
+                       <div key={ticket.id} style={{ padding: '16px', background: '#FFF', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                           <h4 style={{ margin: 0, fontWeight: 700 }}>{ticket.title}</h4>
+                           <span style={{ fontSize: '10px', background: ticket.status === 'open' ? '#3B82F6' : '#10B981', color: '#FFF', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                             {ticket.status === 'open' ? 'AGUARDANDO' : 'RESPONDIDO'}
+                           </span>
+                         </div>
+                         <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#64748B' }}>{ticket.message}</p>
+                         {ticket.replies && ticket.replies.length > 0 && (
+                           <div style={{ padding: '12px', background: '#F1F5F9', borderRadius: '8px', fontSize: '13px' }}>
+                             <strong style={{ color: '#0F172A' }}>Campainha Digital: </strong>
+                             <span style={{ color: '#475569' }}>{ticket.replies[ticket.replies.length - 1].message}</span>
+                           </div>
+                         )}
+                         {ticket.status === 'answered' && (
+                           <button onClick={() => handleReplyTicket(ticket.id)} style={{ marginTop: '12px', padding: '8px 16px', background: '#FFF', border: '1px solid #3B82F6', color: '#3B82F6', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                             NOVA RESPOSTA
+                           </button>
+                         )}
+                       </div>
+                     ))}
+                   </div>
+                )}
+              </div>
+              
+              <div>
+                <form onSubmit={submitTicket} style={{ background: '#FFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Abrir Novo Ticket</h3>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '4px' }}>Assunto</label>
+                    <input value={newTicket.title} onChange={e => setNewTicket({...newTicket, title: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Ex: Dúvida sobre plano" required />
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '4px' }}>Mensagem</label>
+                    <textarea value={newTicket.message} onChange={e => setNewTicket({...newTicket, message: e.target.value})} rows={4} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', resize: 'vertical' }} placeholder="Descreva sua dúvida ou problema..." required />
+                  </div>
+                  <button type="submit" style={{ width: '100%', padding: '12px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>
+                    ENVIAR TICKET
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── ABA: MENSAGENS ── */}
         {activeTab === 'broadcast' && selectedProperty && (
           <BroadcastPanel propertyId={selectedProperty} adminEmail={sessionStorage.getItem('cd_admin_email')} />
@@ -557,8 +675,10 @@ export default function AdminPanel() {
         )}
       </main>
 
-      <footer style={{ marginTop: 'auto', padding: '24px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
-        CAMPAINHA DIGITAL INOVA SIMPLES (I.S.) - CNPJ: 65.628.833/0001-47
+      <footer style={{ marginTop: 'auto', padding: '32px 24px', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '13px', lineHeight: '1.6', width: '100%' }}>
+        <strong style={{ fontSize: '15px', color: '#10B981', display: 'block', marginBottom: '8px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
+        CNPJ: 65.628.833/0001-47<br/>
+        Central de Atendimento WhatsApp: <a href="https://wa.me/5521999999999" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99999-9999</a>
       </footer>
     </div>
   );

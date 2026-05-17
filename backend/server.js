@@ -52,8 +52,10 @@ let visitors   = []; // histórico de visitantes
 let messages   = []; // mensagens do condomínio
 let users      = []; // usuários registrados aguardando ou com acesso
 let subscriptions = []; // assinaturas push
+let supportTickets = []; // chamados de suporte
 
 const subscriptionsDbPath = path.join(__dirname, 'subscriptions.json');
+const supportDbPath = path.join(__dirname, 'support.json');
 
 function loadDb() {
   if (fs.existsSync(dbPath))          properties = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
@@ -62,6 +64,7 @@ function loadDb() {
   if (fs.existsSync(messagesDbPath))  messages   = JSON.parse(fs.readFileSync(messagesDbPath, 'utf8'));
   if (fs.existsSync(usersDbPath))     users      = JSON.parse(fs.readFileSync(usersDbPath, 'utf8'));
   if (fs.existsSync(subscriptionsDbPath)) subscriptions = JSON.parse(fs.readFileSync(subscriptionsDbPath, 'utf8'));
+  if (fs.existsSync(supportDbPath))   supportTickets = JSON.parse(fs.readFileSync(supportDbPath, 'utf8'));
 }
 loadDb();
 
@@ -71,7 +74,7 @@ const saveVisitors  = () => fs.writeFileSync(visitorsDbPath,  JSON.stringify(vis
 const saveMessages  = () => fs.writeFileSync(messagesDbPath,  JSON.stringify(messages,   null, 2));
 const saveUsers     = () => fs.writeFileSync(usersDbPath,      JSON.stringify(users,      null, 2));
 const saveSubscriptions = () => fs.writeFileSync(subscriptionsDbPath, JSON.stringify(subscriptions, null, 2));
-
+const saveSupportTickets = () => fs.writeFileSync(supportDbPath, JSON.stringify(supportTickets, null, 2));
 // ─── Keep-Alive endpoint (previne spin-down no Render Free) ──────────────────
 app.get('/api/ping', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 
@@ -92,7 +95,57 @@ app.post('/api/subscribe', (req, res) => {
   saveSubscriptions();
   res.status(201).json({ success: true });
 });
+// ─── Support Routes ────────────────────────────────────────────────────────────
+app.post('/api/support', (req, res) => {
+  const { title, message, propertyId, userEmail, userRole } = req.body;
+  if (!title || !message || !userEmail) return res.status(400).json({ error: 'Faltam dados.' });
+  
+  const ticket = {
+    id: uuidv4(),
+    title, message, propertyId, userEmail, userRole,
+    status: 'open',
+    createdAt: new Date().toISOString(),
+    replies: []
+  };
+  supportTickets.push(ticket);
+  saveSupportTickets();
+  res.status(201).json(ticket);
+});
 
+app.get('/api/support', (req, res) => {
+  const { email, role } = req.query;
+  if (email === MASTER_ADMIN_EMAIL) {
+    return res.json(supportTickets);
+  }
+  const userTickets = supportTickets.filter(t => t.userEmail === email);
+  res.json(userTickets);
+});
+
+app.post('/api/support/:id/reply', (req, res) => {
+  const { message, senderEmail, senderRole } = req.body;
+  const ticket = supportTickets.find(t => t.id === req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado.' });
+  
+  ticket.replies.push({
+    message, senderEmail, senderRole,
+    createdAt: new Date().toISOString()
+  });
+  if (senderEmail === MASTER_ADMIN_EMAIL) {
+    ticket.status = 'answered';
+  } else {
+    ticket.status = 'open'; // reopen if client replies
+  }
+  saveSupportTickets();
+  res.json(ticket);
+});
+
+app.put('/api/support/:id/close', (req, res) => {
+  const ticket = supportTickets.find(t => t.id === req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado.' });
+  ticket.status = 'closed';
+  saveSupportTickets();
+  res.json(ticket);
+});
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const generateAccessCode = () => crypto.randomBytes(3).toString('hex').toUpperCase();
 
@@ -194,7 +247,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 app.post('/api/auth/link-qr', async (req, res) => {
-  const { userId, propertyId, qrImage, paymentChoice } = req.body;
+  const { userId, propertyId, qrImage, paymentChoice, propertyType } = req.body;
   const user = users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
@@ -209,6 +262,11 @@ app.post('/api/auth/link-qr', async (req, res) => {
   if (paymentChoice) user.paymentChoice = paymentChoice; // 'trial' | 'annual'
   user.status = 'approved'; // Auto approve for trial
   
+  // Se for condomínio, o usuário vira gestor imediatamente
+  if (propertyType === 'collective') {
+    user.role = 'manager';
+  }
+  
   // Create property automatically
   if (!existingProp) {
     const clientCode = generateAccessCode();
@@ -220,23 +278,25 @@ app.post('/api/auth/link-qr', async (req, res) => {
     const nextPaymentDate = new Date();
     nextPaymentDate.setDate(nextPaymentDate.getDate() + trialDays);
 
+    const isCollective = propertyType === 'collective';
+
     const prop = {
       id: propertyId,
-      type: 'individual', // Default type for single users
-      name: `Propriedade de ${user.name}`,
+      type: isCollective ? 'collective' : 'individual',
+      name: isCollective ? `Condomínio de ${user.name}` : `Propriedade de ${user.name}`,
       adminEmail: user.email,
       adminPassword: user.password,
       clientName: user.name,
       clientCode,
       doormanCode: null,
-      units: [{ id: uuidv4(), name: 'Principal', accessCode: clientCode }],
+      units: isCollective ? [] : [{ id: uuidv4(), name: 'Principal', accessCode: clientCode }],
       qrCodeUrl: qrCodeDataUrl,
       url,
       createdAt: new Date().toISOString(),
       nextPaymentDate: nextPaymentDate.toISOString(),
       plan: paymentChoice === 'annual' ? 'Anual' : 'Trial',
       hasGateFeature: false, // Default: disabled
-      featureNeighborChat: (paymentChoice === 'annual' && (user.scannedPropertyId?.includes('CONDO') || user.scannedPropertyId?.includes('VILA'))) ? true : false
+      featureNeighborChat: (paymentChoice === 'annual' && isCollective) ? true : false
     };
     properties.push(prop);
     saveDb();
@@ -261,7 +321,7 @@ app.post('/api/auth/link-qr', async (req, res) => {
     console.error('Error generating contract:', error);
   }
 
-  res.json({ success: true, message: 'Placa vinculada com sucesso! Você já pode acessar seu painel.', propertyId });
+  res.json({ success: true, message: 'Placa vinculada com sucesso! Você já pode acessar seu painel.', propertyId, role: user.role });
 });
 
 // ─── Master Admin User Management Endpoints ──────────────────────────────────
@@ -646,6 +706,33 @@ app.post('/api/properties/:propId/units/:unitId/regenerate-code', (req, res) => 
   unit.accessCode = generateAccessCode();
   saveDb();
   res.json({ success: true, newCode: unit.accessCode });
+});
+
+// ─── Disparo de Mensagem em Massa pelo WhatsApp (Para Moradores) ─────────────
+app.post('/api/properties/:propId/mass-invite', async (req, res) => {
+  const { adminEmail } = req.body;
+  const prop = properties.find(p => p.id === req.params.propId);
+  if (!prop) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+  if (adminEmail !== MASTER_ADMIN_EMAIL && prop.adminEmail !== adminEmail) {
+    return res.status(403).json({ error: 'Sem permissão.' });
+  }
+
+  let sentCount = 0;
+  for (const unit of prop.units) {
+    if (unit.whatsapp) {
+      // Formata mensagem usando o nome do condomínio
+      const messageBody = `Olá! O gestor do condomínio *${prop.name || 'Campainha Digital'}* configurou o seu interfone digital.\n\nSua Unidade: ${unit.name}\nSeu Código de Acesso: *${unit.accessCode}*\n\nAcesse agora: ${process.env.FRONTEND_URL || 'https://campainha-digital.com'}/morador-login`;
+      
+      try {
+        await whatsappService.simulateWhatsAppApiCall(unit.whatsapp, messageBody);
+        sentCount++;
+      } catch (err) {
+        console.error(`Falha ao enviar WhatsApp para ${unit.whatsapp}:`, err);
+      }
+    }
+  }
+
+  res.json({ success: true, message: `Convites enviados para ${sentCount} moradores via WhatsApp.` });
 });
 
 // Salvar configurações de Não Perturbe (DND)

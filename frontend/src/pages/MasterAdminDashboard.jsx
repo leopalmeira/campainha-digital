@@ -44,6 +44,8 @@ export default function MasterAdminDashboard() {
   const canvasRef = useRef(null);
   const navigate = useNavigate();
 
+  const [supportTickets, setSupportTickets] = useState([]);
+
   useEffect(() => {
     const role = sessionStorage.getItem('cd_admin_role');
     if (role !== 'master') {
@@ -53,7 +55,19 @@ export default function MasterAdminDashboard() {
     fetchClients();
     fetchPendingUsers();
     fetchAllUsers();
+    fetchSupportTickets();
   }, [navigate]);
+
+  const fetchSupportTickets = async () => {
+    try {
+      const email = sessionStorage.getItem('cd_admin_email');
+      const res = await fetch(`${API}/api/support?email=${encodeURIComponent(email)}&role=master`);
+      const data = await res.json();
+      setSupportTickets(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchPendingUsers = async () => {
     try {
@@ -223,6 +237,25 @@ export default function MasterAdminDashboard() {
     }
   };
 
+  const handleReplyTicket = async (ticketId) => {
+    const message = window.prompt("Digite sua resposta para o ticket:");
+    if (!message) return;
+    try {
+      const email = sessionStorage.getItem('cd_admin_email');
+      const res = await fetch(`${API}/api/support/${ticketId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, senderEmail: email, senderRole: 'master' })
+      });
+      if (res.ok) {
+        alert("Resposta enviada!");
+        fetchSupportTickets();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const filteredUsers = allUsers.filter(u => {
     if (userFilter === 'pending') return u.status === 'pending';
     if (userFilter === 'approved') return u.status === 'approved' && u.role === 'user';
@@ -311,8 +344,10 @@ export default function MasterAdminDashboard() {
           <button onClick={() => { localStorage.clear(); navigate('/auth'); }} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #FECACA', color: '#DC2626', background: '#FFF5F5', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
             <LogOut size={14} /> Encerrar Sessão
           </button>
-          <div style={{ marginTop: '16px', textAlign: 'center', color: '#94A3B8', fontSize: '10px' }}>
-            CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)<br/>CNPJ: 65.628.833/0001-47
+          <div style={{ marginTop: '24px', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '11px', padding: '16px 12px', borderRadius: '12px', lineHeight: '1.5' }}>
+            <strong style={{ fontSize: '12px', color: '#10B981', display: 'block', marginBottom: '4px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
+            CNPJ: 65.628.833/0001-47<br/>
+            Central WhatsApp: <a href="https://wa.me/5521999999999" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99999-9999</a>
           </div>
         </div>
       </aside>
@@ -728,30 +763,37 @@ export default function MasterAdminDashboard() {
                <SectionTitle icon={Headphones} title="Central de Suporte" />
                <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 300px', gap: '32px' }}>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ padding: '20px', background: '#FFF1F2', border: '1px solid #FECACA', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '10px', background: '#EF4444', color: '#FFF', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>URGENTE</span>
-                          <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>TICKET #8821</span>
-                        </div>
-                        <h4 style={{ margin: '0 0 4px', fontWeight: 800 }}>Problema na conexão de áudio - Condomínio Solar</h4>
-                        <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>Aberto há 12 minutos por Porteiro João</p>
+                    {supportTickets.length === 0 ? (
+                      <div style={{ padding: '40px', textAlign: 'center', color: '#94A3B8', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                         Nenhum ticket de suporte no momento.
                       </div>
-                      <button style={{ padding: '10px 20px', borderRadius: '8px', background: '#FFF', border: '1px solid #EF4444', color: '#EF4444', fontWeight: 700, cursor: 'pointer' }}>ASSUMIR TICKET</button>
-                    </div>
-                    {[1,2].map(i => (
-                      <div key={i} style={{ padding: '20px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '10px', background: '#64748B', color: '#FFF', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>PENDENTE</span>
-                            <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>TICKET #881{i}</span>
+                    ) : (
+                      supportTickets.map(ticket => (
+                        <div key={ticket.id} style={{ padding: '20px', background: ticket.status === 'open' ? '#FFF1F2' : '#F8FAFC', border: `1px solid ${ticket.status === 'open' ? '#FECACA' : '#E2E8F0'}`, borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '10px', background: ticket.status === 'open' ? '#EF4444' : '#10B981', color: '#FFF', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
+                                {ticket.status === 'open' ? 'PENDENTE' : 'RESPONDIDO'}
+                              </span>
+                              <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>TICKET #{ticket.id.slice(0,6).toUpperCase()}</span>
+                            </div>
+                            <h4 style={{ margin: '0 0 4px', fontWeight: 800 }}>{ticket.title}</h4>
+                            <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>
+                               {ticket.message}<br/>
+                               <small>Por: {ticket.userEmail} ({ticket.userRole})</small>
+                            </p>
+                            {ticket.replies && ticket.replies.length > 0 && (
+                               <div style={{ marginTop: '12px', paddingLeft: '12px', borderLeft: '2px solid #E2E8F0', fontSize: '12px', color: '#475569' }}>
+                                  <strong>Última resposta ({ticket.replies[ticket.replies.length-1].senderRole}):</strong> {ticket.replies[ticket.replies.length-1].message}
+                               </div>
+                            )}
                           </div>
-                          <h4 style={{ margin: '0 0 4px', fontWeight: 800 }}>Dúvida sobre cadastro de novas unidades</h4>
-                          <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>Aberto há 2 horas por Admin Maria</p>
+                          <button onClick={() => handleReplyTicket(ticket.id)} style={{ padding: '10px 20px', borderRadius: '8px', background: '#FFF', border: `1px solid ${ticket.status === 'open' ? '#EF4444' : '#3B82F6'}`, color: ticket.status === 'open' ? '#EF4444' : '#3B82F6', fontWeight: 700, cursor: 'pointer' }}>
+                             RESPONDER
+                          </button>
                         </div>
-                        <button style={{ padding: '10px 20px', borderRadius: '8px', background: '#FFF', border: '1px solid #3B82F6', color: '#3B82F6', fontWeight: 700, cursor: 'pointer' }}>RESPONDER</button>
-                      </div>
-                    ))}
+                      ))
+                    )}
                  </div>
                  <div style={{ padding: '24px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #E2E8F0', height: 'fit-content' }}>
                     <h5 style={{ margin: '0 0 16px', fontWeight: 800 }}>Resumo de Suporte</h5>

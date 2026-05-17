@@ -375,9 +375,13 @@ export default function LandingPage() {
         </div>
       </section>
       
-      <footer style={{ padding: '32px 0', textAlign: 'center', borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-         <p style={{ color: 'var(--text-muted)', fontSize: '14px', padding: '0 24px', marginBottom: '8px' }}>© {new Date().getFullYear()} Campainha Digital. O padrão definitivo em segurança inteligente.</p>
-         <p style={{ color: '#64748B', fontSize: '12px', padding: '0 24px', margin: 0 }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.) - CNPJ: 65.628.833/0001-47</p>
+      <footer style={{ padding: '40px 0', textAlign: 'center', borderTop: '1px solid var(--border-subtle)', background: '#0F172A', color: '#FFF' }}>
+         <p style={{ color: '#94A3B8', fontSize: '14px', padding: '0 24px', marginBottom: '16px' }}>© {new Date().getFullYear()} Campainha Digital. O padrão definitivo em segurança inteligente.</p>
+         <strong style={{ fontSize: '16px', color: '#10B981', display: 'block', marginBottom: '8px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
+         <p style={{ color: '#E2E8F0', fontSize: '13px', padding: '0 24px', margin: '0 0 8px 0' }}>CNPJ: 65.628.833/0001-47</p>
+         <p style={{ color: '#E2E8F0', fontSize: '13px', padding: '0 24px', margin: 0 }}>
+           Central de Atendimento WhatsApp: <a href="https://wa.me/5521999999999" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99999-9999</a>
+         </p>
       </footer>
     </>
   );

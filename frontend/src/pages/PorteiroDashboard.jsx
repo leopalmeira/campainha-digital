@@ -425,8 +425,10 @@ export default function PorteiroDashboard() {
         </div>
       </main>
 
-      <footer style={{ marginTop: 'auto', padding: '24px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
-        CAMPAINHA DIGITAL INOVA SIMPLES (I.S.) - CNPJ: 65.628.833/0001-47
+      <footer style={{ marginTop: 'auto', padding: '32px 24px', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '13px', lineHeight: '1.6', width: '100%' }}>
+        <strong style={{ fontSize: '15px', color: '#10B981', display: 'block', marginBottom: '8px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
+        CNPJ: 65.628.833/0001-47<br/>
+        Central de Atendimento WhatsApp: <a href="https://wa.me/5521999999999" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99999-9999</a>
       </footer>
 
       <style>{`

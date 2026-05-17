@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserX, Shield, ShieldOff, Plus, Trash2, Mail, Key, Copy, Check, RefreshCw } from 'lucide-react';
+import { Users, UserX, Shield, ShieldOff, Plus, Trash2, Mail, Key, Copy, Check, RefreshCw, MessageCircle } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -56,6 +56,18 @@ export default function ResidentManager({ propertyId, property, adminEmail, onRe
     } catch {}
   };
 
+  const sendMassWhatsapp = async () => {
+    if (!window.confirm('Enviar mensagem de convite para TODOS os moradores com WhatsApp cadastrado?')) return;
+    try {
+      const r = await fetch(`${API}/api/properties/${propertyId}/mass-invite`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminEmail })
+      });
+      const d = await r.json();
+      if (r.ok) alert(d.message); else alert(d.error);
+    } catch { alert('Erro ao disparar mensagens.'); }
+  };
+
   const tabBtn = (key, label, icon) => (
     <button onClick={() => setTab(key)} style={{ flex:1, padding:'12px', borderRadius:'10px', border:'none', cursor:'pointer', fontWeight:700, fontSize:'13px', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px', background: tab===key ? '#3B82F6' : '#F1F5F9', color: tab===key ? '#fff' : '#64748B', transition:'all 0.2s' }}>
       {icon} {label}
@@ -64,7 +76,12 @@ export default function ResidentManager({ propertyId, property, adminEmail, onRe
 
   return (
     <div style={{ padding:'20px 0' }}>
-      <h3 style={{ fontSize:'18px', fontWeight:800, marginBottom:'16px' }}>👥 Pessoas</h3>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+        <h3 style={{ fontSize:'18px', fontWeight:800, margin:0 }}>👥 Pessoas</h3>
+        <button onClick={sendMassWhatsapp} style={{ background:'#25D366', color:'#fff', border:'none', padding:'8px 14px', borderRadius:'8px', fontWeight:700, fontSize:'12px', display:'flex', alignItems:'center', gap:'6px', cursor:'pointer' }}>
+          <MessageCircle size={14}/> Disparo WhatsApp
+        </button>
+      </div>
 
       <div style={{ display:'flex', gap:'8px', marginBottom:'20px' }}>
         {tabBtn('residents', 'Moradores', <Users size={15}/>)}

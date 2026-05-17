@@ -115,6 +115,10 @@ export default function UnitManager({ propertyId, adminEmail, onRefresh }) {
               <label style={labelStyle}>NÚMERO *</label>
               <input style={inputStyle} placeholder="Ex: 42" value={newUnit.number} onChange={e => setNewUnit({...newUnit, number:e.target.value})} />
             </div>
+            <div style={{ gridColumn:'1/-1' }}>
+              <label style={labelStyle}>WHATSAPP MORADOR (Opcional)</label>
+              <input style={inputStyle} placeholder="(11) 99999-9999" value={newUnit.whatsapp || ''} onChange={e => setNewUnit({...newUnit, whatsapp:e.target.value})} />
+            </div>
           </div>
           <div style={{ display:'flex', gap:'10px', marginTop:'16px' }}>
             <button onClick={addUnit} style={{ flex:1, background:'#10B981', color:'#fff', border:'none', padding:'12px', borderRadius:'10px', fontWeight:700, fontSize:'14px', cursor:'pointer' }}>Cadastrar</button>
@@ -138,6 +142,7 @@ export default function UnitManager({ propertyId, adminEmail, onRefresh }) {
                     <div><label style={labelStyle}>BLOCO</label><input style={inputStyle} value={editData.block} onChange={e => setEditData({...editData,block:e.target.value})} /></div>
                     <div><label style={labelStyle}>RUA</label><input style={inputStyle} value={editData.street} onChange={e => setEditData({...editData,street:e.target.value})} /></div>
                     <div><label style={labelStyle}>NÚMERO</label><input style={inputStyle} value={editData.number} onChange={e => setEditData({...editData,number:e.target.value})} /></div>
+                    <div style={{ gridColumn:'1/-1' }}><label style={labelStyle}>WHATSAPP</label><input style={inputStyle} value={editData.whatsapp || ''} onChange={e => setEditData({...editData,whatsapp:e.target.value})} /></div>
                   </div>
                   <div style={{ display:'flex', gap:'8px' }}>
                     <button onClick={() => saveEdit(u.id)} style={{ flex:1, background:'#10B981', color:'#fff', border:'none', padding:'10px', borderRadius:'8px', fontWeight:700, fontSize:'13px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px' }}><Save size={14}/>Salvar</button>

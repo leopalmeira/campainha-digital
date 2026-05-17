@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle2, Phone } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle2, Phone, Building2 } from 'lucide-react';
 import Logo from '../components/Logo';
 import jsQR from 'jsqr';
 
@@ -22,6 +22,7 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [scanningActive, setScanningActive] = useState(false);
   const [scannedImage, setScannedImage] = useState(null);
+  const [propertyType, setPropertyType] = useState('individual'); // 'individual' ou 'collective'
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -199,13 +200,13 @@ export default function AuthPage() {
       const res = await fetch(`${API}/api/auth/link-qr`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, propertyId: scannedId, qrImage: scannedImage, paymentChoice })
+        body: JSON.stringify({ userId, propertyId: scannedId, qrImage: scannedImage, paymentChoice, propertyType })
       });
       if (res.ok) {
         const data = await res.json();
         // Salvar sessão para acesso imediato
         sessionStorage.setItem('cd_admin_email', email);
-        sessionStorage.setItem('cd_admin_role', 'client'); // Começa como cliente (user)
+        sessionStorage.setItem('cd_admin_role', data.role || 'client'); 
         if (data.propertyId) sessionStorage.setItem('cd_admin_propertyId', data.propertyId);
         
         setStep(4);
@@ -312,6 +313,19 @@ export default function AuthPage() {
                 <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
                 <input type="password" placeholder="Crie uma senha" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={password} onChange={e => setPassword(e.target.value)} required />
               </div>
+              <div style={{ marginTop: '16px', marginBottom: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '8px' }}>Tipo de Imóvel</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <label style={{ padding: '12px', borderRadius: '12px', border: `2px solid ${propertyType === 'individual' ? '#3B82F6' : '#E2E8F0'}`, background: propertyType === 'individual' ? '#EFF6FF' : '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, transition: 'all 0.2s' }}>
+                    <input type="radio" name="propertyType" value="individual" checked={propertyType === 'individual'} onChange={() => setPropertyType('individual')} style={{ display: 'none' }} />
+                    <Home size={16} color={propertyType === 'individual' ? '#3B82F6' : '#94A3B8'} /> Casa Simples
+                  </label>
+                  <label style={{ padding: '12px', borderRadius: '12px', border: `2px solid ${propertyType === 'collective' ? '#3B82F6' : '#E2E8F0'}`, background: propertyType === 'collective' ? '#EFF6FF' : '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, transition: 'all 0.2s' }}>
+                    <input type="radio" name="propertyType" value="collective" checked={propertyType === 'collective'} onChange={() => setPropertyType('collective')} style={{ display: 'none' }} />
+                    <Building2 size={16} color={propertyType === 'collective' ? '#3B82F6' : '#94A3B8'} /> Condomínio/Vila
+                  </label>
+                </div>
+              </div>
               <button type="submit" disabled={loading} className="btn-primary w-full" style={{ padding: '16px', fontSize: '16px' }}>
                 {loading ? 'Processando...' : 'Cadastrar e Continuar'} <ArrowRight size={20} />
               </button>
@@ -410,8 +424,10 @@ export default function AuthPage() {
         )}
       </div>
 
-      <div style={{ position: 'absolute', bottom: '24px', width: '100%', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
-        CAMPAINHA DIGITAL INOVA SIMPLES (I.S.) - CNPJ: 65.628.833/0001-47
+      <div style={{ position: 'absolute', bottom: '0', width: '100%', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '12px', padding: '24px', lineHeight: '1.6' }}>
+        <strong style={{ fontSize: '14px', color: '#10B981', display: 'block', marginBottom: '6px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
+        CNPJ: 65.628.833/0001-47<br/>
+        Central WhatsApp: <a href="https://wa.me/5521999999999" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99999-9999</a>
       </div>
 
       {showScanner && (
