@@ -18,45 +18,21 @@ const ICE = {
   ]
 };
 
-// ─── Som ALTO de campainha via Web Audio API ─────────────────────────────────
-let doorbellCtx = null;
-let doorbellInterval = null;
+// ─── Som REAL de campainha (MP3) ─────────────────────────────────────────────
+let doorbellAudio = null;
 let vibrateInterval = null;
 
-function playDoorbellSound() {
-  try {
-    if (!doorbellCtx) doorbellCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const ctx = doorbellCtx;
-    if (ctx.state === 'suspended') ctx.resume();
-
-    const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(3.0, ctx.currentTime); // VOLUME MÁXIMO
-    masterGain.connect(ctx.destination);
-
-    const ring = (freq, start, dur, type) => {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.connect(g); g.connect(masterGain);
-      osc.type = type || 'sine';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.5, ctx.currentTime + start + dur);
-      g.gain.setValueAtTime(1.0, ctx.currentTime + start);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
-      osc.start(ctx.currentTime + start);
-      osc.stop(ctx.currentTime + start + dur);
-    };
-
-    // DING-DONG duplo (mais alto com harmônico)
-    ring(880, 0, 0.5, 'sine');
-    ring(1760, 0, 0.5, 'triangle'); // harmônico agudo
-    ring(660, 0.55, 0.7, 'sine');
-    ring(1320, 0.55, 0.7, 'triangle');
-  } catch (e) { console.warn('[Doorbell]', e); }
-}
-
 function startDoorbell() {
-  playDoorbellSound();
-  doorbellInterval = setInterval(playDoorbellSound, 1800);
+  try {
+    if (!doorbellAudio) {
+      doorbellAudio = new Audio('/doorbell.mp3');
+      doorbellAudio.loop = true;
+      doorbellAudio.volume = 1.0; // Volume máximo
+    }
+    doorbellAudio.currentTime = 0;
+    doorbellAudio.play().catch(e => console.warn('[Doorbell]', e));
+  } catch (e) { console.warn('[Doorbell]', e); }
+
   // Vibração contínua agressiva
   const vibrateLoop = () => { if ('vibrate' in navigator) navigator.vibrate([500, 100, 500, 100, 500, 100, 500]); };
   vibrateLoop();
@@ -64,7 +40,7 @@ function startDoorbell() {
 }
 
 function stopDoorbell() {
-  if (doorbellInterval) { clearInterval(doorbellInterval); doorbellInterval = null; }
+  if (doorbellAudio) { doorbellAudio.pause(); doorbellAudio.currentTime = 0; }
   if (vibrateInterval) { clearInterval(vibrateInterval); vibrateInterval = null; }
   if ('vibrate' in navigator) navigator.vibrate(0);
 }
@@ -103,7 +79,6 @@ export default function ResidentDashboard() {
   const [featureNeighborChat, setFeatureNeighborChat] = useState(() => localStorage.getItem('residentFeatureNeighborChat') === 'true');
   const [supportPhone, setSupportPhone] = useState('5521999999999');
 
-  const audioRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const localVideoRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -478,8 +453,7 @@ export default function ResidentDashboard() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', paddingBottom: '72px' }} onClick={() => { if (audioRef.current) audioRef.current.play().then(() => audioRef.current.pause()).catch(() => {}); }}>
-      <audio ref={audioRef} loop preload="auto"><source src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" type="audio/mpeg" /></audio>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', paddingBottom: '72px' }} onClick={() => { if (doorbellAudio) doorbellAudio.play().then(() => doorbellAudio.pause()).catch(() => {}); }}>
 
       {/* Header (Premium Sticky) */}
       <div style={{ 
