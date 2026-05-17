@@ -10,6 +10,11 @@ const path = require('path');
 const WhatsAppService = require('./services/whatsappService');
 const PdfService = require('./services/pdfService');
 const webPush = require('web-push');
+const axios = require('axios');
+
+// Configuração Asaas
+const ASAAS_API_KEY = process.env.ASAAS_API_KEY || ''; // Chave de API do Asaas (Produção ou Sandbox)
+const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3'; // Use https://sandbox.asaas.com/api/v3 para testes
 
 // Configuração VAPID
 const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BOKz4CjOXwpKxhmqIKPx22wV3oAZmUHbrbSvucyErK7tcZB7XxNfiAD9itYQi46nMw0o_7nbuqe6zHu5NiwI0tc';
@@ -294,9 +299,10 @@ app.post('/api/auth/link-qr', async (req, res) => {
       url,
       createdAt: new Date().toISOString(),
       nextPaymentDate: nextPaymentDate.toISOString(),
-      plan: paymentChoice === 'annual' ? 'Anual' : 'Trial',
+      plan: 'Trial', // Vai mudar para 'Anual' após pagamento Asaas
       hasGateFeature: false, // Default: disabled
-      featureNeighborChat: (paymentChoice === 'annual' && isCollective) ? true : false
+      featureNeighborChat: isCollective ? true : false,
+      asaasCustomerId: null
     };
     properties.push(prop);
     saveDb();
@@ -618,6 +624,105 @@ app.get('/api/properties/:id/support', (req, res) => {
   } else {
     res.json({ supportPhone: '5521995879170' });
   }
+});
+
+// ─── INTEGRAÇÃO ASAAS (PAGAMENTO E WEBHOOK) ────────────────────────────────────────────────
+app.post('/api/payment/asaas/create', async (req, res) => {
+  const { propertyId } = req.body;
+  const prop = properties.find(p => p.id === propertyId);
+  const user = users.find(u => u.email === prop?.adminEmail);
+
+  if (!prop || !user) return res.status(404).json({ error: 'Propriedade ou usuário não encontrado.' });
+  if (!ASAAS_API_KEY) return res.status(500).json({ error: 'Chave do Asaas não configurada no servidor.' });
+
+  try {
+    let customerId = prop.asaasCustomerId;
+
+    // 1. Criar cliente no Asaas se não existir
+    if (!customerId) {
+      const customerRes = await axios.post(`${ASAAS_API_URL}/customers`, {
+        name: user.name,
+        email: user.email,
+        mobilePhone: user.whatsapp || user.phone,
+        externalReference: propertyId
+      }, { headers: { access_token: ASAAS_API_KEY } });
+      
+      customerId = customerRes.data.id;
+      prop.asaasCustomerId = customerId;
+      saveDb();
+    }
+
+    // 2. Criar a cobrança via PIX
+    // Com Repasse de Taxa: se você quiser receber exatos 39,90 e o cliente pagar a taxa, o Asaas calcula.
+    // Aqui estamos enviando o valor final de 39,90.
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 3); // Vence em 3 dias
+
+    const paymentRes = await axios.post(`${ASAAS_API_URL}/payments`, {
+      customer: customerId,
+      billingType: 'PIX',
+      value: 39.90, // Valor da assinatura
+      dueDate: dueDate.toISOString().split('T')[0],
+      description: `Assinatura Anual Campainha Digital - Placa ${propertyId}`,
+      externalReference: propertyId,
+      postalService: false
+    }, { headers: { access_token: ASAAS_API_KEY } });
+
+    const paymentId = paymentRes.data.id;
+
+    // 3. Obter o QRCode do PIX
+    const qrCodeRes = await axios.get(`${ASAAS_API_URL}/payments/${paymentId}/pixQrCode`, {
+      headers: { access_token: ASAAS_API_KEY }
+    });
+
+    res.json({
+      success: true,
+      paymentId: paymentId,
+      invoiceUrl: paymentRes.data.invoiceUrl,
+      pixQrCode: qrCodeRes.data.encodedImage, // Imagem Base64 do QR
+      pixCopiaECola: qrCodeRes.data.payload // Código Copia e Cola
+    });
+
+  } catch (error) {
+    console.error('Erro na integração com Asaas:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Falha ao processar pagamento.', details: error.response?.data });
+  }
+});
+
+// Webhook para receber confirmação de pagamento do Asaas
+app.post('/api/webhook/asaas', async (req, res) => {
+  const event = req.body.event;
+  const payment = req.body.payment;
+
+  if (event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_CONFIRMED') {
+    const propertyId = payment.externalReference;
+    const prop = properties.find(p => p.id === propertyId);
+
+    if (prop) {
+      console.log(`Pagamento confirmado para propriedade ${propertyId}`);
+      // Renovar plano por 1 ano a partir de hoje (ou da data atual se ainda for no futuro)
+      const now = new Date();
+      const currentNext = new Date(prop.nextPaymentDate);
+      const baseDate = (currentNext > now) ? currentNext : now;
+      baseDate.setFullYear(baseDate.getFullYear() + 1);
+
+      prop.nextPaymentDate = baseDate.toISOString();
+      prop.plan = 'Anual';
+      saveDb();
+
+      // Enviar mensagem de boas-vindas / confirmação
+      try {
+        const user = users.find(u => u.email === prop.adminEmail);
+        if (user) {
+          await WhatsAppService.sendWelcomeMessage(user);
+        }
+      } catch (e) {
+        console.error('Erro ao enviar whatsapp de confirmacao de pagamento', e);
+      }
+    }
+  }
+
+  res.status(200).send('OK');
 });
 
 
