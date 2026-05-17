@@ -475,6 +475,21 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
+
+---
+
+## 🛠️ v3.4.4 — Polimento de UI, Build Fixes e Real-time Polling (17/05/2026)
+
+### Correções de Build (Frontend)
+- Corrigido um erro ('Unterminated regular expression') no \MasterAdminDashboard.jsx\ devido a tags JSX desbalanceadas que causavam falha de compilação no Vite e impediam o deploy automático na Render.
+
+### Ajustes no Painel do Morador
+- **Remoção de Elementos Sensíveis na Home:** O bloco contendo o 'Código de Acesso' e o botão de WhatsApp ('Indicar Amigo') foi completamente removido da aba principal (Home) e da aba de configurações (Settings) do \ResidentDashboard\, garantindo maior privacidade e foco exclusivamente no estado de recebimento de chamadas.
+
+### Polling em Tempo Real (Escuta Ativa)
+- **Painel Master Admin:** Implementado um sistema de \setInterval\ a cada 5 segundos para atualizar automaticamente a lista de clientes e estados financeiros. Adicionada a flag \hideLoading\ para evitar re-renderizações e 'flashes' de carregamento ('Carregando...') na interface durante o uso contínuo.
+- **Painel Admin do Gestor:** Similar ao painel Master, o painel de gestão local (\AdminPanel\) agora consulta propriedades ativamente a cada 5 segundos. Ajustado para não interferir nos fluxos de Onboarding (Wizard) durante o cadastro inicial de um imóvel.
+
 ## 🛠️ Próximos Passos
 - [x] ~~Implementação de Cronjob para bloqueio e invalidação automática após término do Teste de 15 dias.~~
 - [x] ~~Integração Pix automatizada via API de pagamentos (Asaas Sandbox ativo).~~
