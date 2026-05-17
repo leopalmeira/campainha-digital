@@ -14,8 +14,7 @@ export default function Logo({ size = 40, showText = true, light = false, vertic
       userSelect: 'none',
       flexDirection: vertical ? 'column' : 'row',
       textAlign: vertical ? 'center' : 'left',
-      maxWidth: '100%',
-      overflow: 'hidden'
+      maxWidth: '100%'
     }}>
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <svg 
@@ -40,7 +39,7 @@ export default function Logo({ size = 40, showText = true, light = false, vertic
           flexDirection: 'column', 
           justifyContent: 'center',
           lineHeight: 1,
-          minWidth: 0, // Allow shrinking
+          minWidth: 0,
           flexShrink: 1
         }}>
           <span style={{ 
@@ -49,11 +48,9 @@ export default function Logo({ size = 40, showText = true, light = false, vertic
             color: primaryColor,
             letterSpacing: '-0.05em',
             fontFamily: 'Inter, system-ui, sans-serif',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
+            whiteSpace: 'nowrap'
           }}>
-            Campainha<span style={{ color: secondaryColor }}>-Digital</span>
+            Campainha<span style={{ color: secondaryColor }}> Digital</span>
           </span>
         </div>
       )}

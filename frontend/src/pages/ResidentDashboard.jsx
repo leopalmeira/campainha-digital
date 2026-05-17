@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { Phone, MicOff, PhoneOff, Bell, ShieldCheck, EyeOff, Download, AlertCircle, Video, VideoOff, LogOut, History, Settings, Home, KeyRound, MessageCircle, Building2, Mail, ShoppingBag } from 'lucide-react';
-import { HistoryPanel, SettingsPanel, DEFAULT_CATEGORIES } from './ResidentPanels';
+import { HistoryPanel, SettingsPanel, ResidentSupportPanel, DEFAULT_CATEGORIES } from './ResidentPanels';
 import Logo from '../components/Logo';
 import MessagesPanel from '../components/resident/MessagesPanel';
 import IntercomPanel from '../components/resident/IntercomPanel';
@@ -436,11 +436,8 @@ export default function ResidentDashboard() {
             <Settings size={20} color="#64748B" /> Configurações
           </button>
           
-          <button onClick={() => {
-            const phone = propertyType === 'individual' ? '5521999999999' : supportPhone;
-            window.open(`https://wa.me/${phone}?text=Olá,%20preciso%20de%20suporte%20no%20app%20Campainha%20Digital.`, '_blank');
-          }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: 'transparent', color: '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
-            <MessageCircle size={20} color="#25D366" /> Suporte (WhatsApp)
+          <button onClick={() => { setTab('support'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: tab === 'support' ? '#F8FAFC' : 'transparent', color: '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
+            <MessageCircle size={20} color={tab === 'support' ? '#10B981' : '#64748B'} /> Suporte
           </button>
         </div>
 
@@ -723,6 +720,7 @@ export default function ResidentDashboard() {
 
       {tab === 'history' && <HistoryPanel unitId={id} propertyId={localStorage.getItem('residentPropertyId')} />}
       {tab === 'settings' && <SettingsPanel unitName={unitName} setUnitName={setUnitName} onSave={saveSettings} unitId={id} propertyId={localStorage.getItem('residentPropertyId')} />}
+      {tab === 'support' && <ResidentSupportPanel unitId={id} propertyId={localStorage.getItem('residentPropertyId')} propertyType={propertyType} />}
 
       <HamburgerMenu />
       <NavBar />

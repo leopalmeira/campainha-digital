@@ -371,3 +371,102 @@ export function SettingsPanel({ unitName, setUnitName, onSave, unitId, propertyI
     </div>
   );
 }
+
+export function ResidentSupportPanel({ unitId, propertyId, propertyType }) {
+  const [tickets, setTickets] = useState([]);
+  const [title, setTitle] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const email = localStorage.getItem('residentEmail');
+
+  const loadTickets = async () => {
+    try {
+      const r = await fetch(`${API}/api/support?role=resident&propertyId=${propertyId}&unitId=${unitId}`);
+      if (r.ok) setTickets(await r.json());
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => { loadTickets(); }, [unitId]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!title || !message) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/support`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, role: 'resident', propertyId, unitId, title, message })
+      });
+      if (res.ok) {
+        setTitle('');
+        setMessage('');
+        loadTickets();
+      } else {
+        alert('Erro ao abrir ticket.');
+      }
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  const supportTarget = propertyType === 'individual' ? 'Administração da Plataforma' : 'Gestor do Condomínio';
+
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '4px' }}>Suporte Técnico</h2>
+      <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px' }}>
+        Suas mensagens serão enviadas diretamente para a {supportTarget}.
+      </p>
+
+      <div className="glass-panel" style={{ padding: '20px', marginBottom: '24px' }}>
+        <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Abrir novo chamado</h3>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <input 
+            type="text" placeholder="Assunto (Ex: Portão não abre)" className="input-glass" 
+            value={title} onChange={e => setTitle(e.target.value)} required 
+            style={{ padding: '12px' }}
+          />
+          <textarea 
+            placeholder="Descreva o problema em detalhes..." className="input-glass" 
+            value={message} onChange={e => setMessage(e.target.value)} required 
+            style={{ padding: '12px', minHeight: '100px', resize: 'vertical' }}
+          />
+          <button type="submit" disabled={loading} className="btn-primary" style={{ padding: '14px', fontSize: '14px' }}>
+            {loading ? 'Enviando...' : 'Enviar Chamado'}
+          </button>
+        </form>
+      </div>
+
+      {tickets.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '16px' }}>Seus Chamados</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {tickets.map(t => (
+              <div key={t.id} style={{ background: '#FFF', borderRadius: '12px', padding: '16px', border: '1px solid var(--border-subtle)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>{t.title}</h4>
+                  <span style={{ fontSize: '11px', background: t.status === 'open' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)', color: t.status === 'open' ? '#F59E0B' : '#10B981', padding: '4px 8px', borderRadius: '100px', fontWeight: 700 }}>
+                    {t.status === 'open' ? 'Aberto' : 'Resolvido'}
+                  </span>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 12px' }}>{t.message}</p>
+                
+                {t.replies && t.replies.length > 0 && (
+                  <div style={{ background: '#F8FAFC', borderRadius: '8px', padding: '12px', marginTop: '12px', border: '1px solid #E2E8F0' }}>
+                    <h5 style={{ margin: '0 0 8px', fontSize: '11px', color: '#64748B', fontWeight: 800 }}>RESPOSTAS</h5>
+                    {t.replies.map(r => (
+                      <div key={r.id} style={{ marginBottom: '8px', borderBottom: '1px solid #E2E8F0', paddingBottom: '8px' }}>
+                        <strong style={{ fontSize: '12px', display: 'block', color: 'var(--text-main)' }}>{r.sender}</strong>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{r.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

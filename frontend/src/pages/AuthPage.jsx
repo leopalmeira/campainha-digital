@@ -238,15 +238,15 @@ export default function AuthPage() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-        <div className="glass-panel fade-in" style={{ width: '100%', maxWidth: '440px', padding: '40px 24px', position: 'relative' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+        <div className="glass-panel fade-in" style={{ width: '100%', maxWidth: '440px', padding: '24px 20px', position: 'relative' }}>
         
         {isLogin && (
           <>
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <Logo size={42} />
-              <h2 style={{ fontSize: '24px', fontWeight: 800, marginTop: '16px', color: 'var(--text-main)' }}>Acesso Unificado</h2>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Entre com sua senha ou código de morador.</p>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <Logo size={36} />
+              <h2 style={{ fontSize: '20px', fontWeight: 800, marginTop: '12px', color: 'var(--text-main)' }}>Acesso Unificado</h2>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Entre com sua senha ou código de morador.</p>
             </div>
 
             <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '16px', padding: '4px', marginBottom: '24px' }}>
@@ -426,10 +426,10 @@ export default function AuthPage() {
       </div>
       </div>
 
-      <div style={{ width: '100%', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '12px', padding: '24px', lineHeight: '1.6' }}>
-        <strong style={{ fontSize: '14px', color: '#10B981', display: 'block', marginBottom: '6px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
+      <div style={{ width: '100%', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '11px', padding: '12px', lineHeight: '1.4' }}>
+        <strong style={{ fontSize: '13px', color: '#10B981', display: 'block', marginBottom: '4px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
         CNPJ: 65.628.833/0001-47<br/>
-        Central WhatsApp: <a href="https://wa.me/5521999999999" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99999-9999</a>
+        Central WhatsApp: <a href="https://wa.me/5521995879170" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99587-9170</a>
       </div>
 
       {showScanner && (

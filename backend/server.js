@@ -611,10 +611,80 @@ app.put('/api/properties/:id/whatsapp-config', (req, res) => {
 // Obter número de suporte público de uma propriedade
 app.get('/api/properties/:id/support', (req, res) => {
   const prop = properties.find(p => p.id === req.params.id);
-  if (!prop) return res.status(404).json({ error: 'Property not found' });
+  if (!prop) return res.status(404).json({ error: 'Not found' });
   
-  const supportPhone = prop.whatsappConfig?.supportPhone || '5521999999999';
-  res.json({ supportPhone });
+  if (prop.type === 'condo' || prop.type === 'village') {
+    res.json({ supportPhone: prop.whatsappConfig?.supportPhone || '' });
+  } else {
+    res.json({ supportPhone: '5521995879170' });
+  }
+});
+
+// ─── TICKETS DE SUPORTE ──────────────────────────────────────────────────────
+const SUPPORT_FILE = path.join(DATA_DIR, 'support.json');
+let supportTickets = [];
+if (fs.existsSync(SUPPORT_FILE)) {
+  supportTickets = JSON.parse(fs.readFileSync(SUPPORT_FILE, 'utf-8'));
+}
+const saveSupport = () => fs.writeFileSync(SUPPORT_FILE, JSON.stringify(supportTickets, null, 2));
+
+app.get('/api/support', (req, res) => {
+  const { email, role, propertyId } = req.query;
+
+  if (email === MASTER_ADMIN_EMAIL) {
+    return res.json(supportTickets);
+  }
+
+  if (role === 'manager') {
+    const managerProp = properties.find(p => p.adminEmail === email);
+    const propId = managerProp ? managerProp.id : null;
+    const visibleTickets = supportTickets.filter(t => 
+       t.email === email || (propId && t.propertyId === propId && t.role === 'resident')
+    );
+    return res.json(visibleTickets);
+  }
+
+  if (role === 'resident') {
+    const visibleTickets = supportTickets.filter(t => t.propertyId === propertyId && t.unitId === req.query.unitId);
+    return res.json(visibleTickets);
+  }
+
+  res.json([]);
+});
+
+app.post('/api/support', (req, res) => {
+  const { email, role, propertyId, unitId, title, message } = req.body;
+  if (!title || !message) return res.status(400).json({ error: 'Campos inválidos' });
+  
+  const ticket = {
+    id: uuidv4(),
+    email: email || null,
+    unitId: unitId || null,
+    role: role || 'admin', 
+    propertyId: propertyId || null,
+    title,
+    message,
+    status: 'open',
+    createdAt: new Date().toISOString(),
+    replies: []
+  };
+  supportTickets.push(ticket);
+  saveSupport();
+  res.status(201).json({ success: true, ticket });
+});
+
+app.post('/api/support/:id/reply', (req, res) => {
+  const ticket = supportTickets.find(t => t.id === req.params.id);
+  if (!ticket) return res.status(404).json({ error: 'Ticket não encontrado' });
+  
+  ticket.replies.push({
+    id: uuidv4(),
+    sender: req.body.sender || 'Admin',
+    message: req.body.message,
+    createdAt: new Date().toISOString()
+  });
+  saveSupport();
+  res.json({ success: true, ticket });
 });
 
 // ─── Unit Management Routes (Admin Panel do Condomínio) ───────────────────────

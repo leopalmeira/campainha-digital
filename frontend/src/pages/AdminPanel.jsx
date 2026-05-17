@@ -144,9 +144,9 @@ export default function AdminPanel() {
     if (selectedProperty) {
       const prop = properties.find(p => p.id === selectedProperty);
       if (prop && prop.whatsappConfig) {
-        setWhatsappForm({ instance: prop.whatsappConfig.instance || '', token: prop.whatsappConfig.token || '', supportPhone: prop.whatsappConfig.supportPhone || '' });
+        setWhatsappForm({ instance: prop.whatsappConfig.instance || '', token: prop.whatsappConfig.token || '' });
       } else {
-        setWhatsappForm({ instance: '', token: '', supportPhone: '' });
+        setWhatsappForm({ instance: '', token: '' });
       }
     }
   }, [activeTab, selectedProperty, properties]);
@@ -264,12 +264,12 @@ export default function AdminPanel() {
     }
   };
 
-  const saveWhatsappConfig = async (propertyId, instance, token, supportPhone) => {
+  const saveWhatsappConfig = async (propertyId, instance, token) => {
     try {
       const res = await fetch(`${API}/api/properties/${propertyId}/whatsapp-config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instance, token, supportPhone })
+        body: JSON.stringify({ instance, token })
       });
       if (res.ok) {
         alert("Configuração de WhatsApp salva com sucesso!");
@@ -707,25 +707,21 @@ export default function AdminPanel() {
         {activeTab === 'settings' && selectedProperty && (
           <div style={{ padding: '20px 0', maxWidth: '600px' }}>
             <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>Configurações do Condomínio</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>Configure a conta do WhatsApp do seu condomínio para envios de convites automáticos e suporte aos moradores.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>Configure a conta do WhatsApp do seu condomínio para envios de convites automáticos aos moradores.</p>
             
-            <form onSubmit={(e) => { e.preventDefault(); saveWhatsappConfig(selectedProperty, whatsappForm.instance, whatsappForm.token, whatsappForm.supportPhone); }} style={{ background: '#FFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+            <form onSubmit={(e) => { e.preventDefault(); saveWhatsappConfig(selectedProperty, whatsappForm.instance, whatsappForm.token); }} style={{ background: '#FFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                  <MessageCircle size={24} color="#25D366" />
-                 <h3 style={{ margin: 0, fontWeight: 700, fontSize: '18px' }}>WhatsApp da Portaria / Síndico</h3>
+                 <h3 style={{ margin: 0, fontWeight: 700, fontSize: '18px' }}>Instância de WhatsApp (Gestor)</h3>
                </div>
                
                <div style={{ marginBottom: '16px' }}>
                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>Instância de Disparo (Evolution API / Z-API)</label>
                  <input value={whatsappForm.instance} onChange={e => setWhatsappForm({...whatsappForm, instance: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Ex: condominio-flores" required />
                </div>
-               <div style={{ marginBottom: '16px' }}>
+               <div style={{ marginBottom: '24px' }}>
                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>Token da Instância</label>
                  <input type="password" value={whatsappForm.token} onChange={e => setWhatsappForm({...whatsappForm, token: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Seu token de acesso..." required />
-               </div>
-               <div style={{ marginBottom: '24px' }}>
-                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>Número Público para Suporte aos Moradores (WhatsApp)</label>
-                 <input type="tel" value={whatsappForm.supportPhone} onChange={e => setWhatsappForm({...whatsappForm, supportPhone: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Ex: 5521999999999" required />
                </div>
                
                <button type="submit" style={{ width: '100%', padding: '14px', background: '#10B981', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '15px' }}>
@@ -741,7 +737,7 @@ export default function AdminPanel() {
       <footer style={{ marginTop: 'auto', padding: '32px 24px', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '13px', lineHeight: '1.6', width: '100%' }}>
         <strong style={{ fontSize: '15px', color: '#10B981', display: 'block', marginBottom: '8px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
         CNPJ: 65.628.833/0001-47<br/>
-        Central de Atendimento WhatsApp: <a href="https://wa.me/5521999999999" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99999-9999</a>
+        Central de Atendimento WhatsApp: <a href="https://wa.me/5521995879170" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99587-9170</a>
       </footer>
     </div>
   );
