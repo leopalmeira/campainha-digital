@@ -43,6 +43,7 @@ export default function VisitorCall() {
   const localVideoRef   = useRef(null); // câmera do visitante (oculta)
   const canvasRef       = useRef(null);
   const remoteAudioRef  = useRef(null);
+  const remoteVideoRef  = useRef(null); // câmera do morador (quando ativada)
   const socketRef       = useRef(null);
   const pcRef           = useRef(null);   // RTCPeerConnection
   const localStreamRef  = useRef(null);
@@ -103,6 +104,18 @@ export default function VisitorCall() {
     socket.on('call_ended', () => {
       setStatus('ended');
       stopAll();
+    });
+
+    // Renegociação: morador ativou/desativou a câmera — aceitar novo offer
+    socket.on('webrtc_offer', async ({ sender, offer }) => {
+      const pc = pcRef.current;
+      if (!pc) return;
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('webrtc_answer', { target: sender, answer: pc.localDescription });
+      } catch (e) { console.warn('[WebRTC] Renegociação falhou:', e); }
     });
 
     // Portão liberado pelo morador
@@ -201,9 +214,17 @@ export default function VisitorCall() {
 
     // Quando receber áudio/vídeo do morador
     pc.ontrack = (event) => {
-      if (remoteAudioRef.current && event.streams[0]) {
-        remoteAudioRef.current.srcObject = event.streams[0];
+      const stream = event.streams[0];
+      if (!stream) return;
+      // Áudio
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = stream;
         remoteAudioRef.current.play().catch(e => console.warn('[Audio] autoplay bloqueado:', e));
+      }
+      // Vídeo do morador (quando ele ativar a câmera)
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = stream;
+        remoteVideoRef.current.play().catch(() => {});
       }
     };
 
@@ -384,28 +405,23 @@ export default function VisitorCall() {
         </div>
       )}
 
-      {/* ── Chamada ativa (áudio bidirecional) ───────────────────────────── */}
+      {/* ── Chamada ativa (áudio bidirecional + vídeo do morador) ──────── */}
       {status === 'answered' && (
-        <div className="glass-panel fade-in" style={{ padding: '48px 24px', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-          <div style={{ width: '100px', height: '100px', background: '#10B981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px', boxShadow: '0 8px 32px rgba(16,185,129,0.4)' }}>
-            <CheckCircle size={48} color="#000" />
+        <div className="glass-panel fade-in" style={{ padding: '32px 24px', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+          {/* Vídeo do morador (aparece quando ele ativa a câmera) */}
+          <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#000', marginBottom: '20px', minHeight: '200px', position: 'relative' }}>
+            <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', objectFit: 'cover', minHeight: '200px' }} />
+            <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(16,185,129,0.9)', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 800, color: '#000', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#000', animation: 'pulse 1s infinite' }} /> AO VIVO
+            </div>
           </div>
 
-          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px', color: '#10B981' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: '#10B981' }}>
             Comunicação Ativa
           </h2>
-          <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '32px' }}>
+          <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '24px', fontSize: '14px' }}>
             O morador está na linha. Vocês já podem conversar!
           </p>
-
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '32px' }}>
-            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}>
-              <Video size={24} color="var(--primary)" />
-            </div>
-            <div style={{ padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}>
-              <Mic size={24} color="var(--primary)" />
-            </div>
-          </div>
 
           <button
             className="btn-secondary"

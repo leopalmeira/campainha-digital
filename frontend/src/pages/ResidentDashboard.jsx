@@ -353,13 +353,40 @@ export default function ResidentDashboard() {
   const toggleCam = async () => {
     if (!camOn) {
       try {
-        const vs = await navigator.mediaDevices.getUserMedia({ video: true });
-        vs.getVideoTracks().forEach(t => { localStreamRef.current?.addTrack(t); pcRef.current?.addTrack(t, localStreamRef.current); });
-        if (localVideoRef.current) { localVideoRef.current.srcObject = localStreamRef.current; localVideoRef.current.play().catch(() => {}); }
+        const vs = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        const videoTrack = vs.getVideoTracks()[0];
+        if (!videoTrack) return;
+
+        // Adiciona ao stream local
+        localStreamRef.current?.addTrack(videoTrack);
+
+        // Adiciona ao PeerConnection e renegocia para o visitante receber
+        const pc = pcRef.current;
+        if (pc) {
+          const sender = pc.addTrack(videoTrack, localStreamRef.current);
+          // Renegociar conexão para enviar o novo track
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          socketRef.current.emit('webrtc_offer', { target: visitorSocketId, offer: pc.localDescription });
+        }
+
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+          localVideoRef.current.play().catch(() => {});
+        }
         setCamOn(true);
-      } catch {}
+      } catch (e) { console.warn('[ToggleCam]', e); }
     } else {
-      localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
+      // Desligar câmera — remove track do PC e para
+      const pc = pcRef.current;
+      localStreamRef.current?.getVideoTracks().forEach(t => {
+        t.stop();
+        localStreamRef.current?.removeTrack(t);
+        if (pc) {
+          const sender = pc.getSenders().find(s => s.track === t);
+          if (sender) pc.removeTrack(sender);
+        }
+      });
       setCamOn(false);
     }
   };
