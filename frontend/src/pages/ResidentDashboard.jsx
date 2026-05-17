@@ -18,49 +18,54 @@ const ICE = {
   ]
 };
 
-// ─── Som real de campainha via Web Audio API ──────────────────────────────────
-// Gera o padrão "ding-dong" sem depender de arquivo externo
+// ─── Som ALTO de campainha via Web Audio API ─────────────────────────────────
 let doorbellCtx = null;
 let doorbellInterval = null;
+let vibrateInterval = null;
 
 function playDoorbellSound() {
   try {
     if (!doorbellCtx) doorbellCtx = new (window.AudioContext || window.webkitAudioContext)();
     const ctx = doorbellCtx;
+    if (ctx.state === 'suspended') ctx.resume();
 
-    // Força volume máximo via GainNode
     const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(1.5, ctx.currentTime);
+    masterGain.gain.setValueAtTime(3.0, ctx.currentTime); // VOLUME MÁXIMO
     masterGain.connect(ctx.destination);
 
-    const ding = (freq, start, dur) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(masterGain);
-      osc.type = 'sine';
+    const ring = (freq, start, dur, type) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.connect(g); g.connect(masterGain);
+      osc.type = type || 'sine';
       osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
       osc.frequency.exponentialRampToValueAtTime(freq * 0.5, ctx.currentTime + start + dur);
-      gain.gain.setValueAtTime(0.8, ctx.currentTime + start);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+      g.gain.setValueAtTime(1.0, ctx.currentTime + start);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
       osc.start(ctx.currentTime + start);
       osc.stop(ctx.currentTime + start + dur);
     };
 
-    ding(880, 0,    0.6); // DING
-    ding(660, 0.65, 0.8); // DONG
+    // DING-DONG duplo (mais alto com harmônico)
+    ring(880, 0, 0.5, 'sine');
+    ring(1760, 0, 0.5, 'triangle'); // harmônico agudo
+    ring(660, 0.55, 0.7, 'sine');
+    ring(1320, 0.55, 0.7, 'triangle');
   } catch (e) { console.warn('[Doorbell]', e); }
 }
 
 function startDoorbell() {
   playDoorbellSound();
-  doorbellInterval = setInterval(playDoorbellSound, 2200);
-  // Vibração: padrão campainha
-  if ('vibrate' in navigator) navigator.vibrate([400, 200, 400, 200, 800, 500, 400, 200, 400]);
+  doorbellInterval = setInterval(playDoorbellSound, 1800);
+  // Vibração contínua agressiva
+  const vibrateLoop = () => { if ('vibrate' in navigator) navigator.vibrate([500, 100, 500, 100, 500, 100, 500]); };
+  vibrateLoop();
+  vibrateInterval = setInterval(vibrateLoop, 2400);
 }
 
 function stopDoorbell() {
   if (doorbellInterval) { clearInterval(doorbellInterval); doorbellInterval = null; }
+  if (vibrateInterval) { clearInterval(vibrateInterval); vibrateInterval = null; }
   if ('vibrate' in navigator) navigator.vibrate(0);
 }
 
@@ -270,7 +275,8 @@ export default function ResidentDashboard() {
     const pc = new RTCPeerConnection(ICE);
     pcRef.current = pc;
     
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: camOn });
+    // Morador envia APENAS áudio (câmera oculta por padrão)
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     localStreamRef.current = stream;
     stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
@@ -280,7 +286,7 @@ export default function ResidentDashboard() {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     socketRef.current.emit('webrtc_answer', { target: senderSocketId, answer: pc.localDescription });
-  }, [camOn]);
+  }, []);
 
   const startWebRTC = useCallback(async (targetSocketId, mode) => {
     const pc = new RTCPeerConnection(ICE);
@@ -307,18 +313,14 @@ export default function ResidentDashboard() {
   }, []);
 
   const handleMonitor = () => {
-    stopRing(); setStatus('monitoring'); localStreamRef.current = null;
+    stopRing(); setStatus('monitoring'); setCamOn(false);
+    // Pede apenas áudio para criar a conexão WebRTC (recebe vídeo do visitante)
     socketRef.current.emit('answer_call', { visitorSocketId: call.visitorSocketId, mode: 'monitor', unitId: id });
   };
 
-  const handleAnswer = async (withCamera = false) => {
-    stopRing(); setStatus('active'); setCamOn(withCamera);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withCamera });
-      localStreamRef.current = stream;
-      if (withCamera && localVideoRef.current) { localVideoRef.current.srcObject = stream; localVideoRef.current.play().catch(() => {}); }
-      if (pcRef.current) stream.getTracks().forEach(t => pcRef.current.addTrack(t, stream));
-    } catch (e) { console.warn('[Media]', e); }
+  const handleAnswer = async () => {
+    stopRing(); setStatus('active'); setCamOn(false);
+    // Sempre atende SÓ com áudio — câmera do morador fica oculta até clicar no botão
     socketRef.current.emit('answer_call', { visitorSocketId: call.visitorSocketId, mode: 'active', unitId: id });
   };
 
@@ -579,14 +581,12 @@ export default function ResidentDashboard() {
                 <button onClick={handleMonitor} style={{ padding: '16px', borderRadius: '14px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13px' }}>
                   <EyeOff size={22} color="var(--primary)" />Modo Oculto
                 </button>
-                <button onClick={() => handleAnswer(false)} style={{ padding: '16px', borderRadius: '14px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13px' }}>
-                  <Phone size={22} color="#10B981" />Só Áudio
+                <button onClick={() => handleAnswer()} className="btn-primary" style={{ padding: '16px', borderRadius: '14px', background: '#10B981', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13px', boxShadow: '0 8px 24px rgba(16,185,129,0.35)' }}>
+                  <Phone size={22} />Atender
                 </button>
               </div>
-              <button onClick={() => handleAnswer(true)} className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '15px', background: '#10B981', boxShadow: '0 8px 24px rgba(16,185,129,0.35)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                <Video size={22} /> Atender com Câmera e Áudio
-              </button>
-              <button onClick={handleEnd} style={{ width: '100%', marginTop: '10px', padding: '12px', borderRadius: '14px', border: 'none', background: 'rgba(239,68,68,0.1)', color: '#EF4444', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <p style={{ textAlign: 'center', fontSize: '11px', color: '#94A3B8', marginBottom: '10px' }}>Sua câmera fica oculta. Ative depois clicando no ícone 📷</p>
+              <button onClick={handleEnd} style={{ width: '100%', padding: '12px', borderRadius: '14px', border: 'none', background: 'rgba(239,68,68,0.1)', color: '#EF4444', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <PhoneOff size={18} /> Recusar
               </button>
             </div>
@@ -617,7 +617,7 @@ export default function ResidentDashboard() {
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => handleAnswer(false)} className="btn-primary" style={{ flex: 1, padding: '14px', background: '#10B981', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <button onClick={() => handleAnswer()} className="btn-primary" style={{ flex: 1, padding: '14px', background: '#10B981', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   <Phone size={18} /> Falar
                 </button>
                 <button onClick={authorizeEntry} style={{ flex: 1, padding: '14px', background: 'rgba(16,185,129,0.1)', color: '#10B981', border: '1px solid #10B981', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 700 }}>
