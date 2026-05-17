@@ -1007,9 +1007,6 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
-
-      </footer>
-      </div>
     </div>
   );
 }
