@@ -51,17 +51,28 @@ const residentsDbPath  = path.join(__dirname, 'residents.json');
 const visitorsDbPath   = path.join(__dirname, 'visitors.json');
 const messagesDbPath   = path.join(__dirname, 'messages.json');
 const usersDbPath      = path.join(__dirname, 'users.json');
+const subscriptionsDbPath = path.join(__dirname, 'subscriptions.json');
+const supportDbPath    = path.join(__dirname, 'support.json');
+const configDbPath     = path.join(__dirname, 'platform_config.json');
 
 let properties = [];
 let residents  = [];
-let visitors   = []; // histórico de visitantes
-let messages   = []; // mensagens do condomínio
-let users      = []; // usuários registrados aguardando ou com acesso
-let subscriptions = []; // assinaturas push
-let supportTickets = []; // chamados de suporte
+let visitors   = [];
+let messages   = [];
+let users      = [];
+let subscriptions = [];
+let supportTickets = [];
 
-const subscriptionsDbPath = path.join(__dirname, 'subscriptions.json');
-const supportDbPath = path.join(__dirname, 'support.json');
+// Configurações Globais da Plataforma (preço, trial, etc.)
+let platformConfig = {
+  servicePriceAnnual: 39.90,       // Preço da assinatura anual (R$)
+  trialDays: 15,                   // Dias de trial grátis
+  planName: 'Anual',               // Nome do plano
+  pixDueDays: 3,                   // Dias para vencimento do Pix gerado
+  companyName: 'Campainha Digital',
+  supportWhatsApp: '5521995879170',
+  updatedAt: new Date().toISOString()
+};
 
 function loadDb() {
   if (fs.existsSync(dbPath))          properties = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
@@ -71,6 +82,7 @@ function loadDb() {
   if (fs.existsSync(usersDbPath))     users      = JSON.parse(fs.readFileSync(usersDbPath, 'utf8'));
   if (fs.existsSync(subscriptionsDbPath)) subscriptions = JSON.parse(fs.readFileSync(subscriptionsDbPath, 'utf8'));
   if (fs.existsSync(supportDbPath))   supportTickets = JSON.parse(fs.readFileSync(supportDbPath, 'utf8'));
+  if (fs.existsSync(configDbPath))    platformConfig = { ...platformConfig, ...JSON.parse(fs.readFileSync(configDbPath, 'utf8')) };
 }
 loadDb();
 
@@ -81,6 +93,21 @@ const saveMessages  = () => fs.writeFileSync(messagesDbPath,  JSON.stringify(mes
 const saveUsers     = () => fs.writeFileSync(usersDbPath,      JSON.stringify(users,      null, 2));
 const saveSubscriptions = () => fs.writeFileSync(subscriptionsDbPath, JSON.stringify(subscriptions, null, 2));
 const saveSupportTickets = () => fs.writeFileSync(supportDbPath, JSON.stringify(supportTickets, null, 2));
+const saveConfig = () => fs.writeFileSync(configDbPath, JSON.stringify(platformConfig, null, 2));
+
+// ─── Config Routes (Configurações Globais da Plataforma) ──────────────────────
+app.get('/api/config', (_req, res) => res.json(platformConfig));
+
+app.put('/api/config', (req, res) => {
+  const allowed = ['servicePriceAnnual', 'trialDays', 'planName', 'pixDueDays', 'companyName', 'supportWhatsApp'];
+  allowed.forEach(key => {
+    if (req.body[key] !== undefined) platformConfig[key] = req.body[key];
+  });
+  platformConfig.updatedAt = new Date().toISOString();
+  saveConfig();
+  console.log('[CONFIG] Configurações atualizadas:', platformConfig);
+  res.json({ success: true, config: platformConfig });
+});
 // ─── Keep-Alive endpoint (previne spin-down no Render Free) ──────────────────
 app.get('/api/ping', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 
@@ -165,15 +192,19 @@ app.post('/api/payment/asaas/create', async (req, res) => {
   const property = properties.find(p => p.id === propertyId);
   if (!property) return res.status(404).json({ error: 'Propriedade não encontrada.' });
 
+  // Usa preço dinâmico das configurações
+  const servicePrice = platformConfig.servicePriceAnnual || 39.90;
+  const pixDueDays   = platformConfig.pixDueDays || 3;
+
   // Se a chave Asaas não estiver configurada, retorna simulação
   if (!ASAAS_API_KEY) {
-    const fakeQr = Buffer.from(`SIMULADO:PIX:${propertyId}:39.90`).toString('base64');
+    const fakeQr = Buffer.from(`SIMULADO:PIX:${propertyId}:${servicePrice}`).toString('base64');
     return res.json({
       success: true,
       isSimulated: true,
       pixQrCode: fakeQr,
       pixCopiaECola: `00020101021226870014br.gov.bcb.pix2565simulado.pix.${propertyId}5204000053039865802BR5925CAMPAINHA DIGITAL6009SAO PAULO62140510${propertyId.slice(0,10)}6304ABCD`,
-      value: 39.90
+      value: servicePrice
     });
   }
 
@@ -195,13 +226,13 @@ app.post('/api/payment/asaas/create', async (req, res) => {
       saveDb();
     }
 
-    // 2. Criar cobrança Pix
+    // 2. Criar cobrança Pix com preço dinâmico
     const chargeRes = await axios.post(`${ASAAS_API_URL}/payments`, {
       customer: asaasCustomerId,
       billingType: 'PIX',
-      value: 39.90,
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      description: `Assinatura Anual - Campainha Digital - ${property.name || property.id}`,
+      value: servicePrice,
+      dueDate: new Date(Date.now() + pixDueDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      description: `${platformConfig.planName || 'Assinatura'} - Campainha Digital - ${property.name || property.id}`,
       externalReference: propertyId
     }, {
       headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' }
@@ -220,7 +251,7 @@ app.post('/api/payment/asaas/create', async (req, res) => {
       paymentId,
       pixQrCode: pixRes.data.encodedImage,
       pixCopiaECola: pixRes.data.payload,
-      value: 39.90
+      value: servicePrice
     });
 
   } catch (err) {

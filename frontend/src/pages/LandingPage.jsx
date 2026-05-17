@@ -380,9 +380,42 @@ export default function LandingPage() {
          <strong style={{ fontSize: '16px', color: '#10B981', display: 'block', marginBottom: '8px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
          <p style={{ color: '#E2E8F0', fontSize: '13px', padding: '0 24px', margin: '0 0 8px 0' }}>CNPJ: 65.628.833/0001-47</p>
          <p style={{ color: '#E2E8F0', fontSize: '13px', padding: '0 24px', margin: 0 }}>
-           Central de Atendimento WhatsApp: <a href="https://wa.me/5521999999999" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99999-9999</a>
+           Central de Atendimento WhatsApp: <a href="https://wa.me/5521995879170" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99587-9170</a>
          </p>
       </footer>
+
+      {/* Floating WhatsApp Button */}
+      <a 
+        href="https://wa.me/5521995879170?text=Ol%C3%A1%21%20Gostaria%20de%20falar%20com%20um%20consultor%20de%20vendas%20da%20Campainha%20Digital."
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          background: '#25D366',
+          color: '#FFF',
+          padding: '16px 24px',
+          borderRadius: '100px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          textDecoration: 'none',
+          boxShadow: '0 8px 32px rgba(37, 211, 102, 0.4)',
+          zIndex: 9999,
+          fontWeight: 700,
+          fontSize: '14px',
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+        </svg>
+        Falar com Consultor
+      </a>
     </>
   );
 }

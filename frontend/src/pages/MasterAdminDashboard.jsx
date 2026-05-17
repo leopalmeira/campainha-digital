@@ -344,10 +344,10 @@ export default function MasterAdminDashboard() {
           <button onClick={() => { localStorage.clear(); navigate('/auth'); }} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #FECACA', color: '#DC2626', background: '#FFF5F5', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
             <LogOut size={14} /> Encerrar Sessão
           </button>
-          <div style={{ marginTop: '24px', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '11px', padding: '16px 12px', borderRadius: '12px', lineHeight: '1.5' }}>
-            <strong style={{ fontSize: '12px', color: '#10B981', display: 'block', marginBottom: '4px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
-            CNPJ: 65.628.833/0001-47<br/>
-            Central WhatsApp: <a href="https://wa.me/5521999999999" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99999-9999</a>
+          <div style={{ padding: '16px', background: '#0F172A', borderRadius: '12px', textAlign: 'center', fontSize: '10px', color: '#94A3B8', marginTop: '24px' }}>
+            <div style={{ color: '#10B981', fontWeight: 800, marginBottom: '4px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</div>
+            <div>CNPJ: 65.628.833/0001-47</div>
+            Central WhatsApp: <a href="https://wa.me/5521995879170" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99587-9170</a>
           </div>
         </div>
       </aside>
@@ -843,20 +843,7 @@ export default function MasterAdminDashboard() {
            )}
 
           {activeTab === 'settings' && (
-            <div style={{ padding: '20px' }}>
-              <SectionTitle icon={Settings2} title="Configurações Globais do SaaS" />
-              <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div>
-                  <Label>Versão do Sistema</Label>
-                  <Input value="v2.9.8-stable" disabled />
-                </div>
-                <div>
-                  <Label>Limite de Unidades por Cliente (Global)</Label>
-                  <Input type="number" defaultValue={500} />
-                </div>
-                <button style={{ padding: '14px', borderRadius: '12px', background: '#0F172A', color: '#FFF', border: 'none', fontWeight: 700 }}>SALVAR CONFIGURAÇÕES</button>
-              </div>
-            </div>
+            <GlobalSettingsTab API={API} />
           )}
 
           {activeTab === 'api' && (
@@ -1511,6 +1498,148 @@ function BillingTab({ clients, API, onRefresh }) {
           💡 Quando o cliente pagar via Pix, o Asaas acionará o Webhook automaticamente e o sistema renovará o plano sozinho, sem necessidade de ação manual.
         </p>
       </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPONENTE CONFIGURAÇÕES GLOBAIS ───────────────────────────────────────
+function GlobalSettingsTab({ API }) {
+  const [config, setConfig] = useState({
+    servicePriceAnnual: 39.90,
+    trialDays: 15,
+    planName: 'Anual',
+    pixDueDays: 3,
+    companyName: 'Campainha Digital',
+    supportWhatsApp: '5521995879170'
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchConfig();
+  }, []);
+
+  const fetchConfig = async () => {
+    try {
+      const res = await fetch(`${API}/api/config`);
+      if (res.ok) {
+        const data = await res.json();
+        setConfig(data);
+      }
+    } catch (e) {
+      console.error('Erro ao buscar config', e);
+    }
+  };
+
+  const handleChange = (key, value) => {
+    setConfig(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
+      if (res.ok) {
+        alert('Configurações salvas com sucesso! ✅');
+      } else {
+        alert('Erro ao salvar configurações.');
+      }
+    } catch (e) {
+      alert('Erro de conexão ao salvar.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <SectionTitle icon={Settings2} title="Configurações Globais do SaaS" />
+      <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        
+        <div style={{ padding: '24px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+          <h3 style={{ margin: '0 0 20px', fontSize: '16px', fontWeight: 800 }}>💰 Financeiro & Planos</h3>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <Label>Preço do Plano Anual (R$)</Label>
+            <input 
+              type="number" step="0.01"
+              value={config.servicePriceAnnual} 
+              onChange={e => handleChange('servicePriceAnnual', Number(e.target.value))}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
+            />
+          </div>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <Label>Nome do Plano (Ex: Anual, Mensal)</Label>
+            <input 
+              type="text" 
+              value={config.planName} 
+              onChange={e => handleChange('planName', e.target.value)}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
+            />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <Label>Dias de Vencimento do Pix</Label>
+            <input 
+              type="number" 
+              value={config.pixDueDays} 
+              onChange={e => handleChange('pixDueDays', Number(e.target.value))}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
+            />
+          </div>
+        </div>
+
+        <div style={{ padding: '24px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+          <h3 style={{ margin: '0 0 20px', fontSize: '16px', fontWeight: 800 }}>⚙️ Sistema & Contato</h3>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <Label>Dias de Trial (Teste Grátis)</Label>
+            <input 
+              type="number" 
+              value={config.trialDays} 
+              onChange={e => handleChange('trialDays', Number(e.target.value))}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
+            />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <Label>Nome da Empresa (SaaS)</Label>
+            <input 
+              type="text" 
+              value={config.companyName} 
+              onChange={e => handleChange('companyName', e.target.value)}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
+            />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <Label>WhatsApp de Suporte (DDI + DDD + Núm)</Label>
+            <input 
+              type="text" 
+              value={config.supportWhatsApp} 
+              onChange={e => handleChange('supportWhatsApp', e.target.value)}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
+            />
+          </div>
+        </div>
+
+      </div>
+
+      <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+        <button 
+          onClick={handleSave}
+          disabled={loading}
+          style={{ padding: '14px 28px', borderRadius: '12px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 800, fontSize: '14px', cursor: 'pointer', opacity: loading ? 0.7 : 1 }}
+        >
+          {loading ? 'SALVANDO...' : 'SALVAR CONFIGURAÇÕES'}
+        </button>
+      </div>
+
     </div>
   );
 }
