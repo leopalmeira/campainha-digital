@@ -9,9 +9,9 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/auth",
   "display": "standalone",
-  "theme_color": "#3B82F6",
+  "theme_color": "#0F172A",
   "background_color": "#FFFFFF",
   "orientation": "portrait"
 }

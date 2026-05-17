@@ -13,7 +13,26 @@
     <title>Campainha Digital - Interfone Inteligente</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <style>
+        .splash-screen {
+          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+          background-color: #F8FAFC; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; z-index: 99999;
+        }
+        .spinner {
+          width: 48px; height: 48px; border: 4px solid #E2E8F0;
+          border-top-color: #10B981; border-radius: 50%;
+          animation: spin 1s linear infinite; margin-bottom: 24px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      </style>
+      <div class="splash-screen">
+        <div class="spinner"></div>
+        <h2 style="font-family: system-ui, sans-serif; font-size: 20px; font-weight: 800; color: #0F172A; margin: 0;">Campainha Digital</h2>
+        <p style="font-family: system-ui, sans-serif; font-size: 13px; color: #64748B; margin-top: 8px;">Carregando o sistema...</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
