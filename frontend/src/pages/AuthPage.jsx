@@ -24,6 +24,7 @@ export default function AuthPage() {
   const [scannedImage, setScannedImage] = useState(null);
   const [propertyType, setPropertyType] = useState('individual'); // 'individual' ou 'collective'
   const [pixData, setPixData] = useState(null);
+  const [showTerms, setShowTerms] = useState(false);
   
   const [isPaid, setIsPaid] = useState(false);
   
@@ -399,7 +400,7 @@ export default function AuthPage() {
                 <label style={{ padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: '13px', transition: 'all 0.2s' }}>
                   <input type="checkbox" required style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#3B82F6' }} />
                   <span style={{ color: '#475569', lineHeight: '1.4' }}>
-                    Li e concordo com os <a href="/contrato.pdf" target="_blank" style={{ color: '#3B82F6', fontWeight: 700, textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); window.open('/contrato.pdf', '_blank', 'width=800,height=600'); }}>Termos de Uso e Contrato</a> da plataforma Campainha Digital.
+                    Li e concordo com os <button type="button" style={{ background: 'none', border: 'none', padding: 0, color: '#3B82F6', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', fontSize: '13px' }} onClick={() => setShowTerms(true)}>Termos de Uso e Contrato</button> da plataforma Campainha Digital.
                   </span>
                 </label>
               </div>
@@ -554,6 +555,46 @@ export default function AuthPage() {
            <button onClick={stopScanner} style={{ marginTop: '32px', background: '#FFF', border: 'none', padding: '12px 32px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <X size={20} /> Fechar Câmera
            </button>
+        </div>
+      )}
+
+      {showTerms && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+           <div className="fade-in" style={{ background: '#FFF', width: '100%', maxWidth: '600px', maxHeight: '85vh', borderRadius: '20px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>📄 Termos de Uso e Contrato</h3>
+               <button type="button" onClick={() => setShowTerms(false)} style={{ background: '#F1F5F9', border: 'none', cursor: 'pointer', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#E2E8F0'} onMouseLeave={e => e.currentTarget.style.background = '#F1F5F9'}><X size={18} color="#64748B" /></button>
+             </div>
+             
+             <div style={{ padding: '24px', overflowY: 'auto', flex: 1, fontSize: '14px', color: '#475569', lineHeight: 1.7 }}>
+               <h4 style={{ fontWeight: 800, color: '#0F172A', marginBottom: '8px', fontSize: '15px' }}>1. Aceitação dos Termos</h4>
+               <p style={{ marginBottom: '24px' }}>Ao acessar e usar a plataforma Campainha Digital, você concorda em cumprir e ficar vinculado aos seguintes termos e condições de uso. Se não concordar com alguma parte destes termos, não deverá finalizar seu cadastro.</p>
+               
+               <h4 style={{ fontWeight: 800, color: '#0F172A', marginBottom: '8px', fontSize: '15px' }}>2. Assinatura e Pagamentos</h4>
+               <p style={{ marginBottom: '24px' }}>A utilização dos serviços da Campainha Digital está sujeita ao pagamento da assinatura escolhida no momento do cadastro (plano anual ou outro vigente). O acesso ao painel de administração e a operação da placa (redirecionamento de QR Code e Notificações Push/WhatsApp) dependem da regularidade destes pagamentos. O atraso superior a 5 (cinco) dias acarretará a suspensão temporária dos serviços sem aviso prévio.</p>
+               
+               <h4 style={{ fontWeight: 800, color: '#0F172A', marginBottom: '8px', fontSize: '15px' }}>3. Uso da Placa e Infraestrutura</h4>
+               <p style={{ marginBottom: '24px' }}>A placa física fornecida ("Campainha Digital") e o QR Code impresso nela são intransferíveis e pertencem exclusivamente ao endereço cadastrado no sistema. O usuário é inteiramente responsável por proteger a placa física contra danos, intempéries extremas ou vandalismo que impossibilitem a leitura do QR Code pelos visitantes.</p>
+
+               <h4 style={{ fontWeight: 800, color: '#0F172A', marginBottom: '8px', fontSize: '15px' }}>4. Privacidade e Proteção de Dados (LGPD)</h4>
+               <p style={{ marginBottom: '24px' }}>Nós nos comprometemos a resguardar seus dados pessoais e de seus visitantes em estrito acordo com a Lei Geral de Proteção de Dados (LGPD). As fotos capturadas e os dados de contato trafegados via plataforma não serão comercializados, cedidos ou divulgados a terceiros, servindo estritamente para o propósito de identificação e notificação de chegada de visitantes na sua propriedade.</p>
+
+               <h4 style={{ fontWeight: 800, color: '#0F172A', marginBottom: '8px', fontSize: '15px' }}>5. Cancelamento da Assinatura</h4>
+               <p style={{ marginBottom: '24px' }}>Você pode cancelar sua assinatura a qualquer momento através do nosso suporte. Não há multa rescisória de cancelamento. Caso haja o cancelamento, a placa QR Code será desativada dos nossos servidores de redirecionamento, e a funcionalidade inteligente da placa deixará de operar imediatamente após o fim do período já pago pelo cliente.</p>
+               
+               <h4 style={{ fontWeight: 800, color: '#0F172A', marginBottom: '8px', fontSize: '15px' }}>6. Limitação de Responsabilidade e SLA</h4>
+               <p style={{ marginBottom: '8px' }}>A Campainha Digital atua exclusivamente como uma ferramenta tecnológica facilitadora de comunicação e controle de portaria autônoma/digital. Nos isentamos de responsabilidade sobre:</p>
+               <ul style={{ paddingLeft: '24px', marginBottom: '24px' }}>
+                 <li>Falhas de conectividade originadas pelas operadoras de telefonia celular;</li>
+                 <li>Instabilidades nos serviços de terceiros (WhatsApp / Meta Inc. / Firebase);</li>
+                 <li>Falta de energia elétrica ou internet no dispositivo do usuário e do visitante.</li>
+               </ul>
+             </div>
+             
+             <div style={{ padding: '20px 24px', borderTop: '1px solid #E2E8F0', background: '#F8FAFC', display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowTerms(false)} className="btn-primary" style={{ padding: '12px 32px', borderRadius: '12px', fontSize: '14px', fontWeight: 800 }}>Li e Entendi</button>
+             </div>
+           </div>
         </div>
       )}
     </div>
