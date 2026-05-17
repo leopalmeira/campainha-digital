@@ -45,7 +45,7 @@ export default function MasterAdminDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const role = localStorage.getItem('cd_admin_role');
+    const role = sessionStorage.getItem('cd_admin_role');
     if (role !== 'master') {
       navigate('/auth');
       return;
@@ -57,7 +57,7 @@ export default function MasterAdminDashboard() {
 
   const fetchPendingUsers = async () => {
     try {
-      const email = localStorage.getItem('cd_admin_email');
+      const email = sessionStorage.getItem('cd_admin_email');
       const res = await fetch(`${API}/api/admin/pending-users?adminEmail=${encodeURIComponent(email)}`);
       const data = await res.json();
       setPendingUsers(data);
@@ -68,7 +68,7 @@ export default function MasterAdminDashboard() {
 
   const fetchAllUsers = async () => {
     try {
-      const email = localStorage.getItem('cd_admin_email');
+      const email = sessionStorage.getItem('cd_admin_email');
       const res = await fetch(`${API}/api/admin/all-users?adminEmail=${encodeURIComponent(email)}`);
       const data = await res.json();
       setAllUsers(data);
@@ -80,7 +80,7 @@ export default function MasterAdminDashboard() {
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const email = localStorage.getItem('cd_admin_email');
+      const email = sessionStorage.getItem('cd_admin_email');
       const res = await fetch(`${API}/api/properties?email=${encodeURIComponent(email)}`);
       const data = await res.json();
       setClients(data);
@@ -311,6 +311,9 @@ export default function MasterAdminDashboard() {
           <button onClick={() => { localStorage.clear(); navigate('/auth'); }} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #FECACA', color: '#DC2626', background: '#FFF5F5', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
             <LogOut size={14} /> Encerrar Sessão
           </button>
+          <div style={{ marginTop: '16px', textAlign: 'center', color: '#94A3B8', fontSize: '10px' }}>
+            CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)<br/>CNPJ: 65.628.833/0001-47
+          </div>
         </div>
       </aside>
 
@@ -984,6 +987,7 @@ function PendingUserCard({ user, onAuthorize, disabled }) {
           <div>
             <h4 style={{ margin: 0, fontWeight: 700 }}>{user.name}</h4>
             <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>{user.email}</p>
+            {user.whatsapp && <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#10B981', fontWeight: 600 }}>WhatsApp: {user.whatsapp}</p>}
           </div>
         </div>
         <div style={{ marginTop: '12px', fontSize: '12px', color: '#94A3B8' }}>
@@ -1057,6 +1061,7 @@ function UserManagementCard({ user, onAction, disabled }) {
           <div>
             <h4 style={{ margin: 0, fontWeight: 700, fontSize: '15px', color: '#0F172A' }}>{user.name}</h4>
             <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748B' }}>{user.email}</p>
+            {user.whatsapp && <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#10B981', fontWeight: 600 }}>WhatsApp: {user.whatsapp}</p>}
           </div>
         </div>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -1106,48 +1111,71 @@ function UserManagementCard({ user, onAction, disabled }) {
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid #F1F5F9', paddingTop: '12px', flexWrap: 'wrap' }}>
-        {isPending && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto' }}>
-              <select value={propertyType} onChange={e => setPropertyType(e.target.value)} style={{ ...inputStyle, padding: '6px 10px', width: 'auto', fontSize: '12px' }}>
-                <option value="house">Casa Simples</option>
-                <option value="village">Vila / Village</option>
-                <option value="condo">Condomínio</option>
-              </select>
-            </div>
-            <button onClick={() => onAction(user.id, 'approve', propertyType)} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#10B981', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Promover a Gestor</button>
-            <button onClick={() => onAction(user.id, 'deny')} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#FFF', border: '1px solid #EF4444', color: '#EF4444', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Recusar</button>
-          </>
+      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid #F1F5F9', paddingTop: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        
+        {/* Seletor de Cargo (Sempre visível para usuários aprovados) */}
+        {!isDenied && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B' }}>CARGO:</span>
+            <select 
+              value={user.role} 
+              onChange={(e) => {
+                const newRole = e.target.value;
+                if (newRole === 'manager') {
+                  onAction(user.id, 'promote', propertyType);
+                } else {
+                  onAction(user.id, 'demote');
+                }
+              }}
+              disabled={disabled}
+              style={{ ...inputStyle, padding: '6px 10px', width: 'auto', fontSize: '12px', border: isManager ? '1px solid #3B82F6' : '1px solid #E2E8F0' }}
+            >
+              <option value="user">Usuário Normal</option>
+              <option value="manager">Gestor de Condomínio</option>
+            </select>
+
+            {user.role === 'user' && (
+              <>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', marginLeft: '8px' }}>TIPO SE PROMOVER:</span>
+                <select value={propertyType} onChange={e => setPropertyType(e.target.value)} style={{ ...inputStyle, padding: '6px 10px', width: 'auto', fontSize: '12px' }}>
+                  <option value="house">Individual / Casa</option>
+                  <option value="village">Vila / Village</option>
+                  <option value="condo">Condomínio</option>
+                </select>
+              </>
+            {user.role === 'manager' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B' }}>PORTÃO:</span>
+                <button 
+                  onClick={() => {
+                    // Aqui precisaríamos de um endpoint para atualizar a propriedade diretamente
+                    // Por enquanto vamos simular a atualização local ou usar o authorize-user se estendido
+                    onAction(user.id, 'toggleGate');
+                  }}
+                  style={{ 
+                    padding: '4px 10px', 
+                    borderRadius: '8px', 
+                    border: 'none', 
+                    background: user.property?.hasGateFeature ? '#10B981' : '#F1F5F9',
+                    color: user.property?.hasGateFeature ? '#FFF' : '#64748B',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {user.property?.hasGateFeature ? 'ATIVADO' : 'DESATIVADO'}
+                </button>
+              </div>
+            )}
+          </div>
         )}
-        {!isPending && !isDenied && !isManager && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto' }}>
-              <select value={propertyType} onChange={e => setPropertyType(e.target.value)} style={{ ...inputStyle, padding: '6px 10px', width: 'auto', fontSize: '12px' }}>
-                <option value="house">Casa Simples</option>
-                <option value="village">Vila / Village</option>
-                <option value="condo">Condomínio</option>
-              </select>
-            </div>
-            <button onClick={() => onAction(user.id, 'promote', propertyType)} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ShieldCheck size={14} /> Converter em Gestor
-            </button>
-          </>
-        )}
-        {isManager && (
-          <button onClick={() => onAction(user.id, 'demote')} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#FFF', border: '1px solid #F59E0B', color: '#D97706', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Remover Gestão</button>
-        )}
+
         {isDenied && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto' }}>
-              <select value={propertyType} onChange={e => setPropertyType(e.target.value)} style={{ ...inputStyle, padding: '6px 10px', width: 'auto', fontSize: '12px' }}>
-                <option value="house">Casa Simples</option>
-                <option value="village">Vila / Village</option>
-                <option value="condo">Condomínio</option>
-              </select>
-            </div>
-            <button onClick={() => onAction(user.id, 'approve', propertyType)} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#10B981', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Reativar</button>
-          </>
+          <button onClick={() => onAction(user.id, 'approve', propertyType)} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#10B981', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Reativar</button>
+        )}
+        
+        {!isDenied && (
+          <button onClick={() => onAction(user.id, 'deny')} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#FFF', border: '1px solid #EF4444', color: '#EF4444', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Recusar / Bloquear</button>
         )}
       </div>
     </div>

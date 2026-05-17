@@ -74,8 +74,8 @@ export default function AdminPanel() {
 
   const fetchProperties = async () => {
     try {
-      const adminEmail = localStorage.getItem('cd_admin_email');
-      const adminRole = localStorage.getItem('cd_admin_role');
+      const adminEmail = sessionStorage.getItem('cd_admin_email');
+      const adminRole = sessionStorage.getItem('cd_admin_role');
       const url = (adminRole === 'master' || !adminEmail) 
         ? `${API}/api/properties` 
         : `${API}/api/properties?email=${encodeURIComponent(adminEmail)}`;
@@ -83,11 +83,11 @@ export default function AdminPanel() {
       const data = await res.json();
       
       setProperties(data);
-
+ 
       // Auto-seleciona propriedade salva no login ou a primeira disponível
-      const savedPropertyId = localStorage.getItem('cd_admin_propertyId');
+      const savedPropertyId = sessionStorage.getItem('cd_admin_propertyId');
       if (data.length === 0) {
-        const savedType = localStorage.getItem('cd_property_type');
+        const savedType = sessionStorage.getItem('cd_property_type');
         if (savedType) {
           const mappedType = savedType === 'house' ? 'individual' : savedType;
           setPropertyType(mappedType);
@@ -109,7 +109,7 @@ export default function AdminPanel() {
 
   const fetchVisitors = async (propertyId) => {
     setLoadingVisitors(true);
-    const adminEmail = localStorage.getItem('cd_admin_email');
+    const adminEmail = sessionStorage.getItem('cd_admin_email');
     try {
       const url = adminEmail 
         ? `${API}/api/visitors/property/${propertyId}?adminEmail=${encodeURIComponent(adminEmail)}`
@@ -163,8 +163,8 @@ export default function AdminPanel() {
   const handleSubmit = async (idFromScanner) => {
     const finalId = idFromScanner || scannedId;
     const units = propertyType !== 'individual' ? unitsList.filter(u => u.name.trim()) : [];
-    const adminEmail = localStorage.getItem('cd_admin_email');
-    const adminPassword = localStorage.getItem('cd_admin_password');
+    const adminEmail = sessionStorage.getItem('cd_admin_email');
+    const adminPassword = sessionStorage.getItem('cd_admin_password');
     
     try {
       const res = await fetch(`${API}/api/properties`, {
@@ -198,7 +198,7 @@ export default function AdminPanel() {
 
   const deleteProperty = async (id) => {
     if (!window.confirm('Excluir esta placa?')) return;
-    const adminEmail = localStorage.getItem('cd_admin_email');
+    const adminEmail = sessionStorage.getItem('cd_admin_email');
     try { 
       const url = adminEmail 
         ? `${API}/api/properties/${id}?adminEmail=${encodeURIComponent(adminEmail)}`
@@ -395,7 +395,8 @@ export default function AdminPanel() {
           { key: 'broadcast',  label: '📢 Mensagens' },
           { key: 'history',    label: '📋 Histórico' }
         ].filter(tab => {
-          const isIndividual = properties.some(p => p.type === 'individual');
+          const selectedPropObj = properties.find(p => p.id === selectedProperty);
+          const isIndividual = selectedPropObj?.type === 'individual';
           if (isIndividual && ['units', 'people', 'broadcast'].includes(tab.key)) return false;
           return true;
         }).map(tab => (
@@ -484,7 +485,7 @@ export default function AdminPanel() {
 
         {/* ── ABA: UNIDADES ── */}
         {activeTab === 'units' && selectedProperty && (
-          <UnitManager propertyId={selectedProperty} adminEmail={localStorage.getItem('cd_admin_email')} onRefresh={fetchProperties} />
+          <UnitManager propertyId={selectedProperty} adminEmail={sessionStorage.getItem('cd_admin_email')} onRefresh={fetchProperties} />
         )}
         {activeTab === 'units' && !selectedProperty && properties.length > 0 && (
           <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -494,12 +495,12 @@ export default function AdminPanel() {
 
         {/* ── ABA: PESSOAS ── */}
         {activeTab === 'people' && selectedProperty && (
-          <ResidentManager propertyId={selectedProperty} property={properties.find(p => p.id === selectedProperty)} adminEmail={localStorage.getItem('cd_admin_email')} onRefresh={fetchProperties} />
+          <ResidentManager propertyId={selectedProperty} property={properties.find(p => p.id === selectedProperty)} adminEmail={sessionStorage.getItem('cd_admin_email')} onRefresh={fetchProperties} />
         )}
 
         {/* ── ABA: MENSAGENS ── */}
         {activeTab === 'broadcast' && selectedProperty && (
-          <BroadcastPanel propertyId={selectedProperty} adminEmail={localStorage.getItem('cd_admin_email')} />
+          <BroadcastPanel propertyId={selectedProperty} adminEmail={sessionStorage.getItem('cd_admin_email')} />
         )}
 
         {/* ── ABA: HISTÓRICO ── */}
@@ -555,6 +556,10 @@ export default function AdminPanel() {
           </>
         )}
       </main>
+
+      <footer style={{ marginTop: 'auto', padding: '24px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
+        CAMPAINHA DIGITAL INOVA SIMPLES (I.S.) - CNPJ: 65.628.833/0001-47
+      </footer>
     </div>
   );
 }

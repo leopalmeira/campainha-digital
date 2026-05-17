@@ -7,6 +7,8 @@ const QRCode = require('qrcode');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const WhatsAppService = require('./services/whatsappService');
+const PdfService = require('./services/pdfService');
 
 const app = express();
 const server = http.createServer(app);
@@ -24,6 +26,7 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+app.use('/contracts', express.static(path.join(__dirname, 'contracts')));
 
 // ─── Paths dos bancos JSON ────────────────────────────────────────────────────
 const dbPath           = path.join(__dirname, 'db.json');
@@ -128,9 +131,9 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // ─── Unified Registration Routes ──────────────────────────────────────────────
-app.post('/api/auth/register', (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password) return res.status(400).json({ error: 'Nome, e-mail e senha são obrigatórios.' });
+app.post('/api/auth/register', async (req, res) => {
+  const { name, email, whatsapp, password } = req.body;
+  if (!name || !email || !password || !whatsapp) return res.status(400).json({ error: 'Nome, e-mail, WhatsApp e senha são obrigatórios.' });
 
   const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
   if (existing) return res.status(400).json({ error: 'Este e-mail já está cadastrado.' });
@@ -139,6 +142,7 @@ app.post('/api/auth/register', (req, res) => {
     id: uuidv4(),
     name,
     email: email.toLowerCase(),
+    whatsapp,
     password,
     role: 'user', // Starts as a simple user
     status: 'active', // Active immediately so they appear in the dashboard
@@ -148,10 +152,14 @@ app.post('/api/auth/register', (req, res) => {
 
   users.push(newUser);
   saveUsers();
+  
+  // Automate Welcome WhatsApp
+  WhatsAppService.sendWelcomeMessage(newUser).catch(err => console.error('Error sending welcome message:', err));
+  
   res.status(201).json({ success: true, message: 'Cadastro realizado. Agora escaneie sua placa.', userId: newUser.id });
 });
 
-app.post('/api/auth/link-qr', (req, res) => {
+app.post('/api/auth/link-qr', async (req, res) => {
   const { userId, propertyId, qrImage, paymentChoice } = req.body;
   const user = users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
@@ -165,8 +173,61 @@ app.post('/api/auth/link-qr', (req, res) => {
   user.scannedPropertyId = propertyId;
   if (qrImage) user.qrImage = qrImage;
   if (paymentChoice) user.paymentChoice = paymentChoice; // 'trial' | 'annual'
+  user.status = 'approved'; // Auto approve for trial
+  
+  // Create property automatically
+  if (!existingProp) {
+    const clientCode = generateAccessCode();
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const url = `${frontendUrl}/chamada/${propertyId}`;
+    const qrCodeDataUrl = await QRCode.toDataURL(url, { width: 500 });
+
+    const trialDays = 15;
+    const nextPaymentDate = new Date();
+    nextPaymentDate.setDate(nextPaymentDate.getDate() + trialDays);
+
+    const prop = {
+      id: propertyId,
+      type: 'individual', // Default type for single users
+      name: `Propriedade de ${user.name}`,
+      adminEmail: user.email,
+      adminPassword: user.password,
+      clientName: user.name,
+      clientCode,
+      doormanCode: null,
+      units: [{ id: uuidv4(), name: 'Principal', accessCode: clientCode }],
+      qrCodeUrl: qrCodeDataUrl,
+      url,
+      createdAt: new Date().toISOString(),
+      nextPaymentDate: nextPaymentDate.toISOString(),
+      plan: paymentChoice === 'annual' ? 'Anual' : 'Trial',
+      hasGateFeature: false, // Default: disabled
+      featureNeighborChat: (paymentChoice === 'annual' && (user.scannedPropertyId?.includes('CONDO') || user.scannedPropertyId?.includes('VILA'))) ? true : false
+    };
+    properties.push(prop);
+    saveDb();
+  } else {
+    // Link existing prop to this user if it was orphaned or just updating
+    existingProp.adminEmail = user.email;
+    existingProp.adminPassword = user.password;
+    existingProp.clientName = user.name;
+    saveDb();
+  }
+
   saveUsers();
-  res.json({ success: true, message: 'Placa vinculada. Aguarde a autorização do administrador.' });
+  
+  // Automate PDF Generation and Contract Message
+  try {
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const contract = await PdfService.generateContract(user, paymentChoice || 'trial');
+    const fullContractUrl = `${backendUrl}${contract.url}`;
+    
+    WhatsAppService.sendContractMessage(user, paymentChoice || 'trial', fullContractUrl).catch(err => console.error('Error sending contract message:', err));
+  } catch(error) {
+    console.error('Error generating contract:', error);
+  }
+
+  res.json({ success: true, message: 'Placa vinculada com sucesso! Você já pode acessar seu painel.', propertyId });
 });
 
 // ─── Master Admin User Management Endpoints ──────────────────────────────────
@@ -218,58 +279,42 @@ app.post('/api/admin/authorize-user', async (req, res) => {
 
   if (action === 'demote') {
     user.role = 'user';
+    // Se era manager, talvez queiramos mudar o tipo da propriedade para individual?
+    const prop = properties.find(p => p.adminEmail?.toLowerCase() === user.email.toLowerCase());
+    if (prop) prop.type = 'individual';
     saveUsers();
+    saveDb();
     return res.json({ success: true, message: 'Usuário rebaixado para usuário comum.' });
   }
 
-  // Approve or Promote
-  user.status = 'approved';
-  
-  if (action === 'promote' || action === 'approve') {
-    user.role = 'manager'; // Promote to manager/gestor
-  }
-
-  // If they scanned a property, we must create/update that property in db.json
-  if (user.scannedPropertyId) {
-    const propId = user.scannedPropertyId;
-    let prop = properties.find(p => p.id === propId);
-    
-    if (!prop) {
-      // Create new property
-      const clientCode = generateAccessCode();
-      const mappedType = propertyType === 'house' ? 'individual' : (propertyType || 'individual');
-      const isCollective = mappedType === 'condo' || mappedType === 'village';
-      
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      const url = `${frontendUrl}/chamada/${propId}`;
-      const qrCodeDataUrl = await QRCode.toDataURL(url, { width: 500 });
-
-      prop = {
-        id: propId,
-        type: mappedType,
-        name: `Propriedade de ${user.name}`,
-        adminEmail: user.email,
-        adminPassword: user.password,
-        clientName: user.name,
-        clientCode,
-        doormanCode: isCollective ? generateAccessCode() : null,
-        units: isCollective ? [] : [{ id: uuidv4(), name: 'Principal', accessCode: clientCode }],
-        qrCodeUrl: qrCodeDataUrl,
-        url,
-        createdAt: new Date().toISOString(),
-        nextPaymentDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
-      };
-      properties.push(prop);
-    } else {
-      // Update existing
-      prop.adminEmail = user.email;
-      prop.adminPassword = user.password;
+  if (action === 'toggleGate') {
+    const prop = properties.find(p => p.adminEmail?.toLowerCase() === user.email.toLowerCase());
+    if (prop) {
+      prop.hasGateFeature = !prop.hasGateFeature;
+      saveDb();
+      return res.json({ success: true, message: prop.hasGateFeature ? 'Abertura de portão ativada.' : 'Abertura de portão desativada.' });
     }
+    return res.status(404).json({ error: 'Propriedade não encontrada.' });
   }
 
+  if (action === 'promote' || action === 'approve') {
+    user.role = 'manager'; 
+    user.status = 'approved';
+    const prop = properties.find(p => p.adminEmail?.toLowerCase() === user.email.toLowerCase());
+    if (prop) {
+      prop.type = propertyType || 'condo';
+      if (prop.type !== 'individual' && !prop.doormanCode) {
+        prop.doormanCode = generateAccessCode();
+      }
+    }
+    saveUsers();
+    saveDb();
+    return res.json({ success: true, message: 'Usuário promovido a gestor de condomínio.' });
+  }
+
+  user.status = 'approved';
   saveUsers();
-  saveDb();
-  res.json({ success: true, message: action === 'promote' ? 'Usuário promovido a gestor!' : 'Usuário aprovado e promovido a administrador.' });
+  res.json({ success: true, message: 'Usuário atualizado.' });
 });
 
 // ─── Doorman Auth Route ──────────────────────────────────────────────────────
@@ -795,7 +840,9 @@ app.post('/api/resident/login-by-code', (req, res) => {
     unitName: foundUnit.name,
     propertyName: foundProperty.name,
     propertyId: foundProperty.id,
-    propertyType: foundProperty.type
+    propertyType: foundProperty.type,
+    hasGateFeature: foundProperty.hasGateFeature || false,
+    featureNeighborChat: foundProperty.featureNeighborChat || false
   });
 });
 

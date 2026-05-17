@@ -425,6 +425,9 @@ export default function PorteiroDashboard() {
         </div>
       </main>
 
+      <footer style={{ marginTop: 'auto', padding: '24px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
+        CAMPAINHA DIGITAL INOVA SIMPLES (I.S.) - CNPJ: 65.628.833/0001-47
+      </footer>
 
       <style>{`
         @keyframes pulse {

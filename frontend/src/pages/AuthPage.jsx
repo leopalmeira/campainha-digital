@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle2, Phone } from 'lucide-react';
 import Logo from '../components/Logo';
 import jsQR from 'jsqr';
 
@@ -11,6 +11,7 @@ export default function AuthPage() {
   const [step, setStep] = useState(1); // 1: Cadastro, 2: Scan QR, 3: Aguardando
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [password, setPassword] = useState('');
   const [userId, setUserId] = useState('');
   const [scannedId, setScannedId] = useState('');
@@ -41,14 +42,14 @@ export default function AuthPage() {
         const data = await res.json();
         if (res.ok) {
           if (data.role === 'doorman') {
-            localStorage.setItem('cd_admin_role', 'doorman');
-            localStorage.setItem('cd_doorman_propertyId', data.propertyId);
+            sessionStorage.setItem('cd_admin_role', 'doorman');
+            sessionStorage.setItem('cd_doorman_propertyId', data.propertyId);
             navigate('/portaria');
           } else if (data.unitId) {
-            localStorage.setItem('residentUnitId', data.unitId);
-            localStorage.setItem('residentName', data.unitName || 'Morador');
-            localStorage.setItem('residentPropertyId', data.propertyId || '');
-            localStorage.setItem('residentAccessCode', data.accessCode || accessCode.toUpperCase());
+            sessionStorage.setItem('residentUnitId', data.unitId);
+            sessionStorage.setItem('residentName', data.unitName || 'Morador');
+            sessionStorage.setItem('residentPropertyId', data.propertyId || '');
+            sessionStorage.setItem('residentAccessCode', data.accessCode || accessCode.toUpperCase());
             navigate(`/morador/${data.unitId}`);
           }
         } else {
@@ -62,21 +63,21 @@ export default function AuthPage() {
         });
         const data = await res.json();
         if (res.ok) {
-          localStorage.setItem('cd_admin_email', data.email);
+          sessionStorage.setItem('cd_admin_email', data.email);
           if (data.role === 'master') {
-            localStorage.setItem('cd_admin_role', 'master');
+            sessionStorage.setItem('cd_admin_role', 'master');
             navigate('/master-admin');
           } else if (data.role === 'doorman') {
-            localStorage.setItem('cd_admin_role', 'doorman');
-            localStorage.setItem('cd_doorman_propertyId', data.propertyId);
+            sessionStorage.setItem('cd_admin_role', 'doorman');
+            sessionStorage.setItem('cd_doorman_propertyId', data.propertyId);
             navigate('/portaria');
           } else if (data.role === 'sindico') {
-            localStorage.setItem('cd_admin_role', 'sindico');
-            if (data.propertyId) localStorage.setItem('cd_admin_propertyId', data.propertyId);
+            sessionStorage.setItem('cd_admin_role', 'sindico');
+            if (data.propertyId) sessionStorage.setItem('cd_admin_propertyId', data.propertyId);
             navigate('/admin');
           } else {
-            localStorage.setItem('cd_admin_role', 'client');
-            if (data.propertyId) localStorage.setItem('cd_admin_propertyId', data.propertyId);
+            sessionStorage.setItem('cd_admin_role', 'client');
+            if (data.propertyId) sessionStorage.setItem('cd_admin_propertyId', data.propertyId);
             navigate('/admin');
           }
         } else {
@@ -94,10 +95,17 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Validate WhatsApp minimum length roughly
+      if (whatsapp.length < 14) {
+        alert('Por favor, informe um WhatsApp válido com DDD.');
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch(`${API}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, whatsapp, password })
       });
       const data = await res.json();
       if (res.ok) {
@@ -194,6 +202,12 @@ export default function AuthPage() {
         body: JSON.stringify({ userId, propertyId: scannedId, qrImage: scannedImage, paymentChoice })
       });
       if (res.ok) {
+        const data = await res.json();
+        // Salvar sessão para acesso imediato
+        sessionStorage.setItem('cd_admin_email', email);
+        sessionStorage.setItem('cd_admin_role', 'client'); // Começa como cliente (user)
+        if (data.propertyId) sessionStorage.setItem('cd_admin_propertyId', data.propertyId);
+        
         setStep(4);
       } else {
         const data = await res.json();
@@ -204,6 +218,19 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleWhatsappChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
+    
+    if (value.length > 2) {
+      value = `(${value.slice(0,2)}) ${value.slice(2)}`;
+    }
+    if (value.length > 9) {
+      value = `${value.slice(0,9)}-${value.slice(9)}`;
+    }
+    setWhatsapp(value);
   };
 
   return (
@@ -276,6 +303,10 @@ export default function AuthPage() {
               <div style={{ position: 'relative' }}>
                 <Mail size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
                 <input type="email" placeholder="E-mail" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={email} onChange={e => setEmail(e.target.value)} required />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <Phone size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
+                <input type="tel" placeholder="WhatsApp (DDD + Número)" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={whatsapp} onChange={handleWhatsappChange} required />
               </div>
               <div style={{ position: 'relative' }}>
                 <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
@@ -367,16 +398,20 @@ export default function AuthPage() {
             </div>
             <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Tudo Pronto!</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px', lineHeight: 1.6 }}>
-              Sua solicitação foi enviada. Agora o administrador do projeto irá autorizar seu cadastro como administrador de condomínio.
+              Sua placa foi vinculada com sucesso. Você já tem acesso ao sistema por 15 dias de teste grátis.
             </p>
             <div style={{ marginTop: '32px', padding: '16px', background: '#F1F5F9', borderRadius: '12px', fontSize: '13px', color: '#475569' }}>
-               Você receberá um e-mail assim que for aprovado.
+               Aproveite todos os recursos da Campainha Digital.
             </div>
-            <button onClick={() => setIsLogin(true)} className="btn-primary w-full" style={{ marginTop: '32px' }}>
-              Voltar ao Início
+            <button onClick={() => navigate('/admin')} className="btn-primary w-full" style={{ marginTop: '32px' }}>
+              Acessar Meu Painel <ArrowRight size={20} />
             </button>
           </div>
         )}
+      </div>
+
+      <div style={{ position: 'absolute', bottom: '24px', width: '100%', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
+        CAMPAINHA DIGITAL INOVA SIMPLES (I.S.) - CNPJ: 65.628.833/0001-47
       </div>
 
       {showScanner && (

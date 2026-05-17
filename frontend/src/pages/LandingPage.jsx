@@ -376,7 +376,8 @@ export default function LandingPage() {
       </section>
       
       <footer style={{ padding: '32px 0', textAlign: 'center', borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-         <p style={{ color: 'var(--text-muted)', fontSize: '14px', padding: '0 24px' }}>© {new Date().getFullYear()} Campainha Digital. O padrão definitivo em segurança inteligente.</p>
+         <p style={{ color: 'var(--text-muted)', fontSize: '14px', padding: '0 24px', marginBottom: '8px' }}>© {new Date().getFullYear()} Campainha Digital. O padrão definitivo em segurança inteligente.</p>
+         <p style={{ color: '#64748B', fontSize: '12px', padding: '0 24px', margin: 0 }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.) - CNPJ: 65.628.833/0001-47</p>
       </footer>
     </>
   );

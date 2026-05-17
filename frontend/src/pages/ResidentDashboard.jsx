@@ -93,6 +93,10 @@ export default function ResidentDashboard() {
   const [broadcastMessages, setBroadcastMessages] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const [propertyType, setPropertyType] = useState(() => localStorage.getItem('residentPropertyType') || 'individual');
+  const [hasGateFeature, setHasGateFeature] = useState(() => localStorage.getItem('residentHasGateFeature') === 'true');
+  const [featureNeighborChat, setFeatureNeighborChat] = useState(() => localStorage.getItem('residentFeatureNeighborChat') === 'true');
+
   const audioRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const localVideoRef = useRef(null);
@@ -352,8 +356,9 @@ export default function ResidentDashboard() {
       {[
         { key: 'home', icon: <Home size={22} />, label: 'Início' },
         { key: 'messages', icon: <Mail size={22} />, label: 'Avisos', badge: unreadCount },
+        (featureNeighborChat || propertyType !== 'individual') ? { key: 'intercom', icon: <Building2 size={22} />, label: 'Vizinhos' } : null,
         { key: 'history', icon: <History size={22} />, label: 'Atividade' },
-      ].map(n => (
+      ].filter(Boolean).map(n => (
         <button key={n.key} onClick={() => { setTab(n.key); if (n.key === 'messages') markMessagesRead(); }} style={{ flex: 1, padding: '12px 4px 8px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: tab === n.key ? 'var(--primary)' : '#94A3B8', fontSize: '11px', fontWeight: 700, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
           <div style={{ transform: tab === n.key ? 'translateY(-2px)' : 'none', transition: 'transform 0.3s' }}>{n.icon}</div>
           {n.badge > 0 && <div style={{ position:'absolute',top:'8px',right:'calc(50% - 18px)',width:'16px',height:'16px',borderRadius:'50%',background:'#EF4444',color:'#fff',fontSize:'9px',fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center', border: '2px solid #fff' }}>{n.badge}</div>}
@@ -380,9 +385,11 @@ export default function ResidentDashboard() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <p style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', letterSpacing: '1px', marginBottom: '8px' }}>FUNCIONALIDADES</p>
           
-          <button onClick={() => { setTab('intercom'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: tab === 'intercom' ? '#F0F9FF' : 'transparent', color: tab === 'intercom' ? '#0369A1' : '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
-            <Building2 size={20} color={tab === 'intercom' ? '#0369A1' : '#64748B'} /> Interfone Digital
-          </button>
+          {(featureNeighborChat || propertyType !== 'individual') && (
+            <button onClick={() => { setTab('intercom'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: tab === 'intercom' ? '#F0F9FF' : 'transparent', color: tab === 'intercom' ? '#0369A1' : '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
+              <Building2 size={20} color={tab === 'intercom' ? '#0369A1' : '#64748B'} /> Interfone Digital
+            </button>
+          )}
 
           <button onClick={() => { setTab('services'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: tab === 'services' ? '#F0F9FF' : 'transparent', color: tab === 'services' ? '#0369A1' : '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
             <ShoppingBag size={20} color={tab === 'services' ? '#0369A1' : '#64748B'} /> Parceiros da Região
@@ -623,9 +630,11 @@ export default function ResidentDashboard() {
                 </button>
               </div>
 
-              <button onClick={handleOpenGate} className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '16px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                <KeyRound size={24} /> LIBERAR ENTRADA
-              </button>
+              {(hasGateFeature && propertyType !== 'individual') && (
+                <button onClick={handleOpenGate} className="btn-primary" style={{ width: '100%', padding: '16px', fontSize: '16px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                  <KeyRound size={24} /> LIBERAR ENTRADA
+                </button>
+              )}
             </div>
           )}
         </>

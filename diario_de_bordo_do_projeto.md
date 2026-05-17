@@ -354,10 +354,24 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
+## 🤝 v3.2.0 — Integração WhatsApp, Contratos Automáticos e Compliance Corporativo (16/05/2026)
+
+### Cadastro com WhatsApp e Integração
+- **Campo de WhatsApp Obrigatório:** Adicionado na tela de registro (`AuthPage.jsx`) com formatação e validação de máscara brasileira `(XX) XXXXX-XXXX`.
+- **Exibição do WhatsApp:** O número agora fica visível no Painel Master (`MasterAdminDashboard`) em destaque verde nos cards de usuários pendentes e aprovados, agilizando o contato da equipe comercial.
+- **Serviço de WhatsApp Automático:** Criado `backend/services/whatsappService.js` preparado para integrações via Meta API/Evolution/Z-API, responsável pelo envio da mensagem automática de boas-vindas logo após o cadastro e envio de PDF.
+
+### Geração de Contratos Automáticos em PDF
+- **Serviço de Contrato (PDFKit):** Criado `backend/services/pdfService.js` que gera contratos dinâmicos altamente profissionais usando `pdfkit`.
+- **Design do Contrato:** Padrão Premium com paleta corporativa (Preto, Cinza Chumbo e Azul Profissional).
+- **Compliance e Autenticidade:** O documento conta com hash único de segurança, código QR para validação, e todas as cláusulas do serviço, armazenado na nova pasta `backend/contracts/`.
+
+### Identidade e Compliance
+- **Informações Obrigatórias da Empresa:** Adicionados os dados "CAMPAINHA DIGITAL INOVA SIMPLES (I.S.) - CNPJ: 65.628.833/0001-47" aos rodapés obrigatórios da aplicação (`LandingPage`, `MasterAdminDashboard`, `AdminPanel`, `PorteiroDashboard`), assegurando conformidade comercial e legal.
+
 ## 🛠️ Próximos Passos
+- [ ] Implementação de Cronjob para bloqueio e invalidação automática após término do Teste de 15 dias.
+- [ ] Ativação da API real de WhatsApp no `whatsappService.js`.
 - [ ] Integração Pix automatizada via API de pagamentos.
-- [ ] Geração de contrato PDF com assinatura digital.
 - [ ] Sistema de notificações push (FCM).
 - [ ] Migração final para PostgreSQL/Neon.
-- [ ] Dashboard de analytics com gráficos.
-
