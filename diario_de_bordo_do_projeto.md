@@ -369,6 +369,11 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 ### Identidade e Compliance
 - **Informações Obrigatórias da Empresa:** Adicionados os dados "CAMPAINHA DIGITAL INOVA SIMPLES (I.S.) - CNPJ: 65.628.833/0001-47" aos rodapés obrigatórios da aplicação (`LandingPage`, `MasterAdminDashboard`, `AdminPanel`, `PorteiroDashboard`), assegurando conformidade comercial e legal.
 
+### Notificações Push (Acordar PWA)
+- **Web-Push Integrado:** Implementado um `Service Worker (sw.js)` que permite que o dispositivo do morador (Android/Desktop) toque, vibre e exiba uma notificação persistente (`requireInteraction: true`) mesmo com a tela apagada ou o PWA em background.
+- **Assinatura Automática:** O aplicativo pede permissão de notificação automaticamente e vincula a chave VAPID segura enviando para a nova rota `/api/subscribe`.
+- **Gatilho em Tempo Real:** Toda vez que houver um evento `incoming_call` (seja da portaria ou visitante), o backend dispara a notificação acordando o celular.
+
 ## 🛠️ Próximos Passos
 - [ ] Implementação de Cronjob para bloqueio e invalidação automática após término do Teste de 15 dias.
 - [ ] Ativação da API real de WhatsApp no `whatsappService.js`.

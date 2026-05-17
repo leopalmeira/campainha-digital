@@ -9,6 +9,17 @@ const fs = require('fs');
 const path = require('path');
 const WhatsAppService = require('./services/whatsappService');
 const PdfService = require('./services/pdfService');
+const webPush = require('web-push');
+
+// Configuração VAPID
+const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BOKz4CjOXwpKxhmqIKPx22wV3oAZmUHbrbSvucyErK7tcZB7XxNfiAD9itYQi46nMw0o_7nbuqe6zHu5NiwI0tc';
+const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'wBw8-8ShBBcPYdQ6SH4dOrRER6mS52rFU833Hk6Zgi8';
+
+webPush.setVapidDetails(
+  'mailto:suporte@campainhadigital.com.br',
+  publicVapidKey,
+  privateVapidKey
+);
 
 const app = express();
 const server = http.createServer(app);
@@ -40,6 +51,9 @@ let residents  = [];
 let visitors   = []; // histórico de visitantes
 let messages   = []; // mensagens do condomínio
 let users      = []; // usuários registrados aguardando ou com acesso
+let subscriptions = []; // assinaturas push
+
+const subscriptionsDbPath = path.join(__dirname, 'subscriptions.json');
 
 function loadDb() {
   if (fs.existsSync(dbPath))          properties = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
@@ -47,6 +61,7 @@ function loadDb() {
   if (fs.existsSync(visitorsDbPath))  visitors   = JSON.parse(fs.readFileSync(visitorsDbPath, 'utf8'));
   if (fs.existsSync(messagesDbPath))  messages   = JSON.parse(fs.readFileSync(messagesDbPath, 'utf8'));
   if (fs.existsSync(usersDbPath))     users      = JSON.parse(fs.readFileSync(usersDbPath, 'utf8'));
+  if (fs.existsSync(subscriptionsDbPath)) subscriptions = JSON.parse(fs.readFileSync(subscriptionsDbPath, 'utf8'));
 }
 loadDb();
 
@@ -55,9 +70,28 @@ const saveResidents = () => fs.writeFileSync(residentsDbPath, JSON.stringify(res
 const saveVisitors  = () => fs.writeFileSync(visitorsDbPath,  JSON.stringify(visitors,   null, 2));
 const saveMessages  = () => fs.writeFileSync(messagesDbPath,  JSON.stringify(messages,   null, 2));
 const saveUsers     = () => fs.writeFileSync(usersDbPath,      JSON.stringify(users,      null, 2));
+const saveSubscriptions = () => fs.writeFileSync(subscriptionsDbPath, JSON.stringify(subscriptions, null, 2));
 
 // ─── Keep-Alive endpoint (previne spin-down no Render Free) ──────────────────
 app.get('/api/ping', (_req, res) => res.json({ ok: true, ts: Date.now() }));
+
+// ─── Push Subscription Route ──────────────────────────────────────────────────
+app.post('/api/subscribe', (req, res) => {
+  const { subscription, unitId, propertyId } = req.body;
+  
+  if (!subscription || !unitId) return res.status(400).json({ error: 'Faltam dados da inscrição.' });
+  
+  // Atualiza ou insere
+  const existingIndex = subscriptions.findIndex(s => s.unitId === unitId && s.subscription.endpoint === subscription.endpoint);
+  if (existingIndex > -1) {
+    subscriptions[existingIndex] = { subscription, unitId, propertyId, lastUpdated: new Date().toISOString() };
+  } else {
+    subscriptions.push({ subscription, unitId, propertyId, lastUpdated: new Date().toISOString() });
+  }
+  
+  saveSubscriptions();
+  res.status(201).json({ success: true });
+});
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const generateAccessCode = () => crypto.randomBytes(3).toString('hex').toUpperCase();
@@ -918,6 +952,21 @@ io.on('connection', (socket) => {
       visitId: visit.id,
       propertyId
     });
+
+    // Enviar notificação push para acordar o celular em background
+    const unitSubs = subscriptions.filter(s => s.unitId === unitId);
+    if (unitSubs.length > 0) {
+      const payload = JSON.stringify({
+        title: '🔔 Campainha Digital',
+        body: `Visitante na portaria aguardando!`,
+        url: `/morador/${unitId}`
+      });
+      unitSubs.forEach(sub => {
+        webPush.sendNotification(sub.subscription, payload).catch(err => {
+          console.error('[WebPush] Falha ao enviar:', err.message);
+        });
+      });
+    }
   });
 
   socket.on('answer_call', ({ visitorSocketId, mode, unitId }) => {
@@ -1005,6 +1054,20 @@ io.on('connection', (socket) => {
       propertyId,
       fromDoorman: true
     });
+
+    const unitSubs = subscriptions.filter(s => s.unitId === unitId);
+    if (unitSubs.length > 0) {
+      const payload = JSON.stringify({
+        title: '📞 Chamada da Portaria',
+        body: `A portaria está interfonando!`,
+        url: `/morador/${unitId}`
+      });
+      unitSubs.forEach(sub => {
+        webPush.sendNotification(sub.subscription, payload).catch(err => {
+          console.error('[WebPush] Falha ao enviar:', err.message);
+        });
+      });
+    }
   });
 
   // Morador envia mensagem para a portaria

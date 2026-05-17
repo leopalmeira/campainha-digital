@@ -185,7 +185,33 @@ export default function ResidentDashboard() {
 
     const bip = (e) => { e.preventDefault(); setInstallPrompt(e); };
     window.addEventListener('beforeinstallprompt', bip);
-    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+    
+    // Configura Web Push para receber chamada com a tela apagada/fechada
+    if ('Notification' in window && 'serviceWorker' in navigator) {
+      Notification.requestPermission().then(async (perm) => {
+        if (perm === 'granted') {
+          try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: 'BOKz4CjOXwpKxhmqIKPx22wV3oAZmUHbrbSvucyErK7tcZB7XxNfiAD9itYQi46nMw0o_7nbuqe6zHu5NiwI0tc'
+            });
+            await fetch(`${API}/api/subscribe`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subscription: sub,
+                unitId: id,
+                propertyId: savedPropId
+              })
+            });
+            console.log('Push Subscription enviada com sucesso');
+          } catch (e) {
+            console.error('Falha ao assinar Push:', e);
+          }
+        }
+      });
+    }
 
     return () => { s.disconnect(); window.removeEventListener('beforeinstallprompt', bip); stopAll(); };
   }, [id]);
