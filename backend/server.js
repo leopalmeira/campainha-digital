@@ -596,6 +596,27 @@ app.post('/api/properties/:id/activate-annual', (req, res) => {
   res.json({ success: true, nextPaymentDate: prop.nextPaymentDate });
 });
 
+// Atualizar Configuração de WhatsApp do Condomínio
+app.put('/api/properties/:id/whatsapp-config', (req, res) => {
+  const prop = properties.find(p => p.id === req.params.id);
+  if (!prop) return res.status(404).json({ error: 'Property not found' });
+  
+  const { instance, token, supportPhone } = req.body;
+  prop.whatsappConfig = { instance, token, supportPhone };
+  
+  saveDb();
+  res.json({ success: true, whatsappConfig: prop.whatsappConfig });
+});
+
+// Obter número de suporte público de uma propriedade
+app.get('/api/properties/:id/support', (req, res) => {
+  const prop = properties.find(p => p.id === req.params.id);
+  if (!prop) return res.status(404).json({ error: 'Property not found' });
+  
+  const supportPhone = prop.whatsappConfig?.supportPhone || '5521999999999';
+  res.json({ supportPhone });
+});
+
 // ─── Unit Management Routes (Admin Panel do Condomínio) ───────────────────────
 
 // Adicionar nova unidade a uma propriedade
@@ -717,6 +738,10 @@ app.post('/api/properties/:propId/mass-invite', async (req, res) => {
     return res.status(403).json({ error: 'Sem permissão.' });
   }
 
+  if (!prop.whatsappConfig || !prop.whatsappConfig.instance || !prop.whatsappConfig.token) {
+    return res.status(400).json({ error: 'Configuração de WhatsApp do condomínio ausente. Acesse as configurações para cadastrar sua instância e token.' });
+  }
+
   let sentCount = 0;
   for (const unit of prop.units) {
     if (unit.whatsapp) {
@@ -724,6 +749,8 @@ app.post('/api/properties/:propId/mass-invite', async (req, res) => {
       const messageBody = `Olá! O gestor do condomínio *${prop.name || 'Campainha Digital'}* configurou o seu interfone digital.\n\nSua Unidade: ${unit.name}\nSeu Código de Acesso: *${unit.accessCode}*\n\nAcesse agora: ${process.env.FRONTEND_URL || 'https://campainha-digital.com'}/morador-login`;
       
       try {
+        // Usa as credenciais do gestor (prop.whatsappConfig.instance / token)
+        console.log(`Enviando via Instância ${prop.whatsappConfig.instance}...`);
         await whatsappService.simulateWhatsAppApiCall(unit.whatsapp, messageBody);
         sentCount++;
       } catch (err) {

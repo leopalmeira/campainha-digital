@@ -235,10 +235,11 @@ export default function AuthPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: '#F8FAFC' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       
-      <div className="glass-panel fade-in" style={{ width: '100%', maxWidth: '440px', padding: '48px 40px', position: 'relative' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+        <div className="glass-panel fade-in" style={{ width: '100%', maxWidth: '440px', padding: '40px 24px', position: 'relative' }}>
         
         {isLogin && (
           <>
@@ -423,8 +424,9 @@ export default function AuthPage() {
           </div>
         )}
       </div>
+      </div>
 
-      <div style={{ position: 'absolute', bottom: '0', width: '100%', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '12px', padding: '24px', lineHeight: '1.6' }}>
+      <div style={{ width: '100%', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '12px', padding: '24px', lineHeight: '1.6' }}>
         <strong style={{ fontSize: '14px', color: '#10B981', display: 'block', marginBottom: '6px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
         CNPJ: 65.628.833/0001-47<br/>
         Central WhatsApp: <a href="https://wa.me/5521999999999" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99999-9999</a>

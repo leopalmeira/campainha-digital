@@ -96,6 +96,7 @@ export default function ResidentDashboard() {
   const [propertyType, setPropertyType] = useState(() => localStorage.getItem('residentPropertyType') || 'individual');
   const [hasGateFeature, setHasGateFeature] = useState(() => localStorage.getItem('residentHasGateFeature') === 'true');
   const [featureNeighborChat, setFeatureNeighborChat] = useState(() => localStorage.getItem('residentFeatureNeighborChat') === 'true');
+  const [supportPhone, setSupportPhone] = useState('5521999999999');
 
   const audioRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -114,8 +115,8 @@ export default function ResidentDashboard() {
     socketRef.current = s;
     s.emit('register_resident', { unitId: id, propertyId: savedPropId });
 
-    // Fetch broadcast messages
-    const fetchMessages = async () => {
+    // Fetch broadcast messages and support phone
+    const fetchData = async () => {
       if (!savedPropId) return;
       try {
         const res = await fetch(`${API}/api/properties/${savedPropId}/messages`);
@@ -125,9 +126,15 @@ export default function ResidentDashboard() {
           const readIds = JSON.parse(localStorage.getItem('cd_read_msgs') || '[]');
           setUnreadCount(data.filter(m => !readIds.includes(m.id)).length);
         }
+        
+        const suppRes = await fetch(`${API}/api/properties/${savedPropId}/support`);
+        if (suppRes.ok) {
+          const suppData = await suppRes.json();
+          if (suppData.supportPhone) setSupportPhone(suppData.supportPhone);
+        }
       } catch {}
     };
-    fetchMessages();
+    fetchData();
 
 
     s.on('incoming_call', (data) => {
@@ -428,6 +435,13 @@ export default function ResidentDashboard() {
           <button onClick={() => { setTab('settings'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: tab === 'settings' ? '#F8FAFC' : 'transparent', color: '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
             <Settings size={20} color="#64748B" /> Configurações
           </button>
+          
+          <button onClick={() => {
+            const phone = propertyType === 'individual' ? '5521999999999' : supportPhone;
+            window.open(`https://wa.me/${phone}?text=Olá,%20preciso%20de%20suporte%20no%20app%20Campainha%20Digital.`, '_blank');
+          }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: 'transparent', color: '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
+            <MessageCircle size={20} color="#25D366" /> Suporte (WhatsApp)
+          </button>
         </div>
 
         <button onClick={() => navigate('/')} style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: '#FFF1F2', color: '#E11D48', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
@@ -504,12 +518,12 @@ export default function ResidentDashboard() {
 
               {/* Código de Acesso */}
               <div style={{ width: '100%', maxWidth: '380px', background: '#FFF', borderRadius: '16px', padding: '16px 18px', border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-                <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '1px', margin: '0 0 8px' }}>SEU CÓDIGO DE ACESSO</p>
+                <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '1px', margin: '0 0 8px' }}>SEU CÓDIGO DE ACESSO (NÃO COMPARTILHE)</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                   <span style={{ fontSize: '24px', fontWeight: 900, color: '#3B82F6', letterSpacing: '4px', fontFamily: 'monospace' }}>{accessCode || '...'}</span>
-                  <button onClick={() => { const m = `Código de acesso Campainha Digital: ${accessCode}\nApp: ${window.location.origin}/morador-login`; window.open(`https://wa.me/?text=${encodeURIComponent(m)}`,'_blank'); }}
+                  <button onClick={() => { const m = `Estou usando a Campainha Digital e achando incrível! Super prático atender o portão direto pelo celular de onde eu estiver. Conheça também: ${window.location.origin}`; window.open(`https://wa.me/?text=${encodeURIComponent(m)}`,'_blank'); }}
                     style={{ padding: '8px 14px', borderRadius: '10px', background: '#25D366', border: 'none', color: '#fff', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <MessageCircle size={14}/> Compartilhar
+                    <MessageCircle size={14}/> Indicar Amigo
                   </button>
                 </div>
               </div>

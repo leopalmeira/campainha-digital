@@ -5,6 +5,7 @@ import Logo from '../components/Logo';
 import UnitManager from '../components/UnitManager';
 import BroadcastPanel from '../components/BroadcastPanel';
 import ResidentManager from '../components/ResidentManager';
+import ChatBot from '../components/ChatBot';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -70,6 +71,7 @@ export default function AdminPanel() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [supportTickets, setSupportTickets] = useState([]);
   const [newTicket, setNewTicket] = useState({ title: '', message: '' });
+  const [whatsappForm, setWhatsappForm] = useState({ instance: '', token: '' });
   const videoRef = useRef(null);
 
   useEffect(() => { fetchProperties(); }, []);
@@ -138,7 +140,16 @@ export default function AdminPanel() {
 
   useEffect(() => {
     if (activeTab === 'history' && selectedProperty) fetchVisitors(selectedProperty);
-  }, [activeTab, selectedProperty]);
+    
+    if (selectedProperty) {
+      const prop = properties.find(p => p.id === selectedProperty);
+      if (prop && prop.whatsappConfig) {
+        setWhatsappForm({ instance: prop.whatsappConfig.instance || '', token: prop.whatsappConfig.token || '', supportPhone: prop.whatsappConfig.supportPhone || '' });
+      } else {
+        setWhatsappForm({ instance: '', token: '', supportPhone: '' });
+      }
+    }
+  }, [activeTab, selectedProperty, properties]);
 
   const startScan = async () => {
     setScanning(true);
@@ -251,6 +262,23 @@ export default function AdminPanel() {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const saveWhatsappConfig = async (propertyId, instance, token, supportPhone) => {
+    try {
+      const res = await fetch(`${API}/api/properties/${propertyId}/whatsapp-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instance, token, supportPhone })
+      });
+      if (res.ok) {
+        alert("Configuração de WhatsApp salva com sucesso!");
+        fetchProperties();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Erro ao salvar WhatsApp config.");
+      }
+    } catch (e) { console.error(e); }
   };
 
   const deleteProperty = async (id) => {
@@ -451,7 +479,8 @@ export default function AdminPanel() {
           { key: 'people',     label: '👥 Pessoas' },
           { key: 'broadcast',  label: '📢 Mensagens' },
           { key: 'history',    label: '📋 Histórico' },
-          { key: 'support',    label: '🎧 Suporte' }
+          { key: 'support',    label: '🎧 Suporte' },
+          { key: 'settings',   label: '⚙️ Configurações' }
         ].filter(tab => {
           const selectedPropObj = properties.find(p => p.id === selectedProperty);
           const isIndividual = selectedPropObj?.type === 'individual';
@@ -673,7 +702,41 @@ export default function AdminPanel() {
             )}
           </>
         )}
+
+        {/* ── ABA: CONFIGURAÇÕES ── */}
+        {activeTab === 'settings' && selectedProperty && (
+          <div style={{ padding: '20px 0', maxWidth: '600px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>Configurações do Condomínio</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>Configure a conta do WhatsApp do seu condomínio para envios de convites automáticos e suporte aos moradores.</p>
+            
+            <form onSubmit={(e) => { e.preventDefault(); saveWhatsappConfig(selectedProperty, whatsappForm.instance, whatsappForm.token, whatsappForm.supportPhone); }} style={{ background: '#FFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                 <MessageCircle size={24} color="#25D366" />
+                 <h3 style={{ margin: 0, fontWeight: 700, fontSize: '18px' }}>WhatsApp da Portaria / Síndico</h3>
+               </div>
+               
+               <div style={{ marginBottom: '16px' }}>
+                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>Instância de Disparo (Evolution API / Z-API)</label>
+                 <input value={whatsappForm.instance} onChange={e => setWhatsappForm({...whatsappForm, instance: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Ex: condominio-flores" required />
+               </div>
+               <div style={{ marginBottom: '16px' }}>
+                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>Token da Instância</label>
+                 <input type="password" value={whatsappForm.token} onChange={e => setWhatsappForm({...whatsappForm, token: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Seu token de acesso..." required />
+               </div>
+               <div style={{ marginBottom: '24px' }}>
+                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>Número Público para Suporte aos Moradores (WhatsApp)</label>
+                 <input type="tel" value={whatsappForm.supportPhone} onChange={e => setWhatsappForm({...whatsappForm, supportPhone: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Ex: 5521999999999" required />
+               </div>
+               
+               <button type="submit" style={{ width: '100%', padding: '14px', background: '#10B981', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '15px' }}>
+                 SALVAR CONFIGURAÇÃO
+               </button>
+            </form>
+          </div>
+        )}
       </main>
+
+      <ChatBot />
 
       <footer style={{ marginTop: 'auto', padding: '32px 24px', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '13px', lineHeight: '1.6', width: '100%' }}>
         <strong style={{ fontSize: '15px', color: '#10B981', display: 'block', marginBottom: '8px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
