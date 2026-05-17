@@ -633,7 +633,25 @@ app.post('/api/payment/asaas/create', async (req, res) => {
   const user = users.find(u => u.email === prop?.adminEmail);
 
   if (!prop || !user) return res.status(404).json({ error: 'Propriedade ou usuário não encontrado.' });
-  if (!ASAAS_API_KEY) return res.status(500).json({ error: 'Chave do Asaas não configurada no servidor.' });
+  
+  if (!ASAAS_API_KEY) {
+    try {
+      const mockPayPayload = `00020101021226850014br.gov.bcb.pix2563pix-h.asaas.com/qr/v2/simulado-${propertyId}520400005303986540539.905802BR5925Campainha Digital Simula6009Rio de Jan62070503***63041D9C`;
+      const qrCodeDataUrl = await QRCode.toDataURL(mockPayPayload, { width: 400 });
+      const base64Data = qrCodeDataUrl.split(',')[1];
+      
+      return res.json({
+        success: true,
+        paymentId: `simulado-${propertyId}`,
+        invoiceUrl: '#',
+        pixQrCode: base64Data,
+        pixCopiaECola: mockPayPayload,
+        isSimulated: true
+      });
+    } catch (e) {
+      return res.status(500).json({ error: 'Falha ao gerar Pix simulado.' });
+    }
+  }
 
   try {
     let customerId = prop.asaasCustomerId;

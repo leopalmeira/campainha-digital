@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle2, Phone, Building2 } from 'lucide-react';
 import Logo from '../components/Logo';
@@ -25,9 +25,56 @@ export default function AuthPage() {
   const [propertyType, setPropertyType] = useState('individual'); // 'individual' ou 'collective'
   const [pixData, setPixData] = useState(null);
   
+  const [isPaid, setIsPaid] = useState(false);
+  
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const navigate = useNavigate();
+
+  // Polling para checar se o Pix foi pago/confirmado no Asaas
+  useEffect(() => {
+    if (step !== 4 || !scannedId || isPaid) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/properties/${scannedId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.plan === 'Anual') {
+            setIsPaid(true);
+            clearInterval(interval);
+          }
+        }
+      } catch (err) {
+        console.error("Erro no polling de confirmacao:", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [step, scannedId, isPaid]);
+
+  const simulatePayment = async () => {
+    try {
+      const res = await fetch(`${API}/api/webhook/asaas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'PAYMENT_RECEIVED',
+          payment: {
+            externalReference: scannedId,
+            value: 39.90
+          }
+        })
+      });
+      if (res.ok) {
+        alert("Simulação enviada! O sistema vai detectar o pagamento e liberar na tela em instantes.");
+      } else {
+        alert("Erro ao simular pagamento.");
+      }
+    } catch (err) {
+      alert("Erro de conexão na simulação.");
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -426,42 +473,67 @@ export default function AuthPage() {
 
         {!isLogin && step === 4 && (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-              <CheckCircle2 size={40} color="#10B981" />
-            </div>
-            <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Placa Vinculada!</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px', lineHeight: 1.6 }}>
-              Para liberar o acesso ao sistema, realize o pagamento da sua assinatura anual.
-            </p>
-
-            {pixData ? (
-              <div style={{ marginTop: '32px', padding: '24px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                <strong style={{ display: 'block', fontSize: '16px', color: '#0F172A', marginBottom: '16px' }}>Pague com PIX (R$ 39,90)</strong>
-                
-                <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
-                  <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
+            {isPaid ? (
+              <div className="fade-in">
+                <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '2px solid #10B981', boxShadow: '0 0 20px rgba(16,185,129,0.4)' }}>
+                  <CheckCircle2 size={50} color="#10B981" />
                 </div>
-                
-                <div style={{ marginTop: '24px' }}>
-                   <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>PIX Copia e Cola</span>
-                   <div style={{ display: 'flex', gap: '8px' }}>
-                     <input type="text" value={pixData.pixCopiaECola} readOnly style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', background: '#F8FAFC', outline: 'none' }} />
-                     <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Pix copiado!'); }} style={{ padding: '0 16px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>
-                        Copiar
-                     </button>
-                   </div>
+                <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#10B981' }}>Pagamento Confirmado! 🎉</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '15px', marginTop: '12px', lineHeight: 1.6 }}>
+                  Excelente! O seu pagamento foi reconhecido e o acesso ao sistema foi <strong>totalmente liberado</strong>!
+                </p>
+                <div style={{ marginTop: '32px', padding: '20px', background: 'rgba(16,185,129,0.05)', borderRadius: '16px', border: '1px dashed #10B981', fontSize: '13px', color: '#0F172A', fontWeight: 600 }}>
+                   Plano Anual Ativado com Sucesso! 🛡️
                 </div>
-                <p style={{ fontSize: '12px', color: '#64748B', marginTop: '16px', lineHeight: '1.4' }}>Após o pagamento, o acesso é liberado em instantes e o recibo enviado para o seu WhatsApp/E-mail.</p>
+                <button onClick={() => navigate('/admin')} className="btn-primary w-full" style={{ marginTop: '32px', background: '#10B981', color: '#FFF' }}>
+                  Acessar Meu Painel <ArrowRight size={20} />
+                </button>
               </div>
             ) : (
-              <div style={{ marginTop: '32px', padding: '16px', background: '#F1F5F9', borderRadius: '12px', fontSize: '13px', color: '#475569' }}>
-                 Aguardando liberação do sistema ou configurando integração de pagamento.
-              </div>
+              <>
+                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                  <CheckCircle2 size={40} color="#10B981" />
+                </div>
+                <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Placa Vinculada!</h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px', lineHeight: 1.6 }}>
+                  Para liberar o acesso ao sistema, realize o pagamento da sua assinatura anual.
+                </p>
+
+                {pixData ? (
+                  <div style={{ marginTop: '32px', padding: '24px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <strong style={{ display: 'block', fontSize: '16px', color: '#0F172A', marginBottom: '16px' }}>Pague com PIX (R$ 39,90)</strong>
+                    
+                    <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
+                      <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
+                    </div>
+                    
+                    <div style={{ marginTop: '24px' }}>
+                       <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>PIX Copia e Cola</span>
+                       <div style={{ display: 'flex', gap: '8px' }}>
+                         <input type="text" value={pixData.pixCopiaECola} readOnly style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', background: '#F8FAFC', outline: 'none' }} />
+                         <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Pix copiado!'); }} style={{ padding: '0 16px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>
+                            Copiar
+                         </button>
+                       </div>
+                    </div>
+                    
+                    <p style={{ fontSize: '12px', color: '#64748B', marginTop: '16px', lineHeight: '1.4' }}>Após o pagamento, o acesso é liberado em instantes e o recibo enviado para o seu WhatsApp/E-mail.</p>
+                    
+                    <button onClick={simulatePayment} style={{ marginTop: '24px', background: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', border: '1px dashed #3B82F6', padding: '12px', borderRadius: '12px', cursor: 'pointer', width: '100%', fontSize: '13px', fontWeight: 800, transition: 'all 0.2s' }}>
+                      🧪 Simular Confirmação de Pagamento
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '32px', padding: '16px', background: '#F1F5F9', borderRadius: '12px', fontSize: '13px', color: '#475569' }}>
+                     Aguardando liberação do sistema ou configurando integração de pagamento.
+                  </div>
+                )}
+                
+                <button onClick={() => navigate('/admin')} className="btn-primary w-full" style={{ marginTop: '24px' }}>
+                  Acessar Meu Painel <ArrowRight size={20} />
+                </button>
+              </>
             )}
-            
-            <button onClick={() => navigate('/admin')} className="btn-primary w-full" style={{ marginTop: '24px' }}>
-              Acessar Meu Painel <ArrowRight size={20} />
-            </button>
           </div>
         )}
       </div>
