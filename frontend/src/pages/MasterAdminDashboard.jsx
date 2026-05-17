@@ -52,10 +52,15 @@ export default function MasterAdminDashboard() {
       navigate('/auth');
       return;
     }
-    fetchClients();
-    fetchPendingUsers();
-    fetchAllUsers();
-    fetchSupportTickets();
+    const loadAll = (hideLoading = false) => {
+      fetchClients(hideLoading);
+      fetchPendingUsers();
+      fetchAllUsers();
+      fetchSupportTickets();
+    };
+    loadAll(false);
+    const interval = setInterval(() => { loadAll(true); }, 5000);
+    return () => clearInterval(interval);
   }, [navigate]);
 
   const fetchSupportTickets = async () => {
@@ -1412,7 +1417,6 @@ function BillingTab({ clients, API, onRefresh }) {
         <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#94A3B8' }}>
           💡 Quando o cliente pagar via Pix, o Asaas acionará o Webhook automaticamente e o sistema renovará o plano sozinho, sem necessidade de ação manual.
         </p>
-      </div>
       </div>
     </div>
   );

@@ -74,7 +74,11 @@ export default function AdminPanel() {
   const [whatsappForm, setWhatsappForm] = useState({ instance: '', token: '' });
   const videoRef = useRef(null);
 
-  useEffect(() => { fetchProperties(); }, []);
+  useEffect(() => {
+    fetchProperties();
+    const interval = setInterval(() => { fetchProperties(true); }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchTickets = async () => {
     try {

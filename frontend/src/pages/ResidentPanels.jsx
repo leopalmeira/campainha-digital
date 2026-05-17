@@ -277,24 +277,7 @@ export function SettingsPanel({ unitName, setUnitName, onSave, unitId, propertyI
       <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '4px' }}>Configurações</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px' }}>Personalize sua campainha</p>
 
-      {/* ── Código de Acesso ── */}
-      {accessCode && (
-        <div style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '1px', marginBottom: '12px' }}>🔑 SEU CÓDIGO DE ACESSO</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ flex: 1, background: '#FFF', borderRadius: '12px', padding: '14px 20px', textAlign: 'center', border: '1px solid var(--border-subtle)' }}>
-              <span style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)', letterSpacing: '8px', fontFamily: 'monospace' }}>{accessCode}</span>
-            </div>
-            <button onClick={copyCode} style={{ padding: '14px 18px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: codeCopied ? 'rgba(16,185,129,0.2)' : 'rgba(0,229,255,0.1)', color: codeCopied ? '#10B981' : 'var(--primary)', transition: 'all 0.2s', minWidth: '64px' }}>
-              {codeCopied ? '✓' : '📋'}
-              <span style={{ fontSize: '10px' }}>{codeCopied ? 'Copiado!' : 'Copiar'}</span>
-            </button>
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '10px', lineHeight: 1.5 }}>
-            Use este código para fazer login em outros dispositivos ou compartilhar com membros da família.
-          </p>
-        </div>
-      )}
+
 
       {/* ── Nome ── */}
       <div className="glass-panel" style={{ padding: '20px', marginBottom: '16px' }}>

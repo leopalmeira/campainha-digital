@@ -516,17 +516,7 @@ export default function ResidentDashboard() {
                 </div>
               </div>
 
-              {/* Código de Acesso */}
-              <div style={{ width: '100%', maxWidth: '380px', background: '#FFF', borderRadius: '16px', padding: '16px 18px', border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-                <p style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', letterSpacing: '1px', margin: '0 0 8px' }}>SEU CÓDIGO DE ACESSO (NÃO COMPARTILHE)</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                  <span style={{ fontSize: '24px', fontWeight: 900, color: '#3B82F6', letterSpacing: '4px', fontFamily: 'monospace' }}>{accessCode || '...'}</span>
-                  <button onClick={() => { const m = `Estou usando a Campainha Digital e achando incrível! Super prático atender o portão direto pelo celular de onde eu estiver. Conheça também: ${window.location.origin}`; window.open(`https://wa.me/?text=${encodeURIComponent(m)}`,'_blank'); }}
-                    style={{ padding: '8px 14px', borderRadius: '10px', background: '#25D366', border: 'none', color: '#fff', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <MessageCircle size={14}/> Indicar Amigo
-                  </button>
-                </div>
-              </div>
+
 
               {/* Mensagens do condomínio - colapssável */}
               <MessagesPanel messages={broadcastMessages} unreadCount={unreadCount} onClear={markMessagesRead}/>

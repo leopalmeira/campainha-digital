@@ -458,7 +458,15 @@ app.post('/api/auth/link-qr', async (req, res) => {
     console.error('Error generating contract:', error);
   }
 
-  res.json({ success: true, message: 'Placa vinculada com sucesso! Você já pode acessar seu painel.', propertyId, role: user.role });
+  const targetProp = existingProp || properties.find(p => p.id === propertyId);
+  let unitId = null;
+  let accessCode = null;
+  if (targetProp && targetProp.type === 'individual' && targetProp.units && targetProp.units.length > 0) {
+    unitId = targetProp.units[0].id;
+    accessCode = targetProp.units[0].accessCode;
+  }
+
+  res.json({ success: true, message: 'Placa vinculada com sucesso! Você já pode acessar seu painel.', propertyId, role: user.role, propertyType: targetProp ? targetProp.type : 'individual', unitId, accessCode });
 });
 
 // ─── Master Admin User Management Endpoints ──────────────────────────────────

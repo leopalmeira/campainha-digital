@@ -25,6 +25,8 @@ export default function AuthPage() {
   const [propertyType, setPropertyType] = useState('individual'); // 'individual' ou 'collective'
   const [pixData, setPixData] = useState(null);
   const [showTerms, setShowTerms] = useState(false);
+  const [clientUnitId, setClientUnitId] = useState('');
+  const [clientAccessCode, setClientAccessCode] = useState('');
   
   const [isPaid, setIsPaid] = useState(false);
   
@@ -257,24 +259,36 @@ export default function AuthPage() {
         sessionStorage.setItem('cd_admin_email', email);
         sessionStorage.setItem('cd_admin_role', data.role || 'client'); 
         if (data.propertyId) sessionStorage.setItem('cd_admin_propertyId', data.propertyId);
+        if (data.unitId) {
+          setClientUnitId(data.unitId);
+          setClientAccessCode(data.accessCode);
+          sessionStorage.setItem('residentUnitId', data.unitId);
+          sessionStorage.setItem('residentName', name);
+          sessionStorage.setItem('residentPropertyId', data.propertyId);
+          sessionStorage.setItem('residentAccessCode', data.accessCode);
+        }
         
-        // Chamar Asaas para gerar o PIX
-        try {
-          const asaasRes = await fetch(`${API}/api/payment/asaas/create`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ propertyId: scannedId })
-          });
-          if (asaasRes.ok) {
-            const asaasData = await asaasRes.json();
-            if (asaasData.success && asaasData.pixQrCode) {
-               setPixData(asaasData);
+        if (paymentChoice === 'trial') {
+          setIsPaid(true);
+        } else {
+          // Chamar Asaas para gerar o PIX
+          try {
+            const asaasRes = await fetch(`${API}/api/payment/asaas/create`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ propertyId: scannedId })
+            });
+            if (asaasRes.ok) {
+              const asaasData = await asaasRes.json();
+              if (asaasData.success && asaasData.pixQrCode) {
+                 setPixData(asaasData);
+              }
+            } else {
+               console.log("Asaas Integration maybe not configured yet");
             }
-          } else {
-             console.log("Asaas Integration maybe not configured yet");
+          } catch(e) {
+             console.log("Error calling Asaas endpoint");
           }
-        } catch(e) {
-           console.log("Error calling Asaas endpoint");
         }
 
         setStep(4);
@@ -464,9 +478,20 @@ export default function AuthPage() {
                 style={{ padding: '20px', borderRadius: '16px', background: '#FFF', border: '2px solid #3B82F6', cursor: 'pointer', textAlign: 'left', boxShadow: '0 8px 24px rgba(59, 130, 246, 0.15)', opacity: loading ? 0.7 : 1 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#3B82F6' }}>Assinatura Anual</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#3B82F6' }}>Assinatura Anual via PIX</div>
                 </div>
-                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>R$ 39,90/ano (Pagamento Único)</div>
+                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>Plano pago (R$ 39,90/ano) via Asaas.</div>
+              </button>
+
+              <button 
+                onClick={() => submitPlan('trial')}
+                disabled={loading}
+                style={{ padding: '20px', borderRadius: '16px', background: '#F8FAFC', border: '2px dashed #CBD5E1', cursor: 'pointer', textAlign: 'left', opacity: loading ? 0.7 : 1 }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#475569' }}>Teste Grátis 15 Dias</div>
+                </div>
+                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>Ativação imediata, pague depois.</div>
               </button>
             </div>
           </div>
@@ -479,14 +504,14 @@ export default function AuthPage() {
                 <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '2px solid #10B981', boxShadow: '0 0 20px rgba(16,185,129,0.4)' }}>
                   <CheckCircle2 size={50} color="#10B981" />
                 </div>
-                <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#10B981' }}>Pagamento Confirmado! 🎉</h2>
+                <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#10B981' }}>Placa Ativada! 🎉</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '15px', marginTop: '12px', lineHeight: 1.6 }}>
-                  Excelente! O seu pagamento foi reconhecido e o acesso ao sistema foi <strong>totalmente liberado</strong>!
+                  Excelente! O seu plano foi reconhecido e o acesso ao sistema foi <strong>totalmente liberado</strong>!
                 </p>
                 <div style={{ marginTop: '32px', padding: '20px', background: 'rgba(16,185,129,0.05)', borderRadius: '16px', border: '1px dashed #10B981', fontSize: '13px', color: '#0F172A', fontWeight: 600 }}>
-                   Plano Anual Ativado com Sucesso! 🛡️
+                   Plano Ativado com Sucesso! 🛡️
                 </div>
-                <button onClick={() => navigate('/admin')} className="btn-primary w-full" style={{ marginTop: '32px', background: '#10B981', color: '#FFF' }}>
+                <button onClick={() => { if (propertyType === 'individual' && clientUnitId) { navigate(`/morador/${clientUnitId}`); } else { navigate('/admin'); } }} className="btn-primary w-full" style={{ marginTop: '32px', background: '#10B981', color: '#FFF' }}>
                   Acessar Meu Painel <ArrowRight size={20} />
                 </button>
               </div>
@@ -530,7 +555,7 @@ export default function AuthPage() {
                   </div>
                 )}
                 
-                <button onClick={() => navigate('/admin')} className="btn-primary w-full" style={{ marginTop: '24px' }}>
+                <button onClick={() => { if (propertyType === 'individual' && clientUnitId) { navigate(`/morador/${clientUnitId}`); } else { navigate('/admin'); } }} className="btn-primary w-full" style={{ marginTop: '24px' }}>
                   Acessar Meu Painel <ArrowRight size={20} />
                 </button>
               </>
