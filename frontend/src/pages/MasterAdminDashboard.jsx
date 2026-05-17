@@ -310,44 +310,42 @@ export default function MasterAdminDashboard() {
     <div style={{ minHeight: '100vh', background: '#FFFFFF', color: '#1E293B', display: 'flex', fontFamily: 'Inter, sans-serif' }}>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       
-      {/* SIDEBAR */}
-      <aside style={{ width: '280px', background: '#FFF', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', zIndex: 100 }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <Logo size={32} />
-          <p style={{ fontSize: '9px', color: '#94A3B8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>SISTEMA DE CONTROLE DIGITAL</p>
+      {/* SIDEBAR - PREMIUM DARK DESIGN */}
+      <aside style={{ width: '280px', background: '#070B14', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', zIndex: 100 }}>
+        <div style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Logo size={32} light={true} />
+          <div style={{ height: '1px', background: 'linear-gradient(90deg, #10B981 0%, transparent 100%)', width: '40px', marginTop: '8px' }} />
         </div>
 
-        <nav style={{ padding: '24px 16px', flex: 1, overflowY: 'auto' }}>
+        <nav style={{ padding: '16px', flex: 1, overflowY: 'auto' }}>
           <SidebarLink icon={Users} label="Gestão de Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
           <SidebarLink icon={User} label="Base de Usuários" active={activeTab === 'users'} onClick={() => setActiveTab('users')} count={allUsers.length} />
           <SidebarLink icon={ShieldCheck} label="Solicitações de Gestão" active={activeTab === 'authorizations'} onClick={() => setActiveTab('authorizations')} count={pendingUsers.length} />
           <SidebarLink icon={Plus} label="Novo Registro" active={activeTab === 'register'} onClick={() => setActiveTab('register')} />
-          <div style={{ height: '1px', background: '#F1F5F9', margin: '16px 0' }} />
-          <SidebarLink icon={PieChart} label="Analytics & Uso" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
-          <SidebarLink icon={Shield} label="Equipe / Porteiros" active={activeTab === 'doormen'} onClick={() => setActiveTab('doormen')} />
-          <SidebarLink icon={History} label="Logs do Sistema" active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} />
+          
+          <div style={{ padding: '24px 12px 8px', fontSize: '10px', fontWeight: 800, color: '#475569', letterSpacing: '1px', textTransform: 'uppercase' }}>Sistema & Finanças</div>
           <SidebarLink icon={CreditCard} label="Financeiro / Pix" active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} />
-          <SidebarLink icon={Headphones} label="Suporte & Tickets" active={activeTab === 'support'} onClick={() => setActiveTab('support')} />
-          <SidebarLink icon={MessageCircle} label="Indicações / Vizinho" active={activeTab === 'referrals'} onClick={() => setActiveTab('referrals')} />
-          <SidebarLink icon={Settings2} label="Config. Globais" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
-          <SidebarLink icon={Database} label="API / Integrações" active={activeTab === 'api'} onClick={() => setActiveTab('api')} />
+          <SidebarLink icon={Headphones} label="Suporte Técnico" active={activeTab === 'support'} onClick={() => setActiveTab('support')} />
+          <SidebarLink icon={Settings2} label="Configurações" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </nav>
 
-        <div style={{ padding: '24px', borderTop: '1px solid #F1F5F9', background: '#F8FAFC' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>L</div>
+        <div style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>LP</div>
             <div style={{ overflow: 'hidden' }}>
-              <p style={{ fontSize: '13px', fontWeight: 600, margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>Leandro Palmeira</p>
+              <p style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: '#F8FAFC', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>Leandro Palmeira</p>
               <p style={{ fontSize: '11px', color: '#64748B', margin: 0 }}>Administrador Master</p>
             </div>
           </div>
-          <button onClick={() => { localStorage.clear(); navigate('/auth'); }} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #FECACA', color: '#DC2626', background: '#FFF5F5', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
+          <button onClick={() => { localStorage.clear(); navigate('/auth'); }} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#EF4444', background: 'rgba(239, 68, 68, 0.05)', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
             <LogOut size={14} /> Encerrar Sessão
           </button>
-          <div style={{ padding: '16px', background: '#0F172A', borderRadius: '12px', textAlign: 'center', fontSize: '10px', color: '#94A3B8', marginTop: '24px' }}>
-            <div style={{ color: '#10B981', fontWeight: 800, marginBottom: '4px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</div>
+          <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '10px', color: '#475569' }}>
+            <div style={{ color: '#10B981', fontWeight: 800, marginBottom: '4px' }}>INOVA SIMPLES (I.S.)</div>
             <div>CNPJ: 65.628.833/0001-47</div>
-            Central WhatsApp: <a href="https://wa.me/5521995879170" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99587-9170</a>
+            <div style={{ marginTop: '8px' }}>
+              Central: <a href="https://wa.me/5521995879170" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99587-9170</a>
+            </div>
           </div>
         </div>
       </aside>
@@ -363,11 +361,9 @@ export default function MasterAdminDashboard() {
               {activeTab === 'users' && "Gestão de Usuários"}
               {activeTab === 'register' && "Registrar Nova Placa"}
               {activeTab === 'authorizations' && "Aguardando Autorização"}
-              {activeTab === 'analytics' && "Analytics de Produção"}
-              {activeTab === 'doormen' && "Gestão de Portarias"}
               {activeTab === 'billing' && "Financeiro & Assinaturas"}
-              {activeTab === 'support' && "Central de Suporte Mestre"}
-              {activeTab === 'referrals' && "Programa de Indicações"}
+              {activeTab === 'support' && "Central de Suporte"}
+              {activeTab === 'settings' && "Configurações Globais"}
             </h2>
             <p style={{ color: '#64748B', fontSize: '16px', marginTop: '4px' }}>Controle total sobre a infraestrutura Campainha Digital.</p>
           </div>
@@ -691,55 +687,6 @@ export default function MasterAdminDashboard() {
             </div>
           )}
 
-          {activeTab === 'analytics' && (
-            <div style={{ padding: '20px' }}>
-              <SectionTitle icon={PieChart} title="Analytics de Produção" />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '24px' }}>
-                <div style={{ padding: '24px', background: '#F8FAFC', borderRadius: '16px', textAlign: 'center' }}>
-                  <h4 style={{ margin: 0, color: '#64748B', fontSize: '14px' }}>Chamadas Hoje</h4>
-                  <div style={{ fontSize: '32px', fontWeight: 800, marginTop: '8px' }}>1.284</div>
-                </div>
-                <div style={{ padding: '24px', background: '#F8FAFC', borderRadius: '16px', textAlign: 'center' }}>
-                  <h4 style={{ margin: 0, color: '#64748B', fontSize: '14px' }}>Uptime Servidores</h4>
-                  <div style={{ fontSize: '32px', fontWeight: 800, marginTop: '8px', color: '#10B981' }}>99.98%</div>
-                </div>
-                <div style={{ padding: '24px', background: '#F8FAFC', borderRadius: '16px', textAlign: 'center' }}>
-                  <h4 style={{ margin: 0, color: '#64748B', fontSize: '14px' }}>Clientes Onboarding</h4>
-                  <div style={{ fontSize: '32px', fontWeight: 800, marginTop: '8px' }}>14</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'doormen' && (
-            <div style={{ padding: '20px' }}>
-              <SectionTitle icon={Shield} title="Gerenciamento de Equipes de Portaria" />
-              <p style={{ color: '#64748B' }}>Controle centralizado de acessos para porteiros de todos os condomínios.</p>
-              <div style={{ marginTop: '24px', padding: '40px', textAlign: 'center', background: '#F8FAFC', borderRadius: '20px', border: '1px dashed #E2E8F0' }}>
-                <Users size={48} color="#CBD5E1" style={{ marginBottom: '16px' }} />
-                <h3>Nenhum porteiro registrado globalmente</h3>
-                <button style={{ padding: '12px 24px', borderRadius: '12px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer', marginTop: '16px' }}>ADICIONAR PORTEIRO MASTER</button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'logs' && (
-            <div style={{ padding: '20px' }}>
-              <SectionTitle icon={History} title="Auditoria e Logs de Segurança" />
-              <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {[1,2,3,4,5].map(i => (
-                  <div key={i} style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <span style={{ fontWeight: 700, color: '#3B82F6' }}>14:0{i}:22</span>
-                      <span>Admin Master removeu registro de placa ID: SCAN_99218</span>
-                    </div>
-                    <span style={{ color: '#94A3B8' }}>IP: 189.12.33.XX</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {activeTab === 'billing' && (
             <BillingTab clients={clients} API={API} onRefresh={fetchClients} />
           )}
@@ -800,63 +747,8 @@ export default function MasterAdminDashboard() {
              </div>
            )}
 
-           {activeTab === 'referrals' && (
-             <div style={{ padding: '10px' }}>
-               <SectionTitle icon={MessageCircle} title="Programa de Indicações de Vizinhos" />
-               <p style={{ color: '#64748B', marginTop: '12px' }}>Acompanhe os vizinhos indicados e coloque-os no sistema sem sair de casa.</p>
-               
-               <div style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
-                  <div style={{ padding: '24px', background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '16px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#0369A1', marginBottom: '8px' }}>TOTAL INDICADOS</div>
-                    <div style={{ fontSize: '32px', fontWeight: 900, color: '#0C4A6E' }}>84</div>
-                  </div>
-                  <div style={{ padding: '24px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '16px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#166534', marginBottom: '8px' }}>CONVERTIDOS</div>
-                    <div style={{ fontSize: '32px', fontWeight: 900, color: '#064E3B' }}>32</div>
-                  </div>
-                  <div style={{ padding: '24px', background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '16px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#92400E', marginBottom: '8px' }}>EM CONTATO</div>
-                    <div style={{ fontSize: '32px', fontWeight: 900, color: '#78350F' }}>12</div>
-                  </div>
-               </div>
-
-               <div style={{ marginTop: '40px' }}>
-                 <h4 style={{ fontWeight: 800, marginBottom: '20px' }}>Indicações Recentes</h4>
-                 <div style={{ background: '#F8FAFC', borderRadius: '16px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-                    {[1,2,3].map(i => (
-                      <div key={i} style={{ padding: '16px 24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFF' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={20} color="#94A3B8"/></div>
-                          <div>
-                            <div style={{ fontSize: '14px', fontWeight: 700 }}>Vizinho do {['Apartamento 102', 'Lote 14', 'Bloco B'][i-1]}</div>
-                            <div style={{ fontSize: '12px', color: '#64748B' }}>Indicado por: Condomínio Solar das Palmeiras</div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                          <button style={{ padding: '8px 16px', borderRadius: '8px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>ATIVAR CLIENTE REMOTAMENTE</button>
-                        </div>
-                      </div>
-                    ))}
-                 </div>
-               </div>
-             </div>
-           )}
-
           {activeTab === 'settings' && (
             <GlobalSettingsTab API={API} />
-          )}
-
-          {activeTab === 'api' && (
-            <div style={{ padding: '20px' }}>
-              <SectionTitle icon={Database} title="API & Integrações" />
-              <div style={{ padding: '24px', background: '#F8FAFC', borderRadius: '16px', marginTop: '24px' }}>
-                <Label>API KEY MESTRE</Label>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <Input value="sk_live_51MvVq6L9y1..." readOnly type="password" />
-                  <button style={{ padding: '12px', borderRadius: '12px', background: '#FFF', border: '1px solid #E2E8F0' }}><Copy size={18}/></button>
-                </div>
-              </div>
-            </div>
           )}
 
         </div>
@@ -977,11 +869,34 @@ URL: ${selectedClient.url}
 
 function SidebarLink({ icon: Icon, label, active, onClick, count }) {
   return (
-    <button onClick={onClick} style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', background: active ? '#3B82F610' : 'transparent', color: active ? '#3B82F6' : '#64748B', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, fontSize: '14px', transition: 'all 0.2s', marginBottom: '4px', textAlign: 'left', position: 'relative' }}>
-      <Icon size={18} color={active ? '#3B82F6' : '#94A3B8'} /> 
+    <button 
+      onClick={onClick} 
+      style={{ 
+        width: '100%', 
+        padding: '12px 16px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '12px', 
+        background: active ? 'linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%)' : 'transparent', 
+        color: active ? '#FFF' : '#64748B', 
+        border: 'none', 
+        borderLeft: active ? '3px solid #3B82F6' : '3px solid transparent',
+        borderRadius: '0 8px 8px 0', 
+        cursor: 'pointer', 
+        fontWeight: active ? 700 : 500, 
+        fontSize: '14px', 
+        transition: 'all 0.2s ease', 
+        marginBottom: '2px', 
+        textAlign: 'left', 
+        position: 'relative' 
+      }}
+      onMouseEnter={e => { if(!active) e.currentTarget.style.color = '#94A3B8' }}
+      onMouseLeave={e => { if(!active) e.currentTarget.style.color = '#64748B' }}
+    >
+      <Icon size={18} color={active ? '#3B82F6' : '#475569'} style={{ filter: active ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))' : 'none' }} /> 
       <span style={{ flex: 1 }}>{label}</span>
       {count > 0 && (
-        <span style={{ background: '#EF4444', color: '#FFF', fontSize: '10px', fontWeight: 800, padding: '2px 6px', borderRadius: '100px', position: 'absolute', right: '12px' }}>
+        <span style={{ background: '#EF4444', color: '#FFF', fontSize: '10px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', position: 'absolute', right: '12px' }}>
           {count}
         </span>
       )}
