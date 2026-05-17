@@ -260,29 +260,6 @@ app.post('/api/payment/asaas/create', async (req, res) => {
   }
 });
 
-// POST /api/webhook/asaas — Webhook recebido do Asaas quando pagamento é confirmado
-app.post('/api/webhook/asaas', (req, res) => {
-  const event = req.body;
-  console.log('[ASAAS WEBHOOK]', event?.event, event?.payment?.externalReference);
-
-  if (event?.event === 'PAYMENT_RECEIVED' || event?.event === 'PAYMENT_CONFIRMED') {
-    const propertyId = event?.payment?.externalReference;
-    if (propertyId) {
-      const property = properties.find(p => p.id === propertyId);
-      if (property) {
-        property.plan = 'Anual';
-        property.nextPaymentDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-        property.lastPaymentDate = new Date().toISOString();
-        property.lastPaymentValue = event?.payment?.value || 39.90;
-        saveDb();
-        console.log(`[ASAAS] ✅ Plano Anual ativado para: ${propertyId}`);
-      }
-    }
-  }
-
-  res.status(200).json({ received: true });
-});
-
 
 
 // ─── Master Admin Credentials ────────────────────────────────────────────────
@@ -396,12 +373,8 @@ app.post('/api/auth/link-qr', async (req, res) => {
   user.scannedPropertyId = propertyId;
   if (qrImage) user.qrImage = qrImage;
   if (paymentChoice) user.paymentChoice = paymentChoice; // 'trial' | 'annual'
-  user.status = 'approved'; // Auto approve for trial
-  
-  // Se for condomínio, o usuário vira gestor imediatamente
-  if (propertyType === 'collective') {
-    user.role = 'manager';
-  }
+  user.status = 'approved'; // Auto approve immediately
+  user.role = 'manager'; // All administrators become managers immediately to avoid manual approval queue
   
   // Create property automatically
   if (!existingProp) {

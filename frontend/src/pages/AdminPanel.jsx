@@ -72,6 +72,10 @@ export default function AdminPanel() {
   const [supportTickets, setSupportTickets] = useState([]);
   const [newTicket, setNewTicket] = useState({ title: '', message: '' });
   const [whatsappForm, setWhatsappForm] = useState({ instance: '', token: '' });
+  const [pixData, setPixData] = useState(null);
+  const [isPaid, setIsPaid] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentPropertyId, setPaymentPropertyId] = useState('');
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -79,6 +83,120 @@ export default function AdminPanel() {
     const interval = setInterval(() => { fetchProperties(true); }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Polling para checar se o Pix foi pago no Asaas enquanto o modal de pagamento está aberto
+  useEffect(() => {
+    const targetId = paymentPropertyId || scannedId;
+    if ((!showPaymentModal && onboardingStep !== 'pay_qr') || !targetId || isPaid) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/properties/${targetId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.plan === 'Anual') {
+            setIsPaid(true);
+            fetchProperties();
+            clearInterval(interval);
+          }
+        }
+      } catch (err) {
+        console.error("Erro no polling de confirmacao no AdminPanel:", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [showPaymentModal, onboardingStep, paymentPropertyId, scannedId, isPaid]);
+
+  const handleOpenPayment = async (propertyId) => {
+    setPaymentPropertyId(propertyId);
+    setScannedId(propertyId); // backup
+    setIsPaid(false);
+    setPixData(null);
+    setShowPaymentModal(true);
+    setLoading(true);
+    try {
+      const asaasRes = await fetch(`${API}/api/payment/asaas/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId })
+      });
+      if (asaasRes.ok) {
+        const asaasData = await asaasRes.json();
+        if (asaasData.success && asaasData.pixQrCode) {
+           setPixData(asaasData);
+        } else {
+           alert('Falha ao gerar o pagamento. Verifique com o suporte.');
+           setShowPaymentModal(false);
+        }
+      } else {
+         const err = await asaasRes.json();
+         alert(err.error || 'Erro na integração com o Asaas.');
+         setShowPaymentModal(false);
+      }
+    } catch(e) {
+       console.error("Error calling Asaas endpoint", e);
+       alert('Erro de conexão ao gerar pagamento.');
+       setShowPaymentModal(false);
+    } finally {
+       setLoading(false);
+    }
+  };
+
+  const handleCreateAsaasPayment = async (propertyId) => {
+    setLoading(true);
+    setIsPaid(false);
+    setPixData(null);
+    try {
+      const asaasRes = await fetch(`${API}/api/payment/asaas/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId })
+      });
+      if (asaasRes.ok) {
+        const asaasData = await asaasRes.json();
+        if (asaasData.success && asaasData.pixQrCode) {
+           setPixData(asaasData);
+           setOnboardingStep('pay_qr');
+        } else {
+           alert('Falha ao gerar o pagamento Asaas. Verifique com o suporte.');
+        }
+      } else {
+         const err = await asaasRes.json();
+         alert(err.error || 'Erro na integração com o Asaas.');
+      }
+    } catch(e) {
+       console.error("Error calling Asaas endpoint", e);
+       alert('Erro de conexão ao gerar pagamento.');
+    } finally {
+       setLoading(false);
+    }
+  };
+
+  const simulatePayment = async () => {
+    const targetId = paymentPropertyId || scannedId;
+    if (!targetId) return alert("Nenhuma placa identificada para simulação.");
+    try {
+      const res = await fetch(`${API}/api/webhook/asaas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'PAYMENT_RECEIVED',
+          payment: {
+            externalReference: targetId,
+            value: 39.90
+          }
+        })
+      });
+      if (res.ok) {
+        alert("Simulação enviada! O sistema vai detectar o pagamento e liberar na tela em instantes.");
+      } else {
+        alert("Erro ao simular pagamento.");
+      }
+    } catch (err) {
+      alert("Erro de conexão ao simular pagamento.");
+    }
+  };
 
   const fetchTickets = async () => {
     try {
@@ -192,6 +310,7 @@ export default function AdminPanel() {
 
   const handleSubmit = async (idFromScanner) => {
     const finalId = idFromScanner || scannedId;
+    setScannedId(finalId);
     const units = propertyType !== 'individual' ? unitsList.filter(u => u.name.trim()) : [];
     const adminEmail = sessionStorage.getItem('cd_admin_email');
     const adminPassword = sessionStorage.getItem('cd_admin_password');
@@ -407,26 +526,101 @@ export default function AdminPanel() {
         <div style={{ display: 'inline-flex', padding: '20px', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '24px', border: '1px solid var(--border-subtle)', marginBottom: '32px' }}>
           <CreditCard size={56} color="var(--primary)" />
         </div>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '12px' }}>Quase lá!</h1>
+        <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '12px' }}>Ativação de Assinatura</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1.6, marginBottom: '40px' }}>
-          Sua placa foi ativada com sucesso. Como você está no plano <strong style={{ color: 'var(--text-main)' }}>Casa Simples</strong>, escolha como deseja prosseguir:
+          Sua placa foi vinculada com sucesso! Como você escolheu o plano de <strong style={{ color: 'var(--text-main)' }}>Casa Única</strong>, selecione o método de ativação abaixo:
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <button onClick={() => { alert('Redirecionando para o checkout Pix (R$ 39,90)...'); setOnboardingStep(null); fetchProperties(); }} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05))', border: '1px solid var(--primary)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+          <button onClick={() => handleCreateAsaasPayment(scannedId)} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05))', border: '2px solid var(--primary)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ShieldCheck size={24} color="#000" />
             </div>
             <div style={{ flex: 1 }}>
-              <strong style={{ color: 'var(--text-main)', fontSize: '16px', display: 'block' }}>Ativar Plano Anual</strong>
-              <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Taxa única de <strong style={{ color: 'var(--primary)' }}>R$ 39,90/ano</strong></span>
+              <strong style={{ color: 'var(--text-main)', fontSize: '16px', display: 'block' }}>Assinatura Anual via PIX Asaas</strong>
+              <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Apenas <strong style={{ color: 'var(--primary)' }}>R$ 39,90/ano</strong></span>
+            </div>
+          </button>
+
+          <button onClick={() => { setOnboardingStep(null); fetchProperties(); }} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px', borderRadius: '16px', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-subtle)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={20} color="var(--text-muted)" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <strong style={{ color: 'var(--text-main)', fontSize: '15px', display: 'block' }}>Teste Grátis por 15 dias</strong>
+              <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Comece a testar agora mesmo sem custos</span>
             </div>
           </button>
         </div>
 
         <p style={{ marginTop: '32px', fontSize: '12px', color: 'var(--text-muted)' }}>
-          Você poderá mudar de ideia ou cancelar a qualquer momento nas configurações.
+          Você poderá mudar de idade ou cancelar a qualquer momento nas configurações.
         </p>
+      </div>
+    </div>
+  );
+
+  if (onboardingStep === 'pay_qr') return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div className="fade-in" style={{ maxWidth: '480px', width: '100%', textAlign: 'center' }}>
+        {isPaid ? (
+          <div className="fade-in">
+            <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '2px solid #10B981', boxShadow: '0 0 20px rgba(16,185,129,0.4)' }}>
+              <Check size={50} color="#10B981" />
+            </div>
+            <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#10B981' }}>Placa Ativada! 🎉</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '15px', marginTop: '12px', lineHeight: 1.6 }}>
+              Excelente! O seu plano foi reconhecido e o acesso ao sistema foi <strong>totalmente liberado</strong>!
+            </p>
+            <button onClick={() => { setOnboardingStep(null); fetchProperties(); }} className="btn-primary w-full" style={{ marginTop: '32px', background: '#10B981', color: '#FFF' }}>
+              Acessar Meu Painel <ChevronRight size={20} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+              <Check size={40} color="#10B981" />
+            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Placa Vinculada!</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px', lineHeight: 1.6 }}>
+              Para liberar o acesso ao sistema, realize o pagamento da sua assinatura anual.
+            </p>
+
+            {pixData ? (
+              <div style={{ marginTop: '32px', padding: '24px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', color: '#0F172A' }}>
+                <strong style={{ display: 'block', fontSize: '16px', color: '#0F172A', marginBottom: '16px' }}>Pague com PIX (R$ 39,90)</strong>
+                
+                <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
+                  <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
+                </div>
+                
+                <div style={{ marginTop: '24px' }}>
+                   <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>PIX Copia e Cola</span>
+                   <div style={{ display: 'flex', gap: '8px' }}>
+                     <input type="text" value={pixData.pixCopiaECola} readOnly style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', background: '#F8FAFC', outline: 'none' }} />
+                     <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Pix copiado!'); }} style={{ padding: '0 16px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>
+                        Copiar
+                     </button>
+                   </div>
+                </div>
+                
+                <p style={{ fontSize: '12px', color: '#64748B', marginTop: '16px', lineHeight: '1.4' }}>Após o pagamento, o acesso é liberado em instantes e o recibo enviado para o seu WhatsApp/E-mail.</p>
+                
+                <button onClick={simulatePayment} style={{ marginTop: '24px', background: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', border: '1px dashed #3B82F6', padding: '12px', borderRadius: '12px', cursor: 'pointer', width: '100%', fontSize: '13px', fontWeight: 800, transition: 'all 0.2s' }}>
+                  🧪 Simular Confirmação de Pagamento
+                </button>
+              </div>
+            ) : (
+              <div style={{ marginTop: '32px', padding: '16px', background: '#F1F5F9', borderRadius: '12px', fontSize: '13px', color: '#475569' }}>
+                 Aguardando liberação do sistema ou configurando integração de pagamento.
+              </div>
+            )}
+            
+            <button onClick={() => { setOnboardingStep(null); fetchProperties(); }} className="btn-secondary w-full" style={{ marginTop: '24px' }}>
+              Voltar ao Painel
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -515,9 +709,20 @@ export default function AdminPanel() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                       <div>
                         <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '6px' }}>{p.name}</h3>
-                        <span style={{ fontSize: '12px', padding: '4px 10px', background: p.type === 'individual' ? 'rgba(16,185,129,0.1)' : 'rgba(0,229,255,0.1)', color: p.type === 'individual' ? '#10B981' : 'var(--primary)', borderRadius: '100px', fontWeight: 600 }}>
-                          {p.type === 'individual' ? 'Casa Única' : `${p.units.length} unidades`}
-                        </span>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                          <span style={{ fontSize: '12px', padding: '4px 10px', background: p.type === 'individual' ? 'rgba(16,185,129,0.1)' : 'rgba(0,229,255,0.1)', color: p.type === 'individual' ? '#10B981' : 'var(--primary)', borderRadius: '100px', fontWeight: 600 }}>
+                            {p.type === 'individual' ? 'Casa Única' : `${p.units.length} unidades`}
+                          </span>
+                          {p.plan === 'Anual' ? (
+                            <span style={{ fontSize: '12px', padding: '4px 10px', background: 'rgba(16,185,129,0.1)', color: '#10B981', borderRadius: '100px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              🛡️ Assinatura Ativa
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '12px', padding: '4px 10px', background: 'rgba(245,158,11,0.1)', color: '#D97706', borderRadius: '100px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              ⚠️ Teste (Trial)
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {p.type !== 'individual' && (
                         <button onClick={() => deleteProperty(p.id)} style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#EF4444', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}><Trash2 size={18} /></button>
@@ -527,6 +732,16 @@ export default function AdminPanel() {
                     <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '16px', display: 'flex', justifyContent: 'center', marginBottom: '20px', border: '1px solid var(--border-subtle)' }}>
                       <img src={p.qrCodeUrl} alt="QR" style={{ width: '140px', height: 'auto' }} />
                     </div>
+
+                    {p.plan !== 'Anual' && (
+                      <button
+                        onClick={() => handleOpenPayment(p.id)}
+                        className="btn-primary"
+                        style={{ width: '100%', padding: '12px', fontSize: '13px', marginBottom: '12px', background: '#10B981' }}
+                      >
+                        <CreditCard size={16} /> Ativar Plano Anual PIX Asaas (R$ 39,90/ano)
+                      </button>
+                    )}
 
                     <button className="btn-secondary" style={{ width: '100%', padding: '12px', fontSize: '13px', marginBottom: '16px' }} onClick={() => downloadQR(p.qrCodeUrl, p.name)}>
                       <Download size={16} /> Baixar QR Code
@@ -731,6 +946,68 @@ export default function AdminPanel() {
         <strong style={{ fontSize: '14px', color: '#0F172A', display: 'block', marginBottom: '8px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
         CNPJ: 65.628.833/0001-47 <br />
         Suporte: <a href="https://wa.me/5521995879170" target="_blank" rel="noreferrer" style={{ color: '#3B82F6', textDecoration: 'none', fontWeight: 700 }}>(21) 99587-9170</a>
+      </footer>
+      </div>
+
+      {showPaymentModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="fade-in" style={{ background: '#FFF', padding: '32px', borderRadius: '24px', maxWidth: '440px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0', color: '#0F172A', position: 'relative' }}>
+            <button onClick={() => setShowPaymentModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}><X size={20} /></button>
+            
+            {isPaid ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '2px solid #10B981' }}>
+                  <Check size={40} color="#10B981" />
+                </div>
+                <h3 style={{ fontSize: '22px', fontWeight: 900, color: '#10B981' }}>Pagamento Confirmado!</h3>
+                <p style={{ color: '#64748B', fontSize: '14px', marginTop: '12px', lineHeight: 1.5 }}>
+                  Sua assinatura anual foi ativada com sucesso para a placa <strong>{paymentPropertyId}</strong>!
+                </p>
+                <button onClick={() => setShowPaymentModal(false)} className="btn-primary w-full" style={{ marginTop: '24px', background: '#10B981', color: '#FFF' }}>
+                  Fechar
+                </button>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px' }}>Ativação de Assinatura</h3>
+                <p style={{ color: '#64748B', fontSize: '13px', marginBottom: '24px' }}>Imóvel: <strong>{paymentPropertyId}</strong></p>
+                
+                {loading && !pixData ? (
+                  <p style={{ color: '#64748B', padding: '40px' }}>Gerando cobrança PIX no Asaas...</p>
+                ) : pixData ? (
+                  <>
+                    <strong style={{ display: 'block', fontSize: '15px', color: '#0F172A', marginBottom: '16px' }}>Escaneie o QR Code PIX (R$ 39,90)</strong>
+                    <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
+                      <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
+                    </div>
+                    
+                    <div style={{ marginTop: '20px', textAlign: 'left' }}>
+                      <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', marginBottom: '6px' }}>PIX Copia e Cola</span>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input type="text" value={pixData.pixCopiaECola} readOnly style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', background: '#F8FAFC', outline: 'none' }} />
+                        <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Pix copiado!'); }} style={{ padding: '0 12px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>
+                          Copiar
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <p style={{ fontSize: '11px', color: '#64748B', marginTop: '16px', lineHeight: 1.4 }}>
+                      O sistema detectará o pagamento de forma automática em até 1 minuto após a transferência.
+                    </p>
+                    
+                    <button onClick={simulatePayment} style={{ marginTop: '20px', background: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', border: '1px dashed #3B82F6', padding: '10px', borderRadius: '12px', cursor: 'pointer', width: '100%', fontSize: '12px', fontWeight: 800 }}>
+                      🧪 Simular Confirmação Asaas
+                    </button>
+                  </>
+                ) : (
+                  <p style={{ color: '#EF4444' }}>Não foi possível carregar o QR Code do Asaas.</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       </footer>
       </div>
     </div>

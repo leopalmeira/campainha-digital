@@ -490,12 +490,27 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - **Painel Master Admin:** Implementado um sistema de \setInterval\ a cada 5 segundos para atualizar automaticamente a lista de clientes e estados financeiros. Adicionada a flag \hideLoading\ para evitar re-renderizações e 'flashes' de carregamento ('Carregando...') na interface durante o uso contínuo.
 - **Painel Admin do Gestor:** Similar ao painel Master, o painel de gestão local (\AdminPanel\) agora consulta propriedades ativamente a cada 5 segundos. Ajustado para não interferir nos fluxos de Onboarding (Wizard) durante o cadastro inicial de um imóvel.
 
+---
+
+## 💳 v3.5.0 — Auto-Aprovação Casa Simples e Integração PIX Asaas no App do Cliente (17/05/2026)
+
+### 🚀 Auto-Aprovação de Casa Simples (Fim da Fila de Espera)
+- **Aprovação Automática:** Corrigido o fluxo de onboarding para que propriedades do tipo "Casa Simples" (individual) sejam **aprovadas automaticamente**. O usuário é imediatamente promovido ao papel de `manager` e marcado como `approved` ao concluir o escaneamento/vinculação da placa física.
+- **Sem Fila do Master Admin:** Usuários de Casa Simples não caem mais na fila de "Aguardando Autorização" no painel Master Admin, ganhando acesso imediato ao sistema com o teste de 15 dias gratuito ativo ou iniciando a assinatura anual.
+
+### 💰 Integração Completa de Checkout Pix Asaas no Painel do Cliente (\AdminPanel.jsx\)
+- **Checkout Integrado:** Adicionada a tela de checkout Asaas Pix real diretamente no fluxo de onboarding do cliente após a vinculação da placa.
+- **Modal de Pagamento Ativo:** Clientes em período de teste (trial) ou vencidos agora podem clicar em "Ativar Plano Anual PIX Asaas (R$ 39,90/ano)" a partir do seu próprio painel.
+- **Visualização de QR Code Pix Real:** O painel do cliente se conecta ao backend, cria o cliente no Asaas e gera a cobrança Pix real de R$ 39,90, exibindo o QR Code de pagamento (imagem base64) e o código Pix "Copia e Cola" funcional.
+- **Botão Simular Confirmação:** Permite que o cliente simule o pagamento Pix de teste, disparando o Webhook de recebimento do Asaas para testar a ativação instantânea em tempo real de ponta a ponta.
+- **Polling de Pagamento:** O painel do cliente escuta a liberação do plano a cada 3 segundos enquanto o modal de pagamento estiver aberto, fechando o modal automaticamente e exibindo uma animação de sucesso ("Placa Ativada! 🎉") assim que o pagamento for detectado.
+
 ## 🛠️ Próximos Passos
 - [x] ~~Implementação de Cronjob para bloqueio e invalidação automática após término do Teste de 15 dias.~~
 - [x] ~~Integração Pix automatizada via API de pagamentos (Asaas Sandbox ativo).~~
+- [x] ~~Criar tela de pagamento no app do cliente (para ele mesmo gerar o próprio Pix e copiar o código).~~
+- [x] ~~Auto-aprovação para cadastros do tipo Casa Simples (individual).~~
 - [ ] Ativar Asaas em modo de Produção (aguardando validação da conta pelo Asaas).
 - [ ] Ativação da API real de WhatsApp no `whatsappService.js` (Evolution API ou Meta).
-- [ ] Testar simulação de pagamento no Sandbox e validar webhook de ponta a ponta.
 - [ ] Sistema de notificações push para inadimplência (FCM ou Web Push).
 - [ ] Migração final para PostgreSQL/Neon (eliminar limitação do JSON no Render Free).
-- [ ] Criar tela de pagamento no app do cliente (para ele mesmo gerar o próprio Pix).
