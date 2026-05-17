@@ -505,11 +505,16 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - **Botão Simular Confirmação:** Permite que o cliente simule o pagamento Pix de teste, disparando o Webhook de recebimento do Asaas para testar a ativação instantânea em tempo real de ponta a ponta.
 - **Polling de Pagamento:** O painel do cliente escuta a liberação do plano a cada 3 segundos enquanto o modal de pagamento estiver aberto, fechando o modal automaticamente e exibindo uma animação de sucesso ("Placa Ativada! 🎉") assim que o pagamento for detectado.
 
+### 📷 Correção do Scanner de Placas e Remoção de Entrada Manual
+- **Fix no Scanner QR:** Resolvido o problema no scanner QR da placa física durante o onboarding, onde a câmera abria mas a leitura não funcionava devido à falta de renderização do elemento `<canvas>` no JSX do cliente. Adicionado o `<canvas>` oculto que bindava a referência correta do jsQR.
+- **Remoção do Método Manual:** Removida a opção e o parágrafo "Digitar ID manualmente" no fluxo de onboarding. O escaneamento da placa física agora é estritamente obrigatório e seguro, sem bypass manual de entrada.
+
 ## 🛠️ Próximos Passos
 - [x] ~~Implementação de Cronjob para bloqueio e invalidação automática após término do Teste de 15 dias.~~
 - [x] ~~Integração Pix automatizada via API de pagamentos (Asaas Sandbox ativo).~~
 - [x] ~~Criar tela de pagamento no app do cliente (para ele mesmo gerar o próprio Pix e copiar o código).~~
 - [x] ~~Auto-aprovação para cadastros do tipo Casa Simples (individual).~~
+- [x] ~~Correção no scanner de câmera QR e remoção de input manual no onboarding.~~
 - [ ] Ativar Asaas em modo de Produção (aguardando validação da conta pelo Asaas).
 - [ ] Ativação da API real de WhatsApp no `whatsappService.js` (Evolution API ou Meta).
 - [ ] Sistema de notificações push para inadimplência (FCM ou Web Push).

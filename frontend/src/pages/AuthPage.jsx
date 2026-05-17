@@ -445,22 +445,6 @@ export default function AuthPage() {
             <button onClick={startScanner} className="btn-primary w-full" style={{ padding: '18px', borderRadius: '16px' }}>
               <Camera size={20} /> Abrir Câmera
             </button>
-            
-            <p style={{ marginTop: '24px', fontSize: '13px', color: 'var(--text-muted)' }}>
-              Teve problemas com a câmera? <br/>
-              <button 
-                onClick={() => {
-                  const id = window.prompt("Digite o ID impresso na sua placa:");
-                  if (id) { 
-                    setScannedId(id); 
-                    setStep(3); 
-                  }
-                }}
-                style={{ background: 'none', border: 'none', color: '#3B82F6', fontWeight: 700, cursor: 'pointer', marginTop: '8px', textDecoration: 'underline' }}
-              >
-                Digitar ID manualmente
-              </button>
-            </p>
           </div>
         )}
 
@@ -575,6 +559,7 @@ export default function AuthPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
            <div style={{ position: 'relative', width: '90%', maxWidth: '400px', aspectRatio: '1', borderRadius: '24px', overflow: 'hidden', border: '4px solid #3B82F6' }}>
               <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
               <div style={{ position: 'absolute', inset: '60px', border: '2px solid rgba(255,255,255,0.5)', borderRadius: '20px' }}></div>
            </div>
            <button onClick={stopScanner} style={{ marginTop: '32px', background: '#FFF', border: 'none', padding: '12px 32px', borderRadius: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
