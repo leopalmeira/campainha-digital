@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle, CreditCard, Users, Send, Zap } from 'lucide-react';
+import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle, CreditCard, Users, Send, Zap, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 import UnitManager from '../components/UnitManager';
@@ -439,11 +439,57 @@ export default function AdminPanel() {
 
   // ── Dashboard Principal ────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', paddingBottom: '60px' }}>
+    <div style={{ minHeight: '100vh', background: '#F8FAFC', color: 'var(--text-main)', display: 'flex' }}>
 
+      {/* Modern Professional Sidebar */}
+      <aside style={{ width: '260px', background: '#FFFFFF', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', padding: '24px 0', zIndex: 50, flexShrink: 0 }}>
+        <div style={{ padding: '0 24px', marginBottom: '32px' }}>
+          <Logo size={28} />
+          <div style={{ marginTop: '16px', padding: '12px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '12px', color: '#64748B', wordBreak: 'break-all' }}>
+            <strong style={{ color: '#0F172A', display: 'block', marginBottom: '4px', fontSize: '13px' }}>Painel do Gestor</strong>
+            {sessionStorage.getItem('cd_admin_email')}
+          </div>
+        </div>
 
-      {/* Paywall removido - condomínios gerenciam unidades diretamente */}
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 16px', overflowY: 'auto' }}>
+          {[
+            { key: 'properties', label: 'Propriedades', icon: Home },
+            { key: 'units',      label: 'Unidades',     icon: Building2 },
+            { key: 'people',     label: 'Moradores',    icon: Users },
+            { key: 'broadcast',  label: 'Avisos',       icon: MessageCircle },
+            { key: 'history',    label: 'Histórico',    icon: Clock },
+            { key: 'support',    label: 'Suporte',      icon: ShieldCheck },
+            { key: 'settings',   label: 'Configurações',icon: Settings }
+          ].filter(tab => {
+            const selectedPropObj = properties.find(p => p.id === selectedProperty);
+            const isIndividual = selectedPropObj?.type === 'individual';
+            if (isIndividual && ['units', 'people', 'broadcast'].includes(tab.key)) return false;
+            return true;
+          }).map(tab => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', border: 'none', background: activeTab === tab.key ? '#EFF6FF' : 'transparent', color: activeTab === tab.key ? '#3B82F6' : '#64748B', fontWeight: activeTab === tab.key ? 700 : 600, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}>
+              <tab.icon size={20} color={activeTab === tab.key ? '#3B82F6' : '#94A3B8'} /> {tab.label}
+            </button>
+          ))}
+          
+          <div style={{ height: '1px', background: '#E2E8F0', margin: '16px 0' }} />
+          
+          <a href="/contrato.pdf" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', color: '#64748B', fontWeight: 600, fontSize: '14px', textDecoration: 'none', transition: 'all 0.2s' }}>
+            <FileText size={20} color="#94A3B8" /> Ver Contrato
+          </a>
 
+          <div style={{ flex: 1 }}></div>
+
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', border: 'none', background: 'transparent', color: '#EF4444', fontWeight: 600, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', marginTop: '16px' }}>
+            <LogOut size={20} /> Sair do Sistema
+          </button>
+        </nav>
+
+        <div style={{ padding: '0 24px', marginTop: '24px', textAlign: 'center' }}>
+          <span style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px' }}>v1.2.0</span>
+        </div>
+      </aside>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', width: 'calc(100% - 260px)' }}>
 
       {/* Trial Countdown / Upgrade Banner */}
       {properties.find(p => p.id === selectedProperty)?.type === 'individual' && properties.find(p => p.id === selectedProperty)?.nextPaymentDate && (
@@ -462,38 +508,7 @@ export default function AdminPanel() {
         </div>
       )}
 
-      <header style={{ background: 'var(--bg-surface-elevated)', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', position: 'sticky', top: 0, zIndex: 50 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Logo size={32} />
-        </div>
-        <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600 }}>
-          <LogOut size={18} /> Sair
-        </Link>
-      </header>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', padding: '0 24px', gap: '0', overflowX: 'auto' }}>
-        {[
-          { key: 'properties', label: '🏠 Propriedades' },
-          { key: 'units',      label: '🏢 Unidades' },
-          { key: 'people',     label: '👥 Pessoas' },
-          { key: 'broadcast',  label: '📢 Mensagens' },
-          { key: 'history',    label: '📋 Histórico' },
-          { key: 'support',    label: '🎧 Suporte' },
-          { key: 'settings',   label: '⚙️ Configurações' }
-        ].filter(tab => {
-          const selectedPropObj = properties.find(p => p.id === selectedProperty);
-          const isIndividual = selectedPropObj?.type === 'individual';
-          if (isIndividual && ['units', 'people', 'broadcast'].includes(tab.key)) return false;
-          return true;
-        }).map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{ padding: '14px 16px', background: 'none', border: 'none', borderBottom: activeTab === tab.key ? '2px solid var(--primary)' : '2px solid transparent', color: activeTab === tab.key ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <main className="container fade-in" style={{ marginTop: '32px' }}>
+      <main className="container fade-in" style={{ padding: '32px 40px', flex: 1, maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
 
         {/* ── ABA: PROPRIEDADES ── */}
         {activeTab === 'properties' && (
@@ -734,11 +749,12 @@ export default function AdminPanel() {
 
       <ChatBot />
 
-      <footer style={{ marginTop: 'auto', padding: '32px 24px', textAlign: 'center', background: '#0F172A', color: '#FFF', fontSize: '13px', lineHeight: '1.6', width: '100%' }}>
-        <strong style={{ fontSize: '15px', color: '#10B981', display: 'block', marginBottom: '8px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
-        CNPJ: 65.628.833/0001-47<br/>
-        Central de Atendimento WhatsApp: <a href="https://wa.me/5521995879170" target="_blank" rel="noreferrer" style={{ color: '#10B981', textDecoration: 'none', fontWeight: 'bold' }}>(21) 99587-9170</a>
+      <footer style={{ padding: '24px', textAlign: 'center', background: '#FFFFFF', color: '#64748B', fontSize: '13px', borderTop: '1px solid #E2E8F0', marginTop: 'auto' }}>
+        <strong style={{ fontSize: '14px', color: '#0F172A', display: 'block', marginBottom: '8px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
+        CNPJ: 65.628.833/0001-47 <br />
+        Suporte: <a href="https://wa.me/5521995879170" target="_blank" rel="noreferrer" style={{ color: '#3B82F6', textDecoration: 'none', fontWeight: 700 }}>(21) 99587-9170</a>
       </footer>
+      </div>
     </div>
   );
 }

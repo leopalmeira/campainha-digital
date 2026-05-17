@@ -327,6 +327,16 @@ export default function AuthPage() {
                   </label>
                 </div>
               </div>
+
+              <div style={{ marginTop: '16px', marginBottom: '8px' }}>
+                <label style={{ padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: '13px', transition: 'all 0.2s' }}>
+                  <input type="checkbox" required style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#3B82F6' }} />
+                  <span style={{ color: '#475569', lineHeight: '1.4' }}>
+                    Li e concordo com os <a href="/contrato.pdf" target="_blank" style={{ color: '#3B82F6', fontWeight: 700, textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); window.open('/contrato.pdf', '_blank', 'width=800,height=600'); }}>Termos de Uso e Contrato</a> da plataforma Campainha Digital.
+                  </span>
+                </label>
+              </div>
+
               <button type="submit" disabled={loading} className="btn-primary w-full" style={{ padding: '16px', fontSize: '16px' }}>
                 {loading ? 'Processando...' : 'Cadastrar e Continuar'} <ArrowRight size={20} />
               </button>
