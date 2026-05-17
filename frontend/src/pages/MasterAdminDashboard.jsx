@@ -1143,6 +1143,7 @@ function UserManagementCard({ user, onAction, disabled }) {
                   <option value="condo">Condomínio</option>
                 </select>
               </>
+            )}
             {user.role === 'manager' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B' }}>PORTÃO:</span>
