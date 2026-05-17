@@ -374,9 +374,113 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - **Assinatura Automática:** O aplicativo pede permissão de notificação automaticamente e vincula a chave VAPID segura enviando para a nova rota `/api/subscribe`.
 - **Gatilho em Tempo Real:** Toda vez que houver um evento `incoming_call` (seja da portaria ou visitante), o backend dispara a notificação acordando o celular.
 
+---
+
+## 🧩 v3.3.0 — Onboarding Inteligente, Suporte, IA e Mobile (17/05/2026)
+
+### Onboarding com Seleção de Tipo de Conta
+- **Tipo de imóvel no cadastro:** Novo campo na `AuthPage.jsx` permitindo que o usuário selecione entre `Casa Simples` ou `Condomínio/Vila` durante o registro.
+- **Automação de papel:** Se o usuário seleciona `Condomínio/Vila`, o backend o promove automaticamente para `manager` e define a propriedade como `collective`, eliminando etapas manuais do Master Admin.
+
+### Sistema de Suporte por Tickets
+- **Central de Tickets no Master Admin:** Gestores abrem chamados diretamente pelo painel que chegam à Central de Suporte do Admin Master em tempo real.
+- **Suporte no App do Morador:** Botão de suporte adicionado no menu lateral do ResidentDashboard com comportamento inteligente:
+  - `Casa Simples` → Abre WhatsApp da plataforma `(21) 99587-9170`.
+  - `Condomínio/Vila` → Abre o número de suporte configurado pelo gestor do condomínio.
+
+### Configuração de WhatsApp pelos Gestores
+- **Painel de Configurações no AdminPanel:** Aba de configurações permite que gestores configurem instância e token de WhatsApp para envios automáticos (mensagem em massa com link do PWA e código de acesso do morador).
+- **Integração com APIs Gratuitas:** Suporte a CallMeBot ou Evolution API para envio automático de contratos e mensagens de boas-vindas.
+
+### IA de Atendimento (ChatBot)
+- **Componente `ChatBot.jsx`:** Criado chatbot com base de conhecimento FAQ de 100 perguntas cobrindo dúvidas sobre instalação, pagamento, portaria, moradores, suporte, etc.
+- **Interface Premium:** Chat flutuante com animações suaves, histórico de mensagens e lógica de correspondência por palavras-chave.
+
+### Design Responsivo Mobile (Sem Scroll)
+- **CSS Agressivo Anti-Scroll:** Revisão profunda de layout em todos os painéis (`AuthPage`, `AdminPanel`, `ResidentDashboard`) para eliminar barras de rolagem indesejadas em telas pequenas.
+- **Logo sem Corte:** Corrigido problema onde o logo era cortado em dispositivos móveis de baixa resolução.
+- **Footer Padronizado:** Rodapé unificado exibindo Nome da Empresa, CNPJ `65.628.833/0001-47` e WhatsApp central `(21) 99587-9170`.
+
+---
+
+## 💳 v3.4.0 — Integração Asaas Sandbox + Aba Financeira Completa (17/05/2026)
+
+### Configuração do Asaas Sandbox
+- **Conta Sandbox criada** em `https://sandbox.asaas.com` com chave de API gerada e configurada.
+- **Arquivo `.env`** criado no backend com as variáveis:
+  - `ASAAS_API_KEY` = chave do sandbox `$aact_hmlg_...`
+  - `ASAAS_API_URL` = `https://sandbox.asaas.com/api/v3`
+- **`require('dotenv').config()`** adicionado ao topo do `server.js` para carregar variáveis de ambiente.
+- **Variáveis adicionadas no Render** (painel Environment) para que o backend em produção use o Sandbox.
+
+### Webhook Configurado no Asaas
+- URL do webhook: `https://campainha-backend.onrender.com/api/webhook/asaas`
+- Todos os eventos de **Cobranças** marcados para recebimento.
+- Versão da API: `v3`.
+- Webhook ativo (toggle ligado).
+
+### Novos Endpoints no Backend (`server.js`)
+- **`POST /api/payment/asaas/create`**
+  - Cria cliente no Asaas (ou reutiliza `asaasCustomerId` salvo na propriedade).
+  - Gera cobrança Pix de R$ 39,90 com vencimento em 3 dias.
+  - Retorna `pixQrCode` (base64) e `pixCopiaECola`.
+  - Fallback para **simulação** se a chave não estiver configurada.
+- **`POST /api/webhook/asaas`**
+  - Recebe eventos `PAYMENT_RECEIVED` e `PAYMENT_CONFIRMED` do Asaas.
+  - Busca a propriedade pelo `externalReference` (= `propertyId`).
+  - Atualiza `plan = 'Anual'`, `nextPaymentDate = +365 dias`, `lastPaymentDate` e `lastPaymentValue`.
+  - Salva no `db.json` automaticamente.
+
+### Aba Financeira Completa no Master Admin (`MasterAdminDashboard.jsx`)
+
+#### KPI Cards (dados reais calculados em tempo real):
+| Card | O que exibe |
+|---|---|
+| Receita Anual (ARR) | `n_anuais × R$ 39,90` |
+| Receita Mensal (MRR) | `ARR ÷ 12` |
+| Em Período de Teste | Clientes com trial ativo |
+| Vencidos / Inadimplentes | Clientes com `nextPaymentDate` no passado |
+
+#### Alerta Amarelo Automático:
+- Aparece se qualquer cliente vence nos próximos **7 dias** com link de ação rápida.
+
+#### Filtros da Tabela:
+- Todos / Anuais / Trial / Vencendo em 7 dias / Vencidos
+
+#### Tabela de Clientes:
+- Colunas: Cliente, Email, Tipo/Plano, Vencimento, Dias Restantes, Status Badge colorido, Ações
+- Linha com hover suave para melhor UX
+
+#### Ações por Cliente:
+| Botão | Função |
+|---|---|
+| 🔵 Gerar Pix | Chama `/api/payment/asaas/create` e abre modal com QR Code |
+| 🟢 Confirmar | Chama `/api/properties/:id/activate-annual` — libera 12 meses |
+| 🟡 +15 dias | Chama `/api/properties/:id/extend-trial` — estende o teste |
+
+#### Modal do QR Code Pix:
+- Exibe QR Code (imagem base64) do Asaas
+- Campo Copia e Cola com botão de copiar
+- Badge `🧪 MODO SANDBOX` quando em ambiente de teste
+- Botão "Confirmar Pagamento" dentro do modal
+
+#### Rodapé Educativo:
+- Explica o funcionamento de cada botão para orientar o operador.
+
+### Como Migrar para Produção (quando Asaas liberar conta)
+1. Substituir `ASAAS_API_KEY` no Render pela chave da conta oficial.
+2. Substituir `ASAAS_API_URL` por `https://api.asaas.com/v3`.
+3. Configurar novo Webhook na conta oficial do Asaas com a mesma URL.
+4. Zero mudança de código necessária.
+
+---
+
 ## 🛠️ Próximos Passos
-- [ ] Implementação de Cronjob para bloqueio e invalidação automática após término do Teste de 15 dias.
-- [ ] Ativação da API real de WhatsApp no `whatsappService.js`.
-- [ ] Integração Pix automatizada via API de pagamentos.
-- [ ] Sistema de notificações push (FCM).
-- [ ] Migração final para PostgreSQL/Neon.
+- [x] ~~Implementação de Cronjob para bloqueio e invalidação automática após término do Teste de 15 dias.~~
+- [x] ~~Integração Pix automatizada via API de pagamentos (Asaas Sandbox ativo).~~
+- [ ] Ativar Asaas em modo de Produção (aguardando validação da conta pelo Asaas).
+- [ ] Ativação da API real de WhatsApp no `whatsappService.js` (Evolution API ou Meta).
+- [ ] Testar simulação de pagamento no Sandbox e validar webhook de ponta a ponta.
+- [ ] Sistema de notificações push para inadimplência (FCM ou Web Push).
+- [ ] Migração final para PostgreSQL/Neon (eliminar limitação do JSON no Render Free).
+- [ ] Criar tela de pagamento no app do cliente (para ele mesmo gerar o próprio Pix).
