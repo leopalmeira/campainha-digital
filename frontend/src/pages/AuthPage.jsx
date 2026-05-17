@@ -384,23 +384,12 @@ export default function AuthPage() {
 
         {!isLogin && step === 3 && (
           <div style={{ textAlign: 'center' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Escolha seu Plano</h2>
+            <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Ativação da Placa</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px', lineHeight: 1.6 }}>
-              Sua placa foi escaneada com sucesso. Como deseja prosseguir?
+              Sua placa foi escaneada com sucesso. Ative sua assinatura para começar a usar.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '32px' }}>
-              <button 
-                onClick={() => submitPlan('trial')}
-                disabled={loading}
-                style={{ padding: '20px', borderRadius: '16px', background: '#F8FAFC', border: '2px solid #E2E8F0', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', opacity: loading ? 0.7 : 1 }}
-                onMouseOver={(e) => e.currentTarget.style.borderColor = '#3B82F6'}
-                onMouseOut={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
-              >
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Teste Grátis</div>
-                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '4px' }}>Experimente por 15 dias sem compromisso.</div>
-              </button>
-
               <button 
                 onClick={() => submitPlan('annual')}
                 disabled={loading}
@@ -408,7 +397,6 @@ export default function AuthPage() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: '16px', fontWeight: 800, color: '#3B82F6' }}>Assinatura Anual</div>
-                  <div style={{ fontSize: '12px', background: '#DBEAFE', color: '#1E40AF', padding: '4px 8px', borderRadius: '100px', fontWeight: 700 }}>Mais Escolhido</div>
                 </div>
                 <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>R$ 39,90/ano (Pagamento Único)</div>
               </button>
@@ -423,7 +411,7 @@ export default function AuthPage() {
             </div>
             <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Tudo Pronto!</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px', lineHeight: 1.6 }}>
-              Sua placa foi vinculada com sucesso. Você já tem acesso ao sistema por 15 dias de teste grátis.
+              Sua placa foi vinculada com sucesso.
             </p>
             <div style={{ marginTop: '32px', padding: '16px', background: '#F1F5F9', borderRadius: '12px', fontSize: '13px', color: '#475569' }}>
                Aproveite todos os recursos da Campainha Digital.

@@ -409,16 +409,6 @@ export default function AdminPanel() {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <button onClick={() => { setOnboardingStep(null); fetchProperties(); }} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', borderRadius: '16px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Zap size={24} color="#10B981" />
-            </div>
-            <div style={{ flex: 1 }}>
-              <strong style={{ color: 'var(--text-main)', fontSize: '16px', display: 'block' }}>Teste Grátis por 15 dias</strong>
-              <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Experimente todos os recursos sem custo.</span>
-            </div>
-          </button>
-
           <button onClick={() => { alert('Redirecionando para o checkout Pix (R$ 39,90)...'); setOnboardingStep(null); fetchProperties(); }} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05))', border: '1px solid var(--primary)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ShieldCheck size={24} color="#000" />
@@ -491,22 +481,6 @@ export default function AdminPanel() {
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', width: 'calc(100% - 260px)' }}>
 
-      {/* Trial Countdown / Upgrade Banner */}
-      {properties.find(p => p.id === selectedProperty)?.type === 'individual' && properties.find(p => p.id === selectedProperty)?.nextPaymentDate && (
-        <div style={{ background: 'linear-gradient(90deg, #3B82F6, #6366F1)', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700, fontSize: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Zap size={18} />
-            {Math.ceil((new Date(properties.find(p => p.id === selectedProperty).nextPaymentDate) - new Date()) / (1000 * 60 * 60 * 24)) > 0 ? (
-              <span>Você está no período de teste: <strong style={{ color: '#FFF' }}>{Math.ceil((new Date(properties.find(p => p.id === selectedProperty).nextPaymentDate) - new Date()) / (1000 * 60 * 60 * 24))} dias restantes</strong></span>
-            ) : (
-              <span>Seu período de teste expirou!</span>
-            )}
-          </div>
-          <button onClick={() => alert('Redirecionando para pagamento Pix (R$ 39,90)...')} style={{ background: '#fff', color: '#3B82F6', border: 'none', padding: '6px 16px', borderRadius: '8px', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}>
-            ASSINAR AGORA (R$ 39,90/ANO)
-          </button>
-        </div>
-      )}
 
       <main className="container fade-in" style={{ padding: '32px 40px', flex: 1, maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
 
