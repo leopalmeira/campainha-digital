@@ -620,13 +620,8 @@ app.get('/api/properties/:id/support', (req, res) => {
   }
 });
 
-// ─── TICKETS DE SUPORTE ──────────────────────────────────────────────────────
-const SUPPORT_FILE = path.join(DATA_DIR, 'support.json');
-let supportTickets = [];
-if (fs.existsSync(SUPPORT_FILE)) {
-  supportTickets = JSON.parse(fs.readFileSync(SUPPORT_FILE, 'utf-8'));
-}
-const saveSupport = () => fs.writeFileSync(SUPPORT_FILE, JSON.stringify(supportTickets, null, 2));
+
+const saveSupport = saveSupportTickets;
 
 app.get('/api/support', (req, res) => {
   const { email, role, propertyId } = req.query;
