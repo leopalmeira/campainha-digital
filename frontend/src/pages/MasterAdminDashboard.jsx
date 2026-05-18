@@ -28,7 +28,7 @@ export default function MasterAdminDashboard() {
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [lastClientsState, setLastClientsState] = useState(null);
+  const lastClientsStateRef = useRef(null);
   const [toast, setToast] = useState(null);
 
   const triggerToast = (msg) => {
@@ -74,7 +74,7 @@ export default function MasterAdminDashboard() {
     loadAll(false);
     const interval = setInterval(() => { loadAll(true); }, 1200000); // Atualiza silenciosamente a cada 20 minutos
     return () => clearInterval(interval);
-  }, [navigate, lastClientsState]);
+  }, [navigate]);
 
   const fetchSupportTickets = async () => {
     try {
@@ -117,6 +117,7 @@ export default function MasterAdminDashboard() {
       const data = await res.json();
       
       // Compara com o estado anterior para disparar notificações se houver pagamentos novos
+      const lastClientsState = lastClientsStateRef.current;
       if (lastClientsState && lastClientsState.length > 0) {
         data.forEach(newC => {
           const oldC = lastClientsState.find(o => o.id === newC.id);
@@ -137,7 +138,7 @@ export default function MasterAdminDashboard() {
         });
       }
       
-      setLastClientsState(data);
+      lastClientsStateRef.current = data;
       setClients(data);
     } catch (err) {
       console.error(err);
