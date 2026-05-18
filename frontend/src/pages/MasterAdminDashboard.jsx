@@ -331,6 +331,46 @@ export default function MasterAdminDashboard() {
     } catch (err) { console.error(err); }
   };
 
+  const exportToJSON = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(clients, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `campainha_digital_db_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const exportToCSV = () => {
+    if (clients.length === 0) return alert('Nenhum dado para exportar.');
+    const headers = ['ID', 'Cliente', 'CPF/CNPJ', 'Empresa', 'Email', 'Telefone', 'Plano', 'Validade'];
+    const rows = clients.map(c => [
+      c.id,
+      c.clientName || c.name || '',
+      c.clientDocument || '',
+      c.companyName || '',
+      c.adminEmail || '',
+      c.clientPhone || '',
+      c.plan || '',
+      c.nextPaymentDate ? new Date(c.nextPaymentDate).toLocaleDateString('pt-BR') : ''
+    ]);
+    
+    // Adiciona BOM para abrir perfeitamente no Excel brasileiro (separado por ;)
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+    csvContent += headers.join(";") + "\n";
+    rows.forEach(r => {
+      csvContent += r.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(";") + "\n";
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", encodedUri);
+    downloadAnchor.setAttribute("download", `campainha_digital_db_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
   const filteredClients = clients.filter(c => 
     c.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
     c.adminEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -497,9 +537,17 @@ export default function MasterAdminDashboard() {
                     style={{ width: '100%', padding: '12px 16px 12px 48px', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F8FAFC', outline: 'none', fontSize: '14px' }}
                   />
                 </div>
-                <button onClick={fetchClients} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: '#3B82F6', fontWeight: 700, cursor: 'pointer' }}>
-                  <RefreshCw size={16} /> Atualizar Lista
-                </button>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <button onClick={exportToCSV} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#FFF', color: '#0F172A', fontWeight: 700, cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' }}>
+                    <Download size={16} /> Exportar CSV
+                  </button>
+                  <button onClick={exportToJSON} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#FFF', color: '#0F172A', fontWeight: 700, cursor: 'pointer', fontSize: '13px', transition: 'all 0.2s' }}>
+                    <Download size={16} /> Backup JSON
+                  </button>
+                  <button onClick={fetchClients} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: '#3B82F6', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}>
+                    <RefreshCw size={16} /> Atualizar Lista
+                  </button>
+                </div>
               </div>
 
               <div style={{ overflowX: 'auto' }}>

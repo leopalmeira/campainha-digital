@@ -57,6 +57,16 @@ let visitors   = [];
 let messages   = [];
 let users      = [];
 let subscriptions = [];
+const { Pool } = require('pg');
+
+let pool = null;
+if (process.env.DATABASE_URL) {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+}
+
 let supportTickets = [];
 
 // Configurações Globais da Plataforma (preço, trial, etc.)
@@ -70,7 +80,8 @@ let platformConfig = {
   updatedAt: new Date().toISOString()
 };
 
-function loadDb() {
+// Função para carregar banco JSON local (Backup/Fallback)
+function loadDbLocal() {
   if (fs.existsSync(dbPath))          properties = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
   if (fs.existsSync(residentsDbPath)) residents  = JSON.parse(fs.readFileSync(residentsDbPath, 'utf8'));
   if (fs.existsSync(visitorsDbPath))  visitors   = JSON.parse(fs.readFileSync(visitorsDbPath, 'utf8'));
@@ -80,16 +91,118 @@ function loadDb() {
   if (fs.existsSync(supportDbPath))   supportTickets = JSON.parse(fs.readFileSync(supportDbPath, 'utf8'));
   if (fs.existsSync(configDbPath))    platformConfig = { ...platformConfig, ...JSON.parse(fs.readFileSync(configDbPath, 'utf8')) };
 }
-loadDb();
 
-const saveDb        = () => fs.writeFileSync(dbPath,          JSON.stringify(properties, null, 2));
-const saveResidents = () => fs.writeFileSync(residentsDbPath, JSON.stringify(residents,  null, 2));
-const saveVisitors  = () => fs.writeFileSync(visitorsDbPath,  JSON.stringify(visitors,   null, 2));
-const saveMessages  = () => fs.writeFileSync(messagesDbPath,  JSON.stringify(messages,   null, 2));
-const saveUsers     = () => fs.writeFileSync(usersDbPath,      JSON.stringify(users,      null, 2));
-const saveSubscriptions = () => fs.writeFileSync(subscriptionsDbPath, JSON.stringify(subscriptions, null, 2));
-const saveSupportTickets = () => fs.writeFileSync(supportDbPath, JSON.stringify(supportTickets, null, 2));
-const saveConfig = () => fs.writeFileSync(configDbPath, JSON.stringify(platformConfig, null, 2));
+// Inicializa o PostgreSQL
+async function initPostgres() {
+  if (!pool) {
+    console.log("[DATABASE] DATABASE_URL não configurada. Usando banco JSON local.");
+    loadDbLocal();
+    return;
+  }
+  try {
+    console.log("[DATABASE] Conectando ao PostgreSQL...");
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS campainha_database (
+        key VARCHAR(50) PRIMARY KEY,
+        data JSONB NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log("[DATABASE] Tabela campainha_database verificada/criada com sucesso.");
+    
+    // Garante que o banco JSON local foi lido primeiro para alimentar o PostgreSQL se for a primeira inicialização
+    loadDbLocal();
+
+    const keys = ['properties', 'residents', 'visitors', 'messages', 'users', 'subscriptions', 'support', 'config'];
+    for (const key of keys) {
+      const res = await pool.query('SELECT data FROM campainha_database WHERE key = $1', [key]);
+      if (res.rows.length > 0) {
+        const parsedData = res.rows[0].data;
+        if (key === 'properties') properties = parsedData;
+        else if (key === 'residents') residents = parsedData;
+        else if (key === 'visitors') visitors = parsedData;
+        else if (key === 'messages') messages = parsedData;
+        else if (key === 'users') users = parsedData;
+        else if (key === 'subscriptions') subscriptions = parsedData;
+        else if (key === 'support') supportTickets = parsedData;
+        else if (key === 'config') platformConfig = { ...platformConfig, ...parsedData };
+        console.log(`[DATABASE] Carregado '${key}' do PostgreSQL (${Array.isArray(parsedData) ? parsedData.length : 1} itens).`);
+      } else {
+        // Insere dados iniciais se a chave estiver vazia no banco PostgreSQL
+        let initialData = [];
+        if (key === 'properties') initialData = properties;
+        else if (key === 'residents') initialData = residents;
+        else if (key === 'visitors') initialData = visitors;
+        else if (key === 'messages') initialData = messages;
+        else if (key === 'users') initialData = users;
+        else if (key === 'subscriptions') initialData = subscriptions;
+        else if (key === 'support') initialData = supportTickets;
+        else if (key === 'config') initialData = platformConfig;
+
+        await pool.query(`
+          INSERT INTO campainha_database (key, data)
+          VALUES ($1, $2)
+          ON CONFLICT (key) DO NOTHING
+        `, [key, JSON.stringify(initialData)]);
+        console.log(`[DATABASE] Sincronizado '${key}' inicial para o PostgreSQL.`);
+      }
+    }
+    console.log("[DATABASE] Todos os dados foram importados com sucesso do PostgreSQL!");
+  } catch (err) {
+    console.error("[DATABASE] Erro ao carregar PostgreSQL. Recorrendo ao JSON local:", err);
+    loadDbLocal();
+  }
+}
+
+// Executa inicialização
+initPostgres();
+
+// Função utilitária para persistir dados assincronamente no PostgreSQL
+async function saveToPostgres(key, data) {
+  if (!pool) return;
+  try {
+    await pool.query(`
+      INSERT INTO campainha_database (key, data, updated_at)
+      VALUES ($1, $2, CURRENT_TIMESTAMP)
+      ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = CURRENT_TIMESTAMP
+    `, [key, JSON.stringify(data)]);
+  } catch (err) {
+    console.error(`[DATABASE] Falha ao salvar chave '${key}' no PostgreSQL:`, err);
+  }
+}
+
+const saveDb = () => {
+  fs.writeFileSync(dbPath, JSON.stringify(properties, null, 2));
+  saveToPostgres('properties', properties);
+};
+const saveResidents = () => {
+  fs.writeFileSync(residentsDbPath, JSON.stringify(residents, null, 2));
+  saveToPostgres('residents', residents);
+};
+const saveVisitors = () => {
+  fs.writeFileSync(visitorsDbPath, JSON.stringify(visitors, null, 2));
+  saveToPostgres('visitors', visitors);
+};
+const saveMessages = () => {
+  fs.writeFileSync(messagesDbPath, JSON.stringify(messages, null, 2));
+  saveToPostgres('messages', messages);
+};
+const saveUsers = () => {
+  fs.writeFileSync(usersDbPath, JSON.stringify(users, null, 2));
+  saveToPostgres('users', users);
+};
+const saveSubscriptions = () => {
+  fs.writeFileSync(subscriptionsDbPath, JSON.stringify(subscriptions, null, 2));
+  saveToPostgres('subscriptions', subscriptions);
+};
+const saveSupportTickets = () => {
+  fs.writeFileSync(supportDbPath, JSON.stringify(supportTickets, null, 2));
+  saveToPostgres('support', supportTickets);
+};
+const saveConfig = () => {
+  fs.writeFileSync(configDbPath, JSON.stringify(platformConfig, null, 2));
+  saveToPostgres('config', platformConfig);
+};
 
 // ─── Config Routes (Configurações Globais da Plataforma) ──────────────────────
 app.get('/api/config', (_req, res) => res.json(platformConfig));
