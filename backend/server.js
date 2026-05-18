@@ -991,9 +991,9 @@ app.get('/api/properties/:id/units', (req, res) => {
   res.json(prop.units.map(u => ({ id: u.id, name: u.name, block: u.block || '', street: u.street || '', number: u.number || '' })));
 });
 
-app.delete('/api/properties/:id', async (req, res) => {
+app.delete('/api/properties/*', async (req, res) => {
   const { adminEmail } = req.query;
-  const targetId = (req.params.id || '').trim().toLowerCase();
+  const targetId = (req.params[0] || '').trim().toLowerCase();
   
   const prop = properties.find(p => p.id && p.id.trim().toLowerCase() === targetId);
   if (!prop) return res.status(404).json({ error: 'Property not found' });

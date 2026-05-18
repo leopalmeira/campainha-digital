@@ -641,6 +641,7 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ### 🔗 Codificação Robusta de ID com `encodeURIComponent`
 - **Saneamento de URLs como IDs:** Corrigido um bug crítico onde IDs de clientes no formato de URL completa (como `https://kinsta.com` ou `https://crystalweb.it`) causavam erro `404 Not Found` no navegador durante requisições de exclusão, ativação ou renovação. A inclusão do wrapper `encodeURIComponent` garante que barras (`/`) e outros caracteres do protocolo sejam devidamente envelopados, sendo interpretados como um único parâmetro de ID pelo roteador do Express no backend.
+- **Roteamento de Curinga Fail-safe (`/api/properties/*`):** Como medida de segurança contra caches persistentes no navegador do usuário (que podem continuar executando a versão anterior do frontend sem codificação), alteramos a rota de deleção do Express de `/api/properties/:id` para `/api/properties/*`. O backend agora captura o ID diretamente de `req.params[0]`, permitindo que requisições com barras cruas (`https://kinsta.com`) sejam mapeadas, resolvidas e deletadas com sucesso imediatamente, independente do estado de cache do navegador!
 - **Fallbacks de E-mail no Painel Master:** Adicionado o fallback automático para `'leandro2703palmeira@gmail.com'` na extração do e-mail do sessionStorage. Isso evita falhas de autorização de deleção em caso de expiração ou limpeza temporária da sessão do Master Admin.
 
 ### ⚙️ Eliminação Completa de Condições de Corrida no PostgreSQL
@@ -648,5 +649,5 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - **Middleware com Bloqueio de Leitura:** O middleware global que intercepta as chamadas de API foi atualizado para aguardar explicitamente a resolução de `pendingWrites` antes de chamar `loadFromDb()`. Isso impede que chamadas rápidas subsequentes do frontend (ex: `fetchClients()` imediatamente após um clique de exclusão) obtenham uma cópia obsoleta do banco do Postgres antes de o processo em background concluir a escrita, eliminando o fantasma dos clientes deletados que reapareciam.
 
 ### 🧹 Deleção em Cascata Absoluta do Cliente
-- **Limpeza de Dados Orfãos:** Modificada a rota `DELETE /api/properties/:id` para apagar cirurgicamente moradores (`residents`), visitantes (`visitors`), mensagens (`messages`) e contas administrativas de usuários (`users`) associadas ao ID da propriedade deletada.
+- **Limpeza de Dados Orfãos:** Modificada a rota `DELETE /api/properties/*` para apagar cirurgicamente moradores (`residents`), visitantes (`visitors`), mensagens (`messages`) e contas administrativas de usuários (`users`) associadas ao ID da propriedade deletada.
 - **Awaiting Local Saves:** Atualizados os endpoints administrativos de deleção no backend para serem 100% assíncronos e explicitamente aguardarem (`await`) os métodos de persistência locais e na nuvem antes de responderem de volta ao frontend.
