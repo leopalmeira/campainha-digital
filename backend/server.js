@@ -325,7 +325,7 @@ app.post('/api/payment/abacate/create', async (req, res) => {
   const { propertyId } = req.body;
   if (!propertyId) return res.status(400).json({ error: 'propertyId é obrigatório.' });
 
-  const property = properties.find(p => p.id === propertyId);
+  const property = properties.find(p => p.id && p.id.toLowerCase() === propertyId.toLowerCase());
   if (!property) return res.status(404).json({ error: 'Propriedade não encontrada.' });
 
   const user = users.find(u => u.email === property.adminEmail);
@@ -827,7 +827,8 @@ app.put('/api/admin/users/:id', (req, res) => {
   const { adminEmail, name, email, whatsapp, scannedPropertyId, role, status } = req.body;
   if (adminEmail !== MASTER_ADMIN_EMAIL) return res.status(403).json({ error: 'Unauthorized' });
 
-  const user = users.find(u => u.id === req.params.id);
+  const targetId = (req.params.id || '').trim().toLowerCase();
+  const user = users.find(u => u.id && u.id.trim().toLowerCase() === targetId);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
   // Se o email está sendo editado, precisamos garantir que é único
@@ -849,9 +850,12 @@ app.put('/api/admin/users/:id', (req, res) => {
 // DELETE /api/admin/users/:id — Excluir conta de usuário permanentemente
 app.delete('/api/admin/users/:id', (req, res) => {
   const { adminEmail } = req.query;
-  if (adminEmail !== MASTER_ADMIN_EMAIL) return res.status(403).json({ error: 'Unauthorized' });
+  const reqEmailLower = (adminEmail || '').trim().toLowerCase();
+  const masterEmailLower = MASTER_ADMIN_EMAIL.trim().toLowerCase();
+  if (reqEmailLower !== masterEmailLower) return res.status(403).json({ error: 'Unauthorized' });
 
-  const index = users.findIndex(u => u.id === req.params.id);
+  const targetId = (req.params.id || '').trim().toLowerCase();
+  const index = users.findIndex(u => u.id && u.id.trim().toLowerCase() === targetId);
   if (index === -1) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
   users.splice(index, 1);
@@ -967,7 +971,8 @@ app.get('/api/properties/:id', (req, res) => {
 });
 
 app.get('/api/properties/:id/units', (req, res) => {
-  const prop = properties.find(p => p.id === req.params.id);
+  const targetId = (req.params.id || '').trim().toLowerCase();
+  const prop = properties.find(p => p.id && p.id.trim().toLowerCase() === targetId);
   if (!prop) return res.status(404).json({ error: 'Property not found' });
   // Return unit list with names, IDs, and address info
   res.json(prop.units.map(u => ({ id: u.id, name: u.name, block: u.block || '', street: u.street || '', number: u.number || '' })));
@@ -975,21 +980,27 @@ app.get('/api/properties/:id/units', (req, res) => {
 
 app.delete('/api/properties/:id', (req, res) => {
   const { adminEmail } = req.query;
-  const prop = properties.find(p => p.id === req.params.id);
+  const targetId = (req.params.id || '').trim().toLowerCase();
+  
+  const prop = properties.find(p => p.id && p.id.trim().toLowerCase() === targetId);
   if (!prop) return res.status(404).json({ error: 'Property not found' });
   
+  const reqEmailLower = (adminEmail || '').trim().toLowerCase();
+  const masterEmailLower = MASTER_ADMIN_EMAIL.trim().toLowerCase();
+  const propEmailLower = (prop.adminEmail || '').trim().toLowerCase();
+
   // Isolamento: Apenas o dono ou Master Admin pode deletar
-  if (adminEmail !== MASTER_ADMIN_EMAIL && prop.adminEmail !== adminEmail) {
+  if (reqEmailLower !== masterEmailLower && propEmailLower !== reqEmailLower) {
     return res.status(403).json({ error: 'Unauthorized to delete this property' });
   }
 
-  properties = properties.filter(p => p.id !== req.params.id);
+  properties = properties.filter(p => p.id && p.id.trim().toLowerCase() !== targetId);
   
   // Limpa também as contas de usuário vinculadas a este cliente (tanto por e-mail administrativo quanto por placa escaneada)
   if (prop.adminEmail) {
-    users = users.filter(u => u.email?.toLowerCase() !== prop.adminEmail.toLowerCase() && u.scannedPropertyId !== req.params.id);
+    users = users.filter(u => u.email?.toLowerCase() !== prop.adminEmail.toLowerCase() && (!u.scannedPropertyId || u.scannedPropertyId.trim().toLowerCase() !== targetId));
   } else {
-    users = users.filter(u => u.scannedPropertyId !== req.params.id);
+    users = users.filter(u => !u.scannedPropertyId || u.scannedPropertyId.trim().toLowerCase() !== targetId);
   }
 
   saveDb();

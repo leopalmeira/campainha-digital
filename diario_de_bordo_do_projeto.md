@@ -613,3 +613,24 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ### 🛡️ Teste de Integridade de Compilação
 - Compilação de produção com Vite (`npm run build`) executada com sucesso absoluto em 541ms, livre de quaisquer erros de JSX ou importações.
+
+---
+
+## ⚡ v3.9.1 — Robustez de Exclusão (Case-Insensibilidade) & Estética Premium de Faturamento (18/05/2026)
+
+### 👥 Exclusão e Edição de Usuários com Case-Insensibilidade Total
+- **Comparação Case-Insensitive de ID:** Modificados os endpoints `PUT /api/admin/users/:id` e `DELETE /api/admin/users/:id` no backend para limpar e comparar os IDs de usuário em letras minúsculas (`.toLowerCase()`). Isso elimina falhas caso IDs venham com diferenças sútis de maiúsculas/minúsculas.
+- **Autenticação do Master Admin Case-Insensitive:** A verificação do e-mail do master administrador no endpoint `DELETE /api/admin/users/:id` foi atualizada de comparação direta sensível para correspondência case-insensitive (`.toLowerCase()`). Isso resolve bugs de autorização causados por sessões em caixa alta ou baixa.
+
+### 🎨 Redesign Premium de Alto Padrão na Aba Financeira (`BillingTab.jsx`)
+- **Estética Ultra-Moderna (High-End):** Substituição completa do layout plano e simples por uma interface sofisticada baseada nas melhores práticas de design moderno.
+- **KPI Cards com Gradientes Vívidos:** Atualizados os 4 cards principais de receita e teste para usarem gradientes vibrantes em alta resolução, bordas sutis translúcidas, e sombras suaves de profundidade (`boxShadow`).
+- **Filtros e Controles em Pílula:** Pílulas de filtro com cantos totalmente arredondados (`100px`), transições suaves no clique e sombras azuis modernas para indicar o estado ativo.
+- **Tabela Limpa e Espaçosa:** Aumento no espaçamento interno das células (`padding: 20px`), cabeçalhos com estilo limpo, fontes de peso otimizado, e IDs em formato de badge de terminal cinza para leitura imediata.
+- **Botões Semânticos com Sombra de Profundidade:**
+  - `Gerar Pix` (Azul clássico)
+  - `Confirmar` (Verde esmeralda)
+  - `+15 dias` (Amber radiante)
+  - `Excluir` (Vermelho carmesim)
+  - Todos os botões contam com sombras semânticas suaves (`boxShadow`) combinadas com micro-transições (`transition: all 0.2s`), proporcionando um feedback tátil virtual extraordinário.
+- **Lógica e Integração Mantidas 100% Intactas:** Todas as conexões assíncronas de cobrança Asaas/Abacate Pay e deleção em cascata foram integralmente preservadas.

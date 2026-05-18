@@ -379,9 +379,18 @@ export default function MasterAdminDashboard() {
     if (!window.confirm('Excluir este cliente permanentemente?')) return;
     const email = sessionStorage.getItem('cd_admin_email');
     try {
-      await fetch(`${API}/api/properties/${id}?adminEmail=${encodeURIComponent(email)}`, { method: 'DELETE' });
-      fetchClients();
-    } catch (err) { console.error(err); }
+      const res = await fetch(`${API}/api/properties/${id}?adminEmail=${encodeURIComponent(email)}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Cliente excluído com sucesso! ✅');
+        fetchClients();
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Erro ao excluir o cliente.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erro de conexão ao tentar excluir o cliente.');
+    }
   };
 
   const exportToJSON = () => {
@@ -1740,17 +1749,25 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
       <SectionTitle icon={CreditCard} title="Financeiro & Assinaturas" />
 
       {/* ── KPI CARDS ─────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '24px', marginBottom: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginTop: '24px', marginBottom: '32px' }}>
         {[
-          { label: 'Previsão (ARR)', value: `R$ ${arr}`, sub: `${annualClients.length} assinantes`, color: '#10B981', bg: 'linear-gradient(135deg,#064E3B,#065F46)' },
-          { label: 'Faturamento Hoje', value: `R$ ${faturamentoHoje}`, sub: `${vendasHoje} vendas confirmadas`, color: '#60A5FA', bg: 'linear-gradient(135deg,#1E3A5F,#1E40AF)' },
-          { label: 'Vendas na Semana', value: vendasSemana, sub: `R$ ${faturamentoSemana} gerados`, color: '#8B5CF6', bg: 'linear-gradient(135deg,#4C1D95,#5B21B6)' },
-          { label: 'Em Trial / Exp.', value: `${trialClients.length} / ${expiredClients.length}`, sub: 'Clientes inativos ou no teste', color: '#F59E0B', bg: '#FFFBEB', dark: false },
+          { label: 'Previsão (ARR)', value: `R$ ${arr}`, sub: `${annualClients.length} assinantes`, bg: 'linear-gradient(135deg, #059669, #10B981)' },
+          { label: 'Faturamento Hoje', value: `R$ ${faturamentoHoje}`, sub: `${vendasHoje} vendas confirmadas`, bg: 'linear-gradient(135deg, #1D4ED8, #3B82F6)' },
+          { label: 'Vendas na Semana', value: vendasSemana, sub: `R$ ${faturamentoSemana} gerados`, bg: 'linear-gradient(135deg, #6D28D9, #8B5CF6)' },
+          { label: 'Em Trial / Exp.', value: `${trialClients.length} / ${expiredClients.length}`, sub: 'Clientes inativos ou no teste', bg: 'linear-gradient(135deg, #D97706, #F59E0B)' },
         ].map((k, i) => (
-          <div key={i} style={{ padding: '24px', background: k.bg, borderRadius: '20px', border: k.dark === false ? '1px solid #E2E8F0' : 'none' }}>
-            <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: k.dark === false ? '#64748B' : '#FFFFFF99', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{k.label}</p>
-            <div style={{ fontSize: '30px', fontWeight: 800, color: k.dark === false ? k.color : '#FFF', margin: '8px 0 4px' }}>{k.value}</div>
-            <p style={{ margin: 0, fontSize: '12px', color: k.dark === false ? '#94A3B8' : '#FFFFFF80', fontWeight: 600 }}>{k.sub}</p>
+          <div key={i} style={{ 
+            padding: '24px', 
+            background: k.bg, 
+            borderRadius: '24px', 
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            transition: 'all 0.2s ease-in-out',
+            color: '#FFF'
+          }}>
+            <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: 'rgba(255, 255, 255, 0.8)', textTransform: 'uppercase', letterSpacing: '1px' }}>{k.label}</p>
+            <div style={{ fontSize: '32px', fontWeight: 800, color: '#FFF', margin: '8px 0 4px', letterSpacing: '-0.5px' }}>{k.value}</div>
+            <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255, 255, 255, 0.65)', fontWeight: 600 }}>{k.sub}</p>
           </div>
         ))}
       </div>
@@ -1766,7 +1783,7 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
       )}
 
       {/* ── FILTROS ───────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
         {[
           { key: 'all',     label: `Todos (${clients.length})` },
           { key: 'annual',  label: `Anuais (${annualClients.length})` },
@@ -1775,64 +1792,89 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
           { key: 'expired', label: `Vencidos (${expiredClients.length})` },
         ].map(f => (
           <button key={f.key} onClick={() => setBillingFilter(f.key)}
-            style={{ padding: '8px 16px', borderRadius: '100px', border: billingFilter === f.key ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: billingFilter === f.key ? '#EFF6FF' : '#FFF', color: billingFilter === f.key ? '#3B82F6' : '#64748B', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
+            style={{ 
+              padding: '10px 20px', 
+              borderRadius: '100px', 
+              border: billingFilter === f.key ? '2px solid #3B82F6' : '1px solid #E2E8F0', 
+              background: billingFilter === f.key ? '#EFF6FF' : '#FFF', 
+              color: billingFilter === f.key ? '#3B82F6' : '#64748B', 
+              fontWeight: 700, 
+              fontSize: '13px', 
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: billingFilter === f.key ? '0 4px 12px rgba(59, 130, 246, 0.15)' : 'none'
+            }}>
             {f.label}
           </button>
         ))}
-        <button onClick={onRefresh} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#3B82F6', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
-          <RefreshCw size={14} /> Atualizar
+        <button onClick={onRefresh} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: '#3B82F6', fontWeight: 800, cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s' }}>
+          <RefreshCw size={16} /> Atualizar Lista
         </button>
       </div>
 
       {/* ── TABELA DE CLIENTES ────────────────────────────────────────────── */}
-      <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+      <div style={{ overflowX: 'auto', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.02)', background: '#FFF' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
-            <tr style={{ background: '#F8FAFC', textAlign: 'left' }}>
+            <tr style={{ background: '#F8FAFC', textAlign: 'left', borderBottom: '2px solid #F1F5F9' }}>
               {['Cliente', 'Email', 'Tipo / Plano', 'Vencimento', 'Status', 'Ações'].map(h => (
-                <th key={h} style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid #E2E8F0' }}>{h}</th>
+                <th key={h} style={{ padding: '18px 20px', fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '1px' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>Nenhum cliente neste filtro.</td></tr>
+              <tr><td colSpan={6} style={{ padding: '60px', textAlign: 'center', color: '#94A3B8', fontSize: '15px' }}>Nenhum cliente neste filtro.</td></tr>
             ) : filtered.map(client => {
               const badge = getStatusBadge(client);
               const daysLeft = Math.ceil((new Date(client.nextPaymentDate) - now) / (1000 * 60 * 60 * 24));
               return (
-                <tr key={client.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s' }}
+                <tr key={client.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'all 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
                   onMouseLeave={e => e.currentTarget.style.background = '#FFF'}>
-                  <td style={{ padding: '16px' }}>
-                    <div style={{ fontWeight: 700, color: '#0F172A' }}>{client.clientName || 'N/A'}</div>
-                    <div style={{ fontSize: '11px', color: '#94A3B8', fontFamily: 'monospace' }}>{client.id.slice(0, 12)}...</div>
+                  <td style={{ padding: '20px' }}>
+                    <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '14px' }}>{client.clientName || 'N/A'}</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', fontFamily: 'monospace', background: '#F1F5F9', display: 'inline-block', padding: '2px 6px', borderRadius: '4px', marginTop: '4px' }}>{client.id}</div>
                   </td>
-                  <td style={{ padding: '16px', color: '#475569' }}>{client.adminEmail}</td>
-                  <td style={{ padding: '16px' }}>
-                    <span style={{ fontSize: '11px', background: '#DBEAFE', color: '#1E40AF', padding: '3px 8px', borderRadius: '100px', fontWeight: 700, marginRight: '4px' }}>{(client.type || 'house').toUpperCase()}</span>
-                    <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#475569', padding: '3px 8px', borderRadius: '100px', fontWeight: 700 }}>{client.plan || 'Trial'}</span>
+                  <td style={{ padding: '20px', color: '#475569', fontWeight: 500 }}>{client.adminEmail}</td>
+                  <td style={{ padding: '20px' }}>
+                    <span style={{ fontSize: '11px', background: '#DBEAFE', color: '#1E40AF', padding: '4px 10px', borderRadius: '100px', fontWeight: 700, marginRight: '6px' }}>{(client.type || 'house').toUpperCase()}</span>
+                    <span style={{ fontSize: '11px', background: '#F1F5F9', color: '#475569', padding: '4px 10px', borderRadius: '100px', fontWeight: 700 }}>{client.plan || 'Trial'}</span>
                   </td>
-                  <td style={{ padding: '16px' }}>
+                  <td style={{ padding: '20px' }}>
                     <div style={{ fontWeight: 700, color: '#0F172A' }}>{new Date(client.nextPaymentDate).toLocaleDateString('pt-BR')}</div>
-                    <div style={{ fontSize: '11px', color: daysLeft <= 0 ? '#EF4444' : daysLeft <= 7 ? '#F59E0B' : '#64748B' }}>
+                    <div style={{ fontSize: '11px', color: daysLeft <= 0 ? '#EF4444' : daysLeft <= 7 ? '#F59E0B' : '#64748B', marginTop: '2px', fontWeight: 600 }}>
                       {daysLeft <= 0 ? `Vencido há ${Math.abs(daysLeft)} dias` : `${daysLeft} dias restantes`}
                     </div>
                   </td>
-                  <td style={{ padding: '16px' }}>
-                    <span style={{ background: badge.bg, color: badge.color, padding: '4px 10px', borderRadius: '100px', fontWeight: 800, fontSize: '11px', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '20px' }}>
+                    <span style={{ background: badge.bg, color: badge.color, padding: '6px 12px', borderRadius: '100px', fontWeight: 800, fontSize: '11px', whiteSpace: 'nowrap', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
                       {badge.label}
                     </span>
                   </td>
-                  <td style={{ padding: '16px' }}>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <td style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       {/* Gerar Pix */}
                       <button
                         onClick={() => handleGeneratePix(client)}
                         disabled={generatingPix === client.id || loading}
                         title="Gerar cobrança Pix"
-                        style={{ padding: '6px 12px', borderRadius: '8px', background: '#EFF6FF', color: '#3B82F6', border: '1px solid #BFDBFE', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <CreditCard size={12} /> {generatingPix === client.id ? 'Gerando...' : 'Gerar Pix'}
+                        style={{ 
+                          padding: '8px 14px', 
+                          borderRadius: '10px', 
+                          background: '#3B82F6', 
+                          color: '#FFF', 
+                          border: 'none', 
+                          fontWeight: 700, 
+                          fontSize: '12px', 
+                          cursor: 'pointer', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px',
+                          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)',
+                          transition: 'all 0.2s'
+                        }}>
+                        <CreditCard size={14} /> {generatingPix === client.id ? 'Gerando...' : 'Gerar Pix'}
                       </button>
                       {/* Confirmar Pagamento Manual */}
                       {client.plan !== 'Anual' && (
@@ -1840,8 +1882,22 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
                           onClick={() => handleActivateAnnual(client.id)}
                           disabled={loading}
                           title="Confirmar pagamento manual e liberar 12 meses"
-                          style={{ padding: '6px 12px', borderRadius: '8px', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Check size={12} /> Confirmar
+                          style={{ 
+                            padding: '8px 14px', 
+                            borderRadius: '10px', 
+                            background: '#10B981', 
+                            color: '#FFF', 
+                            border: 'none', 
+                            fontWeight: 700, 
+                            fontSize: '12px', 
+                            cursor: 'pointer', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '6px',
+                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                            transition: 'all 0.2s'
+                          }}>
+                          <Check size={14} /> Confirmar
                         </button>
                       )}
                       {/* Liberar Teste */}
@@ -1849,8 +1905,22 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
                         onClick={() => handleExtendTrial(client.id)}
                         disabled={loading}
                         title="Liberar mais 15 dias de teste"
-                        style={{ padding: '6px 12px', borderRadius: '8px', background: '#FFF7ED', color: '#D97706', border: '1px solid #FDE68A', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Clock size={12} /> +15 dias
+                        style={{ 
+                          padding: '8px 14px', 
+                          borderRadius: '10px', 
+                          background: '#F59E0B', 
+                          color: '#FFF', 
+                          border: 'none', 
+                          fontWeight: 700, 
+                          fontSize: '12px', 
+                          cursor: 'pointer', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px',
+                          boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)',
+                          transition: 'all 0.2s'
+                        }}>
+                        <Clock size={14} /> +15 dias
                       </button>
                       {/* Excluir Cliente */}
                       {onDeleteClient && (
@@ -1858,8 +1928,22 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
                           onClick={() => onDeleteClient(client.id)}
                           disabled={loading}
                           title="Excluir cliente permanentemente"
-                          style={{ padding: '6px 12px', borderRadius: '8px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECACA', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Trash2 size={12} /> Excluir
+                          style={{ 
+                            padding: '8px 14px', 
+                            borderRadius: '10px', 
+                            background: '#EF4444', 
+                            color: '#FFF', 
+                            border: 'none', 
+                            fontWeight: 700, 
+                            fontSize: '12px', 
+                            cursor: 'pointer', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '6px',
+                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+                            transition: 'all 0.2s'
+                          }}>
+                          <Trash2 size={14} /> Excluir
                         </button>
                       )}
                     </div>
