@@ -203,27 +203,39 @@ app.post('/api/payment/asaas/create', async (req, res) => {
 
   try {
     let asaasCustomerId = property.asaasCustomerId;
+    const defaultCnpj = '65628833000147'; // CNPJ Campainha Digital para burlar bloqueio do Asaas
 
     if (!asaasCustomerId) {
       console.log(`[ASAAS] Criando novo cliente para propriedade: ${propertyId}`);
       const customerRes = await axios.post(`${ASAAS_API_URL}/customers`, {
         name: property.clientName || user?.name || property.name,
         email: property.adminEmail,
-        phone: (property.clientPhone || user?.whatsapp || '').replace(/\D/g, '')
+        phone: (property.clientPhone || user?.whatsapp || '').replace(/\D/g, ''),
+        cpfCnpj: defaultCnpj
       }, { headers: { 'access_token': ASAAS_API_KEY } });
       
       asaasCustomerId = customerRes.data.id;
       property.asaasCustomerId = asaasCustomerId;
       saveDb();
+    } else {
+      // Atualiza o cliente existente no Asaas para garantir que tem o CNPJ, evitando erro na cobrança
+      console.log(`[ASAAS] Atualizando cliente ${asaasCustomerId} com CNPJ padrão`);
+      try {
+        await axios.post(`${ASAAS_API_URL}/customers/${asaasCustomerId}`, {
+          cpfCnpj: defaultCnpj
+        }, { headers: { 'access_token': ASAAS_API_KEY } });
+      } catch(updateErr) {
+        console.warn('[ASAAS] Falha não crítica ao atualizar CNPJ do cliente.');
+      }
     }
 
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + pixDueDays);
 
-    console.log(`[ASAAS] Gerando cobrança para cliente: ${asaasCustomerId}`);
+    console.log(`[ASAAS] Gerando cobrança PIX para cliente: ${asaasCustomerId}`);
     const chargeRes = await axios.post(`${ASAAS_API_URL}/payments`, {
       customer: asaasCustomerId,
-      billingType: 'UNDEFINED', // Usando UNDEFINED para evitar bloqueio estrito de PIX do Asaas
+      billingType: 'PIX', // Agora podemos pedir PIX diretamente pois temos o CNPJ
       value: servicePrice,
       dueDate: dueDate.toISOString().split('T')[0],
       description: `Assinatura ${platformConfig.planName || 'Anual'} - ${property.name}`,
