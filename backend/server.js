@@ -13,10 +13,6 @@ const PdfService = require('./services/pdfService');
 const webPush = require('web-push');
 const axios = require('axios');
 
-// Configuração Asaas
-const ASAAS_API_KEY = process.env.ASAAS_API_KEY || ''; // Chave de API do Asaas (Produção ou Sandbox)
-const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3'; // Use https://sandbox.asaas.com/api/v3 para testes
-
 // Configuração VAPID
 const publicVapidKey = process.env.VAPID_PUBLIC_KEY || 'BOKz4CjOXwpKxhmqIKPx22wV3oAZmUHbrbSvucyErK7tcZB7XxNfiAD9itYQi46nMw0o_7nbuqe6zHu5NiwI0tc';
 const privateVapidKey = process.env.VAPID_PRIVATE_KEY || 'wBw8-8ShBBcPYdQ6SH4dOrRER6mS52rFU833Hk6Zgi8';
@@ -452,10 +448,9 @@ app.post('/api/auth/link-qr', async (req, res) => {
       url,
       createdAt: new Date().toISOString(),
       nextPaymentDate: nextPaymentDate.toISOString(),
-      plan: 'Trial', // Vai mudar para 'Anual' após pagamento Asaas
+      plan: 'Trial', // Vai mudar para 'Anual' após confirmação do pagamento
       hasGateFeature: false, // Default: disabled
-      featureNeighborChat: isCollective ? true : false,
-      asaasCustomerId: null
+      featureNeighborChat: isCollective ? true : false
     };
     properties.push(prop);
     saveDb();
@@ -790,44 +785,7 @@ app.get('/api/properties/:id/support', (req, res) => {
   }
 });
 
-// ─── INTEGRAÇÃO ASAAS (PAGAMENTO E WEBHOOK) ────────────────────────────────────────────────
-
-// Webhook para receber confirmação de pagamento do Asaas
-app.post('/api/webhook/asaas', async (req, res) => {
-  const event = req.body.event;
-  const payment = req.body.payment;
-
-  if (event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_CONFIRMED') {
-    const propertyId = payment.externalReference;
-    const prop = properties.find(p => p.id === propertyId);
-
-    if (prop) {
-      console.log(`Pagamento confirmado para propriedade ${propertyId}`);
-      // Renovar plano por 1 ano a partir de hoje (ou da data atual se ainda for no futuro)
-      const now = new Date();
-      const currentNext = new Date(prop.nextPaymentDate);
-      const baseDate = (currentNext > now) ? currentNext : now;
-      baseDate.setFullYear(baseDate.getFullYear() + 1);
-
-      prop.nextPaymentDate = baseDate.toISOString();
-      prop.plan = 'Anual';
-      saveDb();
-
-      // Enviar mensagem de boas-vindas / confirmação
-      try {
-        const user = users.find(u => u.email === prop.adminEmail);
-        if (user) {
-          await WhatsAppService.sendWelcomeMessage(user);
-        }
-      } catch (e) {
-        console.error('Erro ao enviar whatsapp de confirmacao de pagamento', e);
-      }
-    }
-  }
-
-  res.status(200).send('OK');
-});
-
+// ─── INTEGRAÇÃO ABACATE PAY (PAGAMENTO E WEBHOOK) ────────────────────────────────────────────────
 
 const saveSupport = saveSupportTickets;
 

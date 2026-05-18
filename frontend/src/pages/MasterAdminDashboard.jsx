@@ -1338,7 +1338,7 @@ function BillingTab({ clients, API, onRefresh }) {
                       <button
                         onClick={() => handleGeneratePix(client)}
                         disabled={generatingPix === client.id || loading}
-                        title="Gerar cobrança Pix via Asaas"
+                        title="Gerar cobrança Pix"
                         style={{ padding: '6px 12px', borderRadius: '8px', background: '#EFF6FF', color: '#3B82F6', border: '1px solid #BFDBFE', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <CreditCard size={12} /> {generatingPix === client.id ? 'Gerando...' : 'Gerar Pix'}
                       </button>
@@ -1421,12 +1421,12 @@ function BillingTab({ clients, API, onRefresh }) {
       <div style={{ marginTop: '32px', padding: '20px 24px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
         <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>ℹ️ Como funciona o Financeiro</h4>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', fontSize: '13px', color: '#64748B' }}>
-          <div><strong style={{ color: '#3B82F6' }}>🔵 Gerar Pix:</strong> Cria uma cobrança real no Asaas e exibe o QR Code para o cliente escanear.</div>
+          <div><strong style={{ color: '#3B82F6' }}>🔵 Gerar Pix:</strong> Cria uma cobrança real via Pix e exibe o QR Code para o cliente escanear.</div>
           <div><strong style={{ color: '#10B981' }}>🟢 Confirmar:</strong> Libera manualmente 12 meses de acesso (use quando o pagamento for confirmado fora do sistema).</div>
           <div><strong style={{ color: '#F59E0B' }}>🟡 +15 dias:</strong> Estende o período de teste sem cobrança. Útil para clientes em avaliação.</div>
         </div>
         <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#94A3B8' }}>
-          💡 Quando o cliente pagar via Pix, o Asaas acionará o Webhook automaticamente e o sistema renovará o plano sozinho, sem necessidade de ação manual.
+          💡 Quando o cliente pagar via Pix, o gateway de pagamentos acionará o Webhook automaticamente e renovará o plano sozinho, de forma instantânea.
         </p>
       </div>
     </div>

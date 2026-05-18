@@ -84,7 +84,7 @@ export default function AdminPanel() {
     return () => clearInterval(interval);
   }, []);
 
-  // Polling para checar se o Pix foi pago no Asaas enquanto o modal de pagamento está aberto
+  // Polling para checar se o Pix foi pago enquanto o modal de pagamento está aberto
   useEffect(() => {
     const targetId = paymentPropertyId || scannedId;
     if ((!showPaymentModal && onboardingStep !== 'pay_qr') || !targetId || isPaid) return;
@@ -143,7 +143,7 @@ export default function AdminPanel() {
     }
   };
 
-  const handleCreateAsaasPayment = async (propertyId) => {
+  const handleCreatePayment = async (propertyId) => {
     setLoading(true);
     setIsPaid(false);
     setPixData(null);
@@ -509,7 +509,7 @@ export default function AdminPanel() {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <button onClick={() => handleCreateAsaasPayment(scannedId)} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05))', border: '2px solid var(--primary)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+          <button onClick={() => handleCreatePayment(scannedId)} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05))', border: '2px solid var(--primary)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ShieldCheck size={24} color="#000" />
             </div>
