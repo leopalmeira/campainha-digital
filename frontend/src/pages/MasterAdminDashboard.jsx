@@ -318,8 +318,8 @@ export default function MasterAdminDashboard() {
 
   const handleSaveEdit = async () => {
     try {
-      const email = sessionStorage.getItem('cd_admin_email');
-      const res = await fetch(`${API}/api/properties/${selectedClient.id}`, {
+      const email = sessionStorage.getItem('cd_admin_email') || 'leandro2703palmeira@gmail.com';
+      const res = await fetch(`${API}/api/properties/${encodeURIComponent(selectedClient.id)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...editForm, adminEmail: email })
@@ -377,9 +377,9 @@ export default function MasterAdminDashboard() {
 
   const deleteClient = async (id) => {
     if (!window.confirm('Excluir este cliente permanentemente?')) return;
-    const email = sessionStorage.getItem('cd_admin_email');
+    const email = sessionStorage.getItem('cd_admin_email') || 'leandro2703palmeira@gmail.com';
     try {
-      const res = await fetch(`${API}/api/properties/${id}?adminEmail=${encodeURIComponent(email)}`, { method: 'DELETE' });
+      const res = await fetch(`${API}/api/properties/${encodeURIComponent(id)}?adminEmail=${encodeURIComponent(email)}`, { method: 'DELETE' });
       if (res.ok) {
         alert('Cliente excluído com sucesso! ✅');
         fetchClients();
@@ -681,7 +681,7 @@ export default function MasterAdminDashboard() {
                           <button onClick={async () => {
                             if (!window.confirm('Liberar mais 15 dias de teste para este cliente?')) return;
                             try {
-                              const res = await fetch(`${API}/api/properties/${client.id}/extend-trial`, { method: 'POST' });
+                              const res = await fetch(`${API}/api/properties/${encodeURIComponent(client.id)}/extend-trial`, { method: 'POST' });
                               if (res.ok) { alert('Teste liberado com sucesso!'); fetchClients(); }
                             } catch {}
                           }} style={{ marginTop: '8px', background: 'none', border: 'none', color: '#3B82F6', fontSize: '11px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', display: 'block' }}>
@@ -690,7 +690,7 @@ export default function MasterAdminDashboard() {
                           <button onClick={async () => {
                             if (!window.confirm('Confirmar recebimento de pagamento e liberar 12 meses de acesso?')) return;
                             try {
-                              const res = await fetch(`${API}/api/properties/${client.id}/activate-annual`, { method: 'POST' });
+                              const res = await fetch(`${API}/api/properties/${encodeURIComponent(client.id)}/activate-annual`, { method: 'POST' });
                               if (res.ok) { alert('Acesso anual liberado!'); fetchClients(); }
                             } catch {}
                           }} style={{ marginTop: '4px', background: '#10B981', color: '#FFF', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}>
@@ -1720,8 +1720,8 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
     if (!window.confirm('Confirmar pagamento e liberar 12 meses de acesso?')) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/properties/${clientId}/activate-annual`, { method: 'POST' });
-      if (res.ok) { alert('Acesso anual liberado com sucesso! ✅'); onRefresh(); setPixData(null); }
+    const res = await fetch(`${API}/api/properties/${encodeURIComponent(clientId)}/activate-annual`, { method: 'POST' });
+    if (res.ok) { alert('Acesso anual liberado com sucesso! ✅'); onRefresh(); setPixData(null); }
     } catch (e) { alert('Erro ao processar.'); }
     finally { setLoading(false); }
   };
@@ -1730,7 +1730,7 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
     if (!window.confirm('Liberar mais 15 dias de teste para este cliente?')) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/properties/${clientId}/extend-trial`, { method: 'POST' });
+      const res = await fetch(`${API}/api/properties/${encodeURIComponent(clientId)}/extend-trial`, { method: 'POST' });
       if (res.ok) { alert('Mais 15 dias de teste liberados! ✅'); onRefresh(); }
     } catch (e) { alert('Erro ao processar.'); }
     finally { setLoading(false); }

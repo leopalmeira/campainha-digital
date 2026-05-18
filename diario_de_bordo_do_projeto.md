@@ -634,3 +634,19 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
   - `Excluir` (Vermelho carmesim)
   - Todos os botões contam com sombras semânticas suaves (`boxShadow`) combinadas com micro-transições (`transition: all 0.2s`), proporcionando um feedback tátil virtual extraordinário.
 - **Lógica e Integração Mantidas 100% Intactas:** Todas as conexões assíncronas de cobrança Asaas/Abacate Pay e deleção em cascata foram integralmente preservadas.
+
+---
+
+## ⚡ v3.9.2 — Codificação de URLs como IDs & Fila Serializada de Persistência no PostgreSQL (18/05/2026)
+
+### 🔗 Codificação Robusta de ID com `encodeURIComponent`
+- **Saneamento de URLs como IDs:** Corrigido um bug crítico onde IDs de clientes no formato de URL completa (como `https://kinsta.com` ou `https://crystalweb.it`) causavam erro `404 Not Found` no navegador durante requisições de exclusão, ativação ou renovação. A inclusão do wrapper `encodeURIComponent` garante que barras (`/`) e outros caracteres do protocolo sejam devidamente envelopados, sendo interpretados como um único parâmetro de ID pelo roteador do Express no backend.
+- **Fallbacks de E-mail no Painel Master:** Adicionado o fallback automático para `'leandro2703palmeira@gmail.com'` na extração do e-mail do sessionStorage. Isso evita falhas de autorização de deleção em caso de expiração ou limpeza temporária da sessão do Master Admin.
+
+### ⚙️ Eliminação Completa de Condições de Corrida no PostgreSQL
+- **Fila Sequencial de Escrita (`pendingWrites`):** Desenvolvida uma fila global baseada em Promises encadeadas (`Promise.resolve()`) na função `saveToPostgres` em `backend/server.js`. Isso garante que todas as operações assíncronas de gravação persistam ordenadamente na nuvem do PostgreSQL sem colidir ou sobrescrever estados concorrentes.
+- **Middleware com Bloqueio de Leitura:** O middleware global que intercepta as chamadas de API foi atualizado para aguardar explicitamente a resolução de `pendingWrites` antes de chamar `loadFromDb()`. Isso impede que chamadas rápidas subsequentes do frontend (ex: `fetchClients()` imediatamente após um clique de exclusão) obtenham uma cópia obsoleta do banco do Postgres antes de o processo em background concluir a escrita, eliminando o fantasma dos clientes deletados que reapareciam.
+
+### 🧹 Deleção em Cascata Absoluta do Cliente
+- **Limpeza de Dados Orfãos:** Modificada a rota `DELETE /api/properties/:id` para apagar cirurgicamente moradores (`residents`), visitantes (`visitors`), mensagens (`messages`) e contas administrativas de usuários (`users`) associadas ao ID da propriedade deletada.
+- **Awaiting Local Saves:** Atualizados os endpoints administrativos de deleção no backend para serem 100% assíncronos e explicitamente aguardarem (`await`) os métodos de persistência locais e na nuvem antes de responderem de volta ao frontend.

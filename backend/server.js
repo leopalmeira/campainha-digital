@@ -44,6 +44,8 @@ app.use('/contracts', express.static(path.join(__dirname, 'contracts')));
 // Middleware global de sincronismo em tempo real com o banco de dados
 app.use(async (req, res, next) => {
   if (req.path && req.path.startsWith('/api/')) {
+    // Aguarda todas as gravações pendentes no PostgreSQL serem concluídas antes de ler
+    await pendingWrites.catch(() => {});
     await loadFromDb();
   }
   next();
@@ -181,51 +183,62 @@ async function initPostgres() {
 // Executa inicialização
 initPostgres();
 
-// Função utilitária para persistir dados assincronamente no PostgreSQL
+// Fila global para serializar gravações assíncronas no PostgreSQL e eliminar condições de corrida
+let pendingWrites = Promise.resolve();
+
+// Função utilitária para persistir dados de forma ordenada e enfileirada no PostgreSQL
 async function saveToPostgres(key, data) {
   if (!pool) return;
-  try {
-    await pool.query(`
-      INSERT INTO campainha_database (key, data, updated_at)
-      VALUES ($1, $2, CURRENT_TIMESTAMP)
-      ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = CURRENT_TIMESTAMP
-    `, [key, JSON.stringify(data)]);
-  } catch (err) {
-    console.error(`[DATABASE] Falha ao salvar chave '${key}' no PostgreSQL:`, err);
-  }
+  
+  // Enfileira a gravação para evitar condições de corrida com leituras imediatas (como o middleware loadFromDb)
+  const writePromise = pendingWrites.catch(() => {}).then(async () => {
+    try {
+      await pool.query(`
+        INSERT INTO campainha_database (key, data, updated_at)
+        VALUES ($1, $2, CURRENT_TIMESTAMP)
+        ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = CURRENT_TIMESTAMP
+      `, [key, JSON.stringify(data)]);
+      console.log(`[DATABASE] Chave '${key}' salva com sucesso no PostgreSQL.`);
+    } catch (err) {
+      console.error(`[DATABASE] Falha ao salvar chave '${key}' no PostgreSQL:`, err);
+    }
+  });
+
+  pendingWrites = writePromise;
+  return writePromise;
 }
 
 const saveDb = () => {
   fs.writeFileSync(dbPath, JSON.stringify(properties, null, 2));
-  saveToPostgres('properties', properties);
+  return saveToPostgres('properties', properties);
 };
 const saveResidents = () => {
   fs.writeFileSync(residentsDbPath, JSON.stringify(residents, null, 2));
-  saveToPostgres('residents', residents);
+  return saveToPostgres('residents', residents);
 };
 const saveVisitors = () => {
   fs.writeFileSync(visitorsDbPath, JSON.stringify(visitors, null, 2));
-  saveToPostgres('visitors', visitors);
+  return saveToPostgres('visitors', visitors);
 };
 const saveMessages = () => {
   fs.writeFileSync(messagesDbPath, JSON.stringify(messages, null, 2));
-  saveToPostgres('messages', messages);
+  return saveToPostgres('messages', messages);
 };
 const saveUsers = () => {
   fs.writeFileSync(usersDbPath, JSON.stringify(users, null, 2));
-  saveToPostgres('users', users);
+  return saveToPostgres('users', users);
 };
 const saveSubscriptions = () => {
   fs.writeFileSync(subscriptionsDbPath, JSON.stringify(subscriptions, null, 2));
-  saveToPostgres('subscriptions', subscriptions);
+  return saveToPostgres('subscriptions', subscriptions);
 };
 const saveSupportTickets = () => {
   fs.writeFileSync(supportDbPath, JSON.stringify(supportTickets, null, 2));
-  saveToPostgres('support', supportTickets);
+  return saveToPostgres('support', supportTickets);
 };
 const saveConfig = () => {
   fs.writeFileSync(configDbPath, JSON.stringify(platformConfig, null, 2));
-  saveToPostgres('config', platformConfig);
+  return saveToPostgres('config', platformConfig);
 };
 
 // ─── Config Routes (Configurações Globais da Plataforma) ──────────────────────
@@ -848,18 +861,18 @@ app.put('/api/admin/users/:id', (req, res) => {
 });
 
 // DELETE /api/admin/users/:id — Excluir conta de usuário permanentemente
-app.delete('/api/admin/users/:id', (req, res) => {
+app.delete('/api/admin/users/:id', async (req, res) => {
   const { adminEmail } = req.query;
   const reqEmailLower = (adminEmail || '').trim().toLowerCase();
   const masterEmailLower = MASTER_ADMIN_EMAIL.trim().toLowerCase();
   if (reqEmailLower !== masterEmailLower) return res.status(403).json({ error: 'Unauthorized' });
-
+ 
   const targetId = (req.params.id || '').trim().toLowerCase();
   const index = users.findIndex(u => u.id && u.id.trim().toLowerCase() === targetId);
   if (index === -1) return res.status(404).json({ error: 'Usuário não encontrado.' });
-
+ 
   users.splice(index, 1);
-  saveUsers();
+  await saveUsers();
   res.json({ success: true, message: 'Usuário excluído com sucesso.' });
 });
 
@@ -978,7 +991,7 @@ app.get('/api/properties/:id/units', (req, res) => {
   res.json(prop.units.map(u => ({ id: u.id, name: u.name, block: u.block || '', street: u.street || '', number: u.number || '' })));
 });
 
-app.delete('/api/properties/:id', (req, res) => {
+app.delete('/api/properties/:id', async (req, res) => {
   const { adminEmail } = req.query;
   const targetId = (req.params.id || '').trim().toLowerCase();
   
@@ -1003,8 +1016,17 @@ app.delete('/api/properties/:id', (req, res) => {
     users = users.filter(u => !u.scannedPropertyId || u.scannedPropertyId.trim().toLowerCase() !== targetId);
   }
 
-  saveDb();
-  saveUsers();
+  // Cascata completa: Excluir moradores, visitantes e mensagens
+  residents = residents.filter(r => !r.propertyId || r.propertyId.trim().toLowerCase() !== targetId);
+  visitors = visitors.filter(v => !v.propertyId || v.propertyId.trim().toLowerCase() !== targetId);
+  messages = messages.filter(m => !m.propertyId || m.propertyId.trim().toLowerCase() !== targetId);
+
+  await saveDb();
+  await saveUsers();
+  await saveResidents();
+  await saveVisitors();
+  await saveMessages();
+  
   res.json({ success: true });
 });
 
