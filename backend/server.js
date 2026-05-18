@@ -835,12 +835,12 @@ app.post('/api/admin/authorize-user', async (req, res) => {
   res.json({ success: true, message: 'Usuário atualizado.' });
 });
 
-// PUT /api/admin/users/:id — Editar conta de usuário diretamente
-app.put('/api/admin/users/:id', (req, res) => {
+// PUT /api/admin/users/* — Editar conta de usuário diretamente
+app.put('/api/admin/users/*', async (req, res) => {
   const { adminEmail, name, email, whatsapp, scannedPropertyId, role, status } = req.body;
   if (adminEmail !== MASTER_ADMIN_EMAIL) return res.status(403).json({ error: 'Unauthorized' });
 
-  const targetId = (req.params.id || '').trim().toLowerCase();
+  const targetId = (req.params[0] || '').trim().toLowerCase();
   const user = users.find(u => u.id && u.id.trim().toLowerCase() === targetId);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
@@ -856,18 +856,18 @@ app.put('/api/admin/users/:id', (req, res) => {
   if (role) user.role = role;
   if (status) user.status = status;
 
-  saveUsers();
+  await saveUsers();
   res.json({ success: true, message: 'Usuário atualizado com sucesso.', user });
 });
 
-// DELETE /api/admin/users/:id — Excluir conta de usuário permanentemente
-app.delete('/api/admin/users/:id', async (req, res) => {
+// DELETE /api/admin/users/* — Excluir conta de usuário permanentemente
+app.delete('/api/admin/users/*', async (req, res) => {
   const { adminEmail } = req.query;
   const reqEmailLower = (adminEmail || '').trim().toLowerCase();
   const masterEmailLower = MASTER_ADMIN_EMAIL.trim().toLowerCase();
   if (reqEmailLower !== masterEmailLower) return res.status(403).json({ error: 'Unauthorized' });
  
-  const targetId = (req.params.id || '').trim().toLowerCase();
+  const targetId = (req.params[0] || '').trim().toLowerCase();
   const index = users.findIndex(u => u.id && u.id.trim().toLowerCase() === targetId);
   if (index === -1) return res.status(404).json({ error: 'Usuário não encontrado.' });
  

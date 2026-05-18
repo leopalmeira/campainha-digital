@@ -336,8 +336,8 @@ export default function MasterAdminDashboard() {
   const handleDeleteUser = async (userId) => {
     if (!window.confirm('Excluir esta conta de usuário permanentemente do sistema? ⚠️')) return;
     try {
-      const adminEmail = sessionStorage.getItem('cd_admin_email');
-      const res = await fetch(`${API}/api/admin/users/${userId}?adminEmail=${encodeURIComponent(adminEmail)}`, {
+      const adminEmail = sessionStorage.getItem('cd_admin_email') || 'leandro2703palmeira@gmail.com';
+      const res = await fetch(`${API}/api/admin/users/${encodeURIComponent(userId)}?adminEmail=${encodeURIComponent(adminEmail)}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -354,8 +354,8 @@ export default function MasterAdminDashboard() {
 
   const handleSaveEditUser = async () => {
     try {
-      const adminEmail = sessionStorage.getItem('cd_admin_email');
-      const res = await fetch(`${API}/api/admin/users/${selectedUser.id}`, {
+      const adminEmail = sessionStorage.getItem('cd_admin_email') || 'leandro2703palmeira@gmail.com';
+      const res = await fetch(`${API}/api/admin/users/${encodeURIComponent(selectedUser.id)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...editUserForm, adminEmail })
