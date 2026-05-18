@@ -260,15 +260,16 @@ app.post('/api/webhook/abacate', express.json(), (req, res) => {
 
   console.log('[ABACATE WEBHOOK] Recebido evento:', payload.event);
 
-  // O Checkout Transparente ou Padrão do Abacate Pay dispara os respectivos eventos de sucesso.
+  // O Checkout Transparente ou Padrão do Abacate Pay dispara eventos de sucesso como billing.paid ou event.completed
   // Buscamos o propertyId nos metadados enviados para o gateway.
-  const isCompletedEvent = payload && (
-    payload.event === 'transparent.completed' || 
-    payload.event === 'checkout.completed' ||
-    payload.event === 'subscription.completed'
+  const isCompletedEvent = payload && payload.event && (
+    payload.event.includes('completed') || 
+    payload.event.includes('paid') ||
+    payload.event === 'billing.paid' ||
+    payload.event === 'payment.paid'
   );
   
-  const propertyId = payload?.data?.metadata?.propertyId;
+  const propertyId = payload?.data?.metadata?.propertyId || payload?.data?.externalId;
 
   if (isCompletedEvent && propertyId) {
     const property = properties.find(p => p.id === propertyId);
