@@ -528,12 +528,25 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - **Escape de Variáveis de Ambiente:** Corrigido bug onde a chave de produção do Asaas contendo caracteres de cifrão (`$`) era corrompida na inicialização do dotenv. A chave foi colocada sob aspas simples (`'...'`) no arquivo `.env`.
 - **Backend Direcionado à Produção:** Variáveis do backend redirecionadas para a API oficial do Asaas (`https://api.asaas.com/v3`).
 
-### 🛡️ Validação Obrigatória de CPF/CNPJ no Cadastro
-- **Novo Campo no Formulário:** Adicionado um campo obrigatório para CPF/CNPJ no formulário de criação de conta do cliente (`AuthPage.jsx`).
-- **Máscara Inteligente em Tempo Real:** Criado um helper de formatação que formata dinamicamente o CPF (`000.000.000-00`) ou CNPJ (`00.000.000/0000-00`) conforme o usuário digita.
-- **Validação de Tamanho no Backend:** O backend valida se o documento possui exatamente 11 dígitos (CPF) ou 14 dígitos (CNPJ) antes de concluir o registro.
+### 🛡️ Validação de CPF/CNPJ Removida (Simplificação de Onboarding)
+- **Remoção de Campos do Formulário:** Para agilizar e desburocratizar o cadastro, o campo de CPF/CNPJ foi totalmente removido do formulário de criação de conta (`AuthPage.jsx`).
+- **Backend Opcional:** O backend foi ajustado para permitir registros sem CPF/CNPJ, tornando a entrada dos usuários extremamente suave.
+- **Asaas sem Exigência de Documento:** Ajustado o payload de criação de cliente no Asaas para omitir o parâmetro `cpfCnpj` quando este não estiver presente. O Asaas gera a cobrança Pix sem restrições.
 
 ### 🧩 Refatoração do Fluxo de Pagamento e Tratamento de Erros
-- **Vínculo Automático de Parâmetros:** A rota de vinculação de placas (`/api/auth/link-qr`) agora transfere automaticamente as informações de telefone (`clientPhone`) e documento (`clientDocument`) da conta do usuário para o cadastro da propriedade física.
+- **Vínculo Automático de Parâmetros:** A rota de vinculação de placas (`/api/auth/link-qr`) agora transfere automaticamente as informações de telefone (`clientPhone`) da conta do usuário para o cadastro da propriedade física.
 - **Resolução de Fallbacks no Checkout:** A rota de geração de Pix `/api/payment/asaas/create` foi refatorada e unificada. Agora ela resolve falhas dinamicamente buscando os parâmetros no usuário vinculado caso estes não estejam salvos na propriedade.
-- **Interrupção de Fluxo em Caso de Erro:** Corrigido o bug visual onde o cliente era enviado para a tela de aguardo de confirmação mesmo que a chamada ao Asaas falhasse. Agora, se ocorrer um erro na API do Asaas (ex: CPF inválido), o sistema exibe um alerta explicativo na tela e mantém o usuário na etapa de checkout.
+- **Interrupção de Fluxo em Caso de Erro:** Corrigido o bug visual onde o cliente era enviado para a tela de aguardo de confirmação mesmo que a chamada ao Asaas falhasse. Agora, se ocorrer um erro na API do Asaas, o sistema exibe um alerta explicativo na tela e mantém o usuário na etapa de checkout.
+
+---
+
+## 🚀 v3.6.2 — Remoção Absoluta de Simulações e Foco Estrito em Produção (18/05/2026)
+
+### 💳 Remoção Completa do Modo de Simulação
+- **Backend 100% Produção:** Removido o fallback que gerava Pix simulado localmente no backend `/api/payment/asaas/create` quando a chave API do Asaas não estivesse definida. Agora, se a chave de produção estiver ausente, o backend responde imediatamente com um erro de configuração de servidor, impedindo transações falsas.
+- **Limpeza do Frontend:**
+  - Removido o botão de teste `"🧪 Simular Confirmação de Pagamento"` da tela de onboarding (`AuthPage.jsx`).
+  - Removido o botão `"🧪 Simular Confirmação de Pagamento"` do painel de onboarding interno do gestor (`AdminPanel.jsx`).
+  - Removido o botão `"🧪 Simular Confirmação Asaas"` do modal de checkout no painel do cliente (`AdminPanel.jsx`).
+  - Removido o badge sandbox `"🧪 MODO SANDBOX (Simulação)"` da visualização de faturamento no painel Master Admin (`MasterAdminDashboard.jsx`).
+  - Deletados todos os métodos de teste `/api/webhook/asaas` locais chamados pelo frontend para simular recebimento bancário.
