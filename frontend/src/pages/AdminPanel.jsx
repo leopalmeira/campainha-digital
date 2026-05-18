@@ -116,26 +116,26 @@ export default function AdminPanel() {
     setShowPaymentModal(true);
     setLoading(true);
     try {
-      const asaasRes = await fetch(`${API}/api/payment/asaas/create`, {
+      const res = await fetch(`${API}/api/payment/abacate/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ propertyId })
       });
-      if (asaasRes.ok) {
-        const asaasData = await asaasRes.json();
-        if (asaasData.success && asaasData.pixQrCode) {
-           setPixData(asaasData);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.pixQrCode) {
+           setPixData(data);
         } else {
            alert('Falha ao gerar o pagamento. Verifique com o suporte.');
            setShowPaymentModal(false);
         }
       } else {
-         const err = await asaasRes.json();
-         alert(err.error || 'Erro na integração com o Asaas.');
+         const err = await res.json();
+         alert(err.error || 'Erro na integração de pagamento.');
          setShowPaymentModal(false);
       }
     } catch(e) {
-       console.error("Error calling Asaas endpoint", e);
+       console.error("Error calling payment endpoint", e);
        alert('Erro de conexão ao gerar pagamento.');
        setShowPaymentModal(false);
     } finally {
@@ -148,25 +148,25 @@ export default function AdminPanel() {
     setIsPaid(false);
     setPixData(null);
     try {
-      const asaasRes = await fetch(`${API}/api/payment/asaas/create`, {
+      const res = await fetch(`${API}/api/payment/abacate/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ propertyId })
       });
-      if (asaasRes.ok) {
-        const asaasData = await asaasRes.json();
-        if (asaasData.success && asaasData.pixQrCode) {
-           setPixData(asaasData);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.pixQrCode) {
+           setPixData(data);
            setOnboardingStep('pay_qr');
         } else {
-           alert('Falha ao gerar o pagamento Asaas. Verifique com o suporte.');
+           alert('Falha ao gerar o pagamento. Verifique com o suporte.');
         }
       } else {
-         const err = await asaasRes.json();
-         alert(err.error || 'Erro na integração com o Asaas.');
+         const err = await res.json();
+         alert(err.error || 'Erro na integração de pagamento.');
       }
     } catch(e) {
-       console.error("Error calling Asaas endpoint", e);
+       console.error("Error calling payment endpoint", e);
        alert('Erro de conexão ao gerar pagamento.');
     } finally {
        setLoading(false);
@@ -514,8 +514,8 @@ export default function AdminPanel() {
               <ShieldCheck size={24} color="#000" />
             </div>
             <div style={{ flex: 1 }}>
-              <strong style={{ color: 'var(--text-main)', fontSize: '16px', display: 'block' }}>Assinatura Anual via PIX Asaas</strong>
-              <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Apenas <strong style={{ color: 'var(--primary)' }}>R$ 39,90/ano</strong></span>
+              <strong style={{ color: 'var(--text-main)', fontSize: '16px', display: 'block' }}>Assinatura Anual via PIX</strong>
+              <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Ative o seu plano anual com total segurança</span>
             </div>
           </button>
 
@@ -565,7 +565,7 @@ export default function AdminPanel() {
 
             {pixData ? (
               <div style={{ marginTop: '32px', padding: '24px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', color: '#0F172A' }}>
-                <strong style={{ display: 'block', fontSize: '16px', color: '#0F172A', marginBottom: '16px' }}>Pague com PIX (R$ 39,90)</strong>
+                <strong style={{ display: 'block', fontSize: '16px', color: '#0F172A', marginBottom: '16px' }}>Pague com PIX (R$ {Number(pixData.value || 39.90).toFixed(2)})</strong>
                 
                 <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
                   <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
@@ -713,7 +713,7 @@ export default function AdminPanel() {
                         className="btn-primary"
                         style={{ width: '100%', padding: '12px', fontSize: '13px', marginBottom: '12px', background: '#10B981' }}
                       >
-                        <CreditCard size={16} /> Ativar Plano Anual PIX Asaas (R$ 39,90/ano)
+                        <CreditCard size={16} /> Ativar Plano Anual PIX (R$ {Number(p.customPrice !== undefined && p.customPrice !== null ? p.customPrice : 39.90).toFixed(2)}/ano)
                       </button>
                     )}
 
@@ -947,10 +947,10 @@ export default function AdminPanel() {
                 <p style={{ color: '#64748B', fontSize: '13px', marginBottom: '24px' }}>Imóvel: <strong>{paymentPropertyId}</strong></p>
                 
                 {loading && !pixData ? (
-                  <p style={{ color: '#64748B', padding: '40px' }}>Gerando cobrança PIX no Asaas...</p>
+                  <p style={{ color: '#64748B', padding: '40px' }}>Gerando cobrança PIX...</p>
                 ) : pixData ? (
                   <>
-                    <strong style={{ display: 'block', fontSize: '15px', color: '#0F172A', marginBottom: '16px' }}>Escaneie o QR Code PIX (R$ 39,90)</strong>
+                    <strong style={{ display: 'block', fontSize: '15px', color: '#0F172A', marginBottom: '16px' }}>Escaneie o QR Code PIX (R$ {Number(pixData.value || 39.90).toFixed(2)})</strong>
                     <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
                       <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
                     </div>
@@ -970,7 +970,7 @@ export default function AdminPanel() {
                     </p>
                   </>
                 ) : (
-                  <p style={{ color: '#EF4444' }}>Não foi possível carregar o QR Code do Asaas.</p>
+                  <p style={{ color: '#EF4444' }}>Não foi possível carregar o QR Code do pagamento.</p>
                 )}
               </div>
             )}

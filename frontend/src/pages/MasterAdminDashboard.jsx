@@ -37,7 +37,8 @@ export default function MasterAdminDashboard() {
     clientAddress: '',
     doormanEmail: '',
     companyName: '',
-    plan: 'Basic'
+    plan: 'Basic',
+    customPrice: ''
   });
 
   const videoRef = useRef(null);
@@ -191,6 +192,7 @@ export default function MasterAdminDashboard() {
           doormanEmail: newClient.doormanEmail,
           companyName: newClient.companyName,
           plan: newClient.plan,
+          customPrice: newClient.customPrice === '' ? null : Number(newClient.customPrice),
           units: newClient.type !== 'house' ? Array.from({ length: newClient.numUnits }, (_, i) => ({ name: `Unidade ${i + 1}` })) : []
         })
       });
@@ -201,7 +203,7 @@ export default function MasterAdminDashboard() {
         alert(`Cliente registrado com sucesso!\n\nACESSO ADMIN (Painel):\nE-mail: ${newClient.email}\nCódigo: ${savedData.clientCode}\n\nACESSO MORADORES (App):\n${unitsList}`);
         setScannedId('');
         setNewClient({
-          name: '', type: 'house', numUnits: 1, clientName: '', email: '', clientPhone: '', clientDocument: '', clientAddress: '', doormanEmail: '', companyName: '', plan: 'Basic'
+          name: '', type: 'house', numUnits: 1, clientName: '', email: '', clientPhone: '', clientDocument: '', clientAddress: '', doormanEmail: '', companyName: '', plan: 'Basic', customPrice: ''
         });
         setActiveTab('clients');
         fetchClients();
@@ -630,6 +632,11 @@ export default function MasterAdminDashboard() {
                   </div>
 
                   <div>
+                    <Label>Preço da Assinatura Anual (R$)</Label>
+                    <Input type="number" step="0.01" placeholder="Deixe em branco para usar o preço padrão global (R$ 39,90)" value={newClient.customPrice} onChange={e => setNewClient({...newClient, customPrice: e.target.value})} />
+                  </div>
+
+                  <div>
                     <Label>Endereço de Faturamento</Label>
                     <Input type="text" value={newClient.clientAddress} onChange={e => setNewClient({...newClient, clientAddress: e.target.value})} />
                   </div>
@@ -798,6 +805,12 @@ export default function MasterAdminDashboard() {
                   setEditForm({...editForm, adminEmail: em, clientPhone: ph});
                 }} />
                 <DetailRow label="ENDEREÇO" value={selectedClient.clientAddress || "---"} isEdit={isEditing} onChange={v => setEditForm({...editForm, clientAddress: v})} />
+                <DetailRow 
+                  label="PREÇO CUSTOMIZADO DA ASSINATURA (R$)" 
+                  value={isEditing ? (editForm.customPrice !== undefined && editForm.customPrice !== null ? editForm.customPrice : '') : (selectedClient.customPrice !== undefined && selectedClient.customPrice !== null ? `R$ ${Number(selectedClient.customPrice).toFixed(2)}` : "Usando Padrão Global (R$ 39,90)")} 
+                  isEdit={isEditing} 
+                  onChange={v => setEditForm({...editForm, customPrice: v === '' ? null : Number(v)})} 
+                />
               </div>
               <div>
                 <DetailRow label="PROPRIEDADE" value={selectedClient.name} isEdit={isEditing} onChange={v => setEditForm({...editForm, name: v})} />
@@ -1184,7 +1197,7 @@ function BillingTab({ clients, API, onRefresh }) {
     setGeneratingPix(client.id);
     setPixData(null);
     try {
-      const res = await fetch(`${API}/api/payment/asaas/create`, {
+      const res = await fetch(`${API}/api/payment/abacate/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ propertyId: client.id })

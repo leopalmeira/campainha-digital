@@ -197,8 +197,10 @@ app.post('/api/payment/abacate/create', async (req, res) => {
 
   const user = users.find(u => u.email === property.adminEmail);
 
-  // Usa preço dinâmico das configurações (em Reais, converter para centavos)
-  const servicePrice = platformConfig.servicePriceAnnual || 39.90;
+  // Usa preço customizado da propriedade se houver, senão usa o preço global das configurações
+  const servicePrice = (property.customPrice !== undefined && property.customPrice !== null && property.customPrice > 0)
+    ? Number(property.customPrice)
+    : (platformConfig.servicePriceAnnual || 39.90);
   const amountInCents = Math.round(servicePrice * 100);
 
   try {
@@ -587,7 +589,7 @@ app.post('/api/doorman/login', (req, res) => {
 
 // ─── Properties Routes ───────────────────────────────────────────────────────
 app.post('/api/properties', async (req, res) => {
-  const { type, name, units, adminEmail, adminPassword, id, clientName, clientPhone, clientDocument, clientAddress, doormanEmail, companyName, plan } = req.body;
+  const { type, name, units, adminEmail, adminPassword, id, clientName, clientPhone, clientDocument, clientAddress, doormanEmail, companyName, plan, customPrice } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Nenhum ID de QR Code foi fornecido. O cadastro exige um escaneamento prévio.' });
@@ -630,6 +632,7 @@ app.post('/api/properties', async (req, res) => {
     clientCode,
     doormanCode,
     doormanEmail: doormanEmail || null,
+    customPrice: customPrice !== undefined ? (customPrice === '' || customPrice === null ? null : Number(customPrice)) : null,
     units: isCollective
       ? (units && units.length > 0 ? units.map(u => ({
           id: uuidv4(),
@@ -707,7 +710,7 @@ app.delete('/api/properties/:id', (req, res) => {
 
 // Editar dados do cliente/propriedade (Master Admin ou Admin)
 app.put('/api/properties/:id', (req, res) => {
-  const { adminEmail, clientName, clientPhone, clientDocument, clientAddress, companyName, plan, name } = req.body;
+  const { adminEmail, clientName, clientPhone, clientDocument, clientAddress, companyName, plan, name, customPrice } = req.body;
   const prop = properties.find(p => p.id === req.params.id);
   if (!prop) return res.status(404).json({ error: 'Property not found' });
 
@@ -722,6 +725,7 @@ app.put('/api/properties/:id', (req, res) => {
   if (companyName !== undefined) prop.companyName = companyName;
   if (plan !== undefined) prop.plan = plan;
   if (name !== undefined) prop.name = name;
+  if (customPrice !== undefined) prop.customPrice = customPrice === '' || customPrice === null ? null : Number(customPrice);
 
   saveDb();
   res.json(prop);

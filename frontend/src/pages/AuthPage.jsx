@@ -447,7 +447,7 @@ export default function AuthPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: '16px', fontWeight: 800, color: '#3B82F6' }}>Assinatura Anual via PIX</div>
                 </div>
-                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>Plano pago (R$ 39,90/ano) via Asaas.</div>
+                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>Plano anual pago de forma segura e rápida.</div>
               </button>
 
               <button 
