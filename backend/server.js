@@ -223,7 +223,7 @@ app.post('/api/payment/asaas/create', async (req, res) => {
     console.log(`[ASAAS] Gerando cobrança para cliente: ${asaasCustomerId}`);
     const chargeRes = await axios.post(`${ASAAS_API_URL}/payments`, {
       customer: asaasCustomerId,
-      billingType: 'PIX',
+      billingType: 'UNDEFINED', // Usando UNDEFINED para evitar bloqueio estrito de PIX do Asaas
       value: servicePrice,
       dueDate: dueDate.toISOString().split('T')[0],
       description: `Assinatura ${platformConfig.planName || 'Anual'} - ${property.name}`,
