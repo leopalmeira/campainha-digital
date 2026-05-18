@@ -185,7 +185,6 @@ const generateAccessCode = () => crypto.randomBytes(3).toString('hex').toUpperCa
 // ─── Asaas Payment Routes ─────────────────────────────────────────────────────
 
 // POST /api/payment/asaas/create — Gera cobrança Pix para um cliente
-// POST /api/payment/asaas/create — Gera cobrança Pix para um cliente
 app.post('/api/payment/asaas/create', async (req, res) => {
   const { propertyId } = req.body;
   if (!propertyId) return res.status(400).json({ error: 'propertyId é obrigatório.' });
@@ -194,77 +193,64 @@ app.post('/api/payment/asaas/create', async (req, res) => {
   if (!property) return res.status(404).json({ error: 'Propriedade não encontrada.' });
 
   const user = users.find(u => u.email === property.adminEmail);
-
-  // Usa preço dinâmico das configurações
   const servicePrice = platformConfig.servicePriceAnnual || 39.90;
-  const pixDueDays   = platformConfig.pixDueDays || 3;
+  const pixDueDays = platformConfig.pixDueDays || 3;
 
-  // Exige estritamente a chave do Asaas em modo de Produção
   if (!ASAAS_API_KEY) {
-    return res.status(500).json({ error: 'Erro de Configuração: A Chave de API de Produção do Asaas (ASAAS_API_KEY) não foi definida no servidor.' });
+    console.error('[ASAAS] Chave de API não configurada.');
+    return res.status(500).json({ error: 'Erro de Configuração do servidor.' });
   }
 
   try {
-    // 1. Criar/buscar cliente no Asaas
     let asaasCustomerId = property.asaasCustomerId;
+
     if (!asaasCustomerId) {
-      const name = property.clientName || user?.name || property.name;
-      const email = property.adminEmail;
-      const phone = property.clientPhone || user?.whatsapp || '';
-      const cpfCnpj = (property.clientDocument || user?.document || '').replace(/\D/g, '');
-
-      const customerPayload = {
-        name,
-        email,
-        phone: phone.replace(/\D/g, '')
-      };
-      if (cpfCnpj) {
-        customerPayload.cpfCnpj = cpfCnpj;
-      }
-
-      const customerRes = await axios.post(`${ASAAS_API_URL}/customers`, customerPayload, {
-        headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' }
-      });
-      asaasCustomerId = customerRes.data.id;
+      console.log(`[ASAAS] Criando novo cliente para propriedade: ${propertyId}`);
+      const customerRes = await axios.post(`${ASAAS_API_URL}/customers`, {
+        name: property.clientName || user?.name || property.name,
+        email: property.adminEmail,
+        phone: (property.clientPhone || user?.whatsapp || '').replace(/\D/g, '')
+      }, { headers: { 'access_token': ASAAS_API_KEY } });
       
-      // Salvar o ID do cliente Asaas na propriedade
+      asaasCustomerId = customerRes.data.id;
       property.asaasCustomerId = asaasCustomerId;
-      if (phone) property.clientPhone = phone;
-      if (cpfCnpj) property.clientDocument = cpfCnpj;
       saveDb();
     }
 
-    // 2. Criar cobrança Pix
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + pixDueDays);
 
+    console.log(`[ASAAS] Gerando cobrança para cliente: ${asaasCustomerId}`);
     const chargeRes = await axios.post(`${ASAAS_API_URL}/payments`, {
       customer: asaasCustomerId,
       billingType: 'PIX',
       value: servicePrice,
       dueDate: dueDate.toISOString().split('T')[0],
-      description: `Assinatura Anual Campainha Digital - Placa ${propertyId}`,
-      externalReference: propertyId,
-      postalService: false
-    }, {
-      headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' }
-    });
+      description: `Assinatura ${platformConfig.planName || 'Anual'} - ${property.name}`,
+      externalReference: propertyId
+    }, { headers: { 'access_token': ASAAS_API_KEY } });
 
     const paymentId = chargeRes.data.id;
+    let pixData = { encodedImage: null, payload: null };
 
-    // 3. Buscar QR Code Pix
-    const pixRes = await axios.get(`${ASAAS_API_URL}/payments/${paymentId}/pixQrCode`, {
-      headers: { 'access_token': ASAAS_API_KEY }
-    });
+    try {
+      const pixRes = await axios.get(`${ASAAS_API_URL}/payments/${paymentId}/pixQrCode`, {
+        headers: { 'access_token': ASAAS_API_KEY }
+      });
+      pixData = pixRes.data;
+    } catch (err) {
+      console.warn('[ASAAS] Falha ao buscar QR Code, usando link de fatura como fallback.');
+    }
 
     return res.json({
-      success: true,
-      isSimulated: false,
+      success:       true,
+      isSimulated:   false,
       paymentId,
-      invoiceUrl: chargeRes.data.invoiceUrl,
-      pixQrCode: pixRes.data.encodedImage, // Imagem Base64
-      pixCopiaECola: pixRes.data.payload, // Código Copia e Cola
-      value: servicePrice
+      invoiceUrl:    chargeRes.data.invoiceUrl,
+      pixQrCode:     pixData.encodedImage  || null,
+      pixCopiaECola: pixData.payload       || null,
+      fallback:      !pixData.encodedImage,
+      value:         servicePrice
     });
 
   } catch (err) {
@@ -381,8 +367,9 @@ app.post('/api/auth/link-qr', async (req, res) => {
 
   // Check if propertyId is already linked to someone else
   const existingProp = properties.find(p => p.id === propertyId);
-  if (existingProp && existingProp.adminEmail && existingProp.adminEmail !== user.email) {
-    return res.status(400).json({ error: 'Esta placa já está vinculada a outro administrador.' });
+  // Bloqueia APENAS se a placa tem um dono DIFERENTE do usuário atual
+  if (existingProp && existingProp.adminEmail && existingProp.adminEmail.toLowerCase() !== user.email.toLowerCase()) {
+    return res.status(400).json({ error: 'Esta placa já está vinculada a outro administrador. Contate o suporte se for sua placa.' });
   }
 
   user.scannedPropertyId = propertyId;

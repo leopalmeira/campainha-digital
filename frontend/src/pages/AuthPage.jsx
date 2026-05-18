@@ -259,18 +259,24 @@ export default function AuthPage() {
               body: JSON.stringify({ propertyId: scannedId })
             });
             const asaasData = await asaasRes.json();
-            if (asaasRes.ok) {
-              if (asaasData.success && asaasData.pixQrCode) {
-                 setPixData(asaasData);
-                 setStep(4);
-              } else {
-                 alert('Falha ao gerar cobrança Pix: Dados retornados incompletos.');
+            if (asaasRes.ok && asaasData.success) {
+              setPixData(asaasData);
+              setStep(4);
+              // Se não há QR Code mas tem invoiceUrl, abre o link de pagamento automaticamente
+              if (asaasData.fallback && asaasData.invoiceUrl) {
+                window.open(asaasData.invoiceUrl, '_blank');
               }
             } else {
-               alert(`Erro no Asaas: ${asaasData.error || 'Falha ao processar.'} ${asaasData.detail || ''}`);
+              const errMsg = asaasData.detail || asaasData.error || 'Falha ao processar pagamento.';
+              alert(`Erro no Asaas: ${errMsg}\n\nVocê ainda pode acessar seu painel pelo período de trial.`);
+              // Mesmo com erro no pagamento, deixa o usuário acessar o painel no trial
+              setIsPaid(true);
+              setStep(4);
             }
           } catch(e) {
-             alert("Erro de conexão ao processar pagamento com o Asaas.");
+            alert('Erro de conexão ao processar pagamento. Você acessará o painel pelo período de trial.');
+            setIsPaid(true);
+            setStep(4);
           }
         }
       } else {
@@ -492,27 +498,43 @@ export default function AuthPage() {
 
                 {pixData ? (
                   <div style={{ marginTop: '32px', padding: '24px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                    <strong style={{ display: 'block', fontSize: '16px', color: '#0F172A', marginBottom: '16px' }}>Pague com PIX (R$ 39,90)</strong>
-                    
-                    <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
-                      <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
-                    </div>
-                    
-                    <div style={{ marginTop: '24px' }}>
-                       <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>PIX Copia e Cola</span>
-                       <div style={{ display: 'flex', gap: '8px' }}>
-                         <input type="text" value={pixData.pixCopiaECola} readOnly style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', background: '#F8FAFC', outline: 'none' }} />
-                         <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Pix copiado!'); }} style={{ padding: '0 16px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>
-                            Copiar
-                         </button>
-                       </div>
-                    </div>
-                    
+                    <strong style={{ display: 'block', fontSize: '16px', color: '#0F172A', marginBottom: '16px' }}>
+                      Pague com PIX (R$ {(pixData.value || 39.90).toFixed(2).replace('.', ',')})
+                    </strong>
+
+                    {pixData.pixQrCode ? (
+                      <>
+                        <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
+                          <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
+                        </div>
+                        {pixData.pixCopiaECola && (
+                          <div style={{ marginTop: '24px' }}>
+                            <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>PIX Copia e Cola</span>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <input type="text" value={pixData.pixCopiaECola} readOnly style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', background: '#F8FAFC', outline: 'none' }} />
+                              <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Pix copiado!'); }} style={{ padding: '0 16px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>Copiar</button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: 1.6 }}>
+                          Sua cobrança foi gerada! Clique abaixo para pagar.
+                        </p>
+                        {pixData.invoiceUrl && (
+                          <a href={pixData.invoiceUrl} target="_blank" rel="noreferrer"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '14px 28px', background: '#10B981', color: '#FFF', borderRadius: '12px', textDecoration: 'none', fontWeight: 800, fontSize: '15px' }}>
+                            💳 Pagar Agora
+                          </a>
+                        )}
+                      </div>
+                    )}
                     <p style={{ fontSize: '12px', color: '#64748B', marginTop: '16px', lineHeight: '1.4' }}>Após o pagamento, o acesso é liberado em instantes e o recibo enviado para o seu WhatsApp/E-mail.</p>
                   </div>
                 ) : (
                   <div style={{ marginTop: '32px', padding: '16px', background: '#F1F5F9', borderRadius: '12px', fontSize: '13px', color: '#475569' }}>
-                     Aguardando liberação do sistema ou configurando integração de pagamento.
+                    Aguardando liberação do sistema.
                   </div>
                 )}
                 
