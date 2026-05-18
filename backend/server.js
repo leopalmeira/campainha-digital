@@ -228,16 +228,16 @@ app.post('/api/payment/asaas/create', async (req, res) => {
       const phone = property.clientPhone || user?.whatsapp || '';
       const cpfCnpj = (property.clientDocument || user?.document || '').replace(/\D/g, '');
 
-      if (!cpfCnpj) {
-        return res.status(400).json({ error: 'O CPF/CNPJ é obrigatório para gerar o pagamento no Asaas de Produção. Por favor, forneça seu documento.' });
-      }
-
-      const customerRes = await axios.post(`${ASAAS_API_URL}/customers`, {
+      const customerPayload = {
         name,
         email,
-        phone: phone.replace(/\D/g, ''),
-        cpfCnpj
-      }, {
+        phone: phone.replace(/\D/g, '')
+      };
+      if (cpfCnpj) {
+        customerPayload.cpfCnpj = cpfCnpj;
+      }
+
+      const customerRes = await axios.post(`${ASAAS_API_URL}/customers`, customerPayload, {
         headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' }
       });
       asaasCustomerId = customerRes.data.id;
@@ -360,14 +360,9 @@ app.post('/api/admin/login', (req, res) => {
 
 // ─── Unified Registration Routes ──────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, whatsapp, password, document } = req.body;
-  if (!name || !email || !password || !whatsapp || !document) {
-    return res.status(400).json({ error: 'Nome, e-mail, WhatsApp, CPF/CNPJ e senha são obrigatórios.' });
-  }
-
-  const cleanDoc = document.replace(/\D/g, '');
-  if (cleanDoc.length !== 11 && cleanDoc.length !== 14) {
-    return res.status(400).json({ error: 'CPF deve conter 11 dígitos e CNPJ 14 dígitos.' });
+  const { name, email, whatsapp, password } = req.body;
+  if (!name || !email || !password || !whatsapp) {
+    return res.status(400).json({ error: 'Nome, e-mail, WhatsApp e senha são obrigatórios.' });
   }
 
   const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
@@ -379,7 +374,6 @@ app.post('/api/auth/register', async (req, res) => {
     email: email.toLowerCase(),
     whatsapp,
     password,
-    document: cleanDoc,
     role: 'user', // Starts as a simple user
     status: 'active', // Active immediately so they appear in the dashboard
     scannedPropertyId: null,
@@ -433,7 +427,6 @@ app.post('/api/auth/link-qr', async (req, res) => {
       adminPassword: user.password,
       clientName: user.name,
       clientPhone: user.whatsapp,
-      clientDocument: user.document || '',
       clientCode,
       doormanCode: null,
       units: isCollective ? [] : [{ id: uuidv4(), name: 'Principal', accessCode: clientCode }],
@@ -454,7 +447,6 @@ app.post('/api/auth/link-qr', async (req, res) => {
     existingProp.adminPassword = user.password;
     existingProp.clientName = user.name;
     existingProp.clientPhone = user.whatsapp;
-    existingProp.clientDocument = user.document || '';
     saveDb();
   }
 
