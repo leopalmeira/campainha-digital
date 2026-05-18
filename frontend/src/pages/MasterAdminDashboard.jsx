@@ -72,7 +72,7 @@ export default function MasterAdminDashboard() {
       fetchSupportTickets();
     };
     loadAll(false);
-    const interval = setInterval(() => { loadAll(true); }, 5000);
+    const interval = setInterval(() => { loadAll(true); }, 1200000); // Atualiza silenciosamente a cada 20 minutos
     return () => clearInterval(interval);
   }, [navigate, lastClientsState]);
 
@@ -515,8 +515,10 @@ export default function MasterAdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {loading ? (
+                    {loading && clients.length === 0 ? (
                       <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>Buscando base de dados...</td></tr>
+                    ) : filteredClients.length === 0 ? (
+                      <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>Nenhum cliente cadastrado ou encontrado.</td></tr>
                     ) : filteredClients.map((client) => (
                       <tr key={client.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                         <td style={{ padding: '20px 16px' }}>
@@ -1268,6 +1270,21 @@ function BillingTab({ clients, API, onRefresh }) {
   const mrr = (annualClients.length * 39.90 / 12).toFixed(2);
   const arr = (annualClients.length * 39.90).toFixed(2);
 
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thisWeekStart = new Date(todayStart);
+  thisWeekStart.setDate(todayStart.getDate() - todayStart.getDay()); // Domingo
+
+  let vendasHoje = 0;
+  let vendasSemana = 0;
+  annualClients.forEach(c => {
+    const paymentDate = new Date(new Date(c.nextPaymentDate).getTime() - (365 * 24 * 60 * 60 * 1000));
+    if (paymentDate >= todayStart) vendasHoje++;
+    if (paymentDate >= thisWeekStart) vendasSemana++;
+  });
+
+  const faturamentoHoje = (vendasHoje * 39.90).toFixed(2);
+  const faturamentoSemana = (vendasSemana * 39.90).toFixed(2);
+
   const filtered = billingFilter === 'all'     ? clients
     : billingFilter === 'annual'   ? annualClients
     : billingFilter === 'trial'    ? trialClients
@@ -1331,15 +1348,15 @@ function BillingTab({ clients, API, onRefresh }) {
       {/* ── KPI CARDS ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '24px', marginBottom: '32px' }}>
         {[
-          { label: 'Receita Anual (ARR)', value: `R$ ${arr}`, sub: `${annualClients.length} assinantes`, color: '#10B981', bg: 'linear-gradient(135deg,#064E3B,#065F46)' },
-          { label: 'Receita Mensal (MRR)', value: `R$ ${mrr}`, sub: 'Assinaturas ativas', color: '#60A5FA', bg: 'linear-gradient(135deg,#1E3A5F,#1E40AF)' },
-          { label: 'Em Período de Teste', value: trialClients.length, sub: 'Clientes no trial', color: '#F59E0B', bg: '#FFFBEB', dark: false },
-          { label: 'Vencidos / Inadimplentes', value: expiredClients.length, sub: 'Precisam renovar', color: '#EF4444', bg: '#FFF1F2', dark: false },
+          { label: 'Previsão (ARR)', value: `R$ ${arr}`, sub: `${annualClients.length} assinantes`, color: '#10B981', bg: 'linear-gradient(135deg,#064E3B,#065F46)' },
+          { label: 'Faturamento Hoje', value: `R$ ${faturamentoHoje}`, sub: `${vendasHoje} vendas confirmadas`, color: '#60A5FA', bg: 'linear-gradient(135deg,#1E3A5F,#1E40AF)' },
+          { label: 'Vendas na Semana', value: vendasSemana, sub: `R$ ${faturamentoSemana} gerados`, color: '#8B5CF6', bg: 'linear-gradient(135deg,#4C1D95,#5B21B6)' },
+          { label: 'Em Trial / Exp.', value: `${trialClients.length} / ${expiredClients.length}`, sub: 'Clientes inativos ou no teste', color: '#F59E0B', bg: '#FFFBEB', dark: false },
         ].map((k, i) => (
           <div key={i} style={{ padding: '24px', background: k.bg, borderRadius: '20px', border: k.dark === false ? '1px solid #E2E8F0' : 'none' }}>
-            <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: k.dark === false ? '#64748B' : '#FFFFFF99', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{k.label}</p>
+            <p style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: k.dark === false ? '#64748B' : '#FFFFFF99', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{k.label}</p>
             <div style={{ fontSize: '30px', fontWeight: 800, color: k.dark === false ? k.color : '#FFF', margin: '8px 0 4px' }}>{k.value}</div>
-            <p style={{ margin: 0, fontSize: '12px', color: k.dark === false ? '#94A3B8' : '#FFFFFF80' }}>{k.sub}</p>
+            <p style={{ margin: 0, fontSize: '12px', color: k.dark === false ? '#94A3B8' : '#FFFFFF80', fontWeight: 600 }}>{k.sub}</p>
           </div>
         ))}
       </div>

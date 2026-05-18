@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle, CreditCard, Users, Send, Zap, FileText } from 'lucide-react';
+import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle, CreditCard, Users, Send, Zap, FileText, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 import UnitManager from '../components/UnitManager';
@@ -624,8 +624,8 @@ export default function AdminPanel() {
             { key: 'settings',   label: 'Configurações',icon: Settings }
           ].filter(tab => {
             const selectedPropObj = properties.find(p => p.id === selectedProperty);
-            const isIndividual = selectedPropObj?.type === 'individual';
-            if (isIndividual && ['units', 'people', 'broadcast'].includes(tab.key)) return false;
+            const isIndividual = selectedPropObj?.type === 'individual' || selectedPropObj?.type === 'house';
+            if (isIndividual && ['units', 'people', 'broadcast', 'settings'].includes(tab.key)) return false;
             return true;
           }).map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', border: 'none', background: activeTab === tab.key ? '#EFF6FF' : 'transparent', color: activeTab === tab.key ? '#3B82F6' : '#64748B', fontWeight: activeTab === tab.key ? 700 : 600, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}>
@@ -653,6 +653,34 @@ export default function AdminPanel() {
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', width: 'calc(100% - 260px)' }}>
 
+        {(() => {
+          const prop = properties.find(p => p.id === selectedProperty);
+          if (prop && prop.plan !== 'Anual') {
+            const daysLeft = Math.ceil((new Date(prop.nextPaymentDate) - new Date()) / (1000 * 60 * 60 * 24));
+            if (daysLeft <= 0) {
+              return (
+                <div style={{ background: '#EF4444', color: '#FFF', padding: '16px', textAlign: 'center', fontWeight: 'bold', zIndex: 10 }}>
+                  <AlertCircle size={20} style={{ verticalAlign: 'middle', marginRight: '8px', marginBottom: '2px' }} />
+                  Seu período de teste grátis expirou! Para continuar usando a Campainha Digital, faça sua assinatura anual (apenas R$ 39,90).
+                  <button onClick={() => handleOpenPayment(prop.id)} style={{ marginLeft: '16px', background: '#FFF', color: '#EF4444', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                    ASSINAR AGORA
+                  </button>
+                </div>
+              );
+            } else {
+              return (
+                <div style={{ background: '#F59E0B', color: '#FFF', padding: '16px', textAlign: 'center', fontWeight: 'bold', zIndex: 10 }}>
+                  <AlertCircle size={20} style={{ verticalAlign: 'middle', marginRight: '8px', marginBottom: '2px' }} />
+                  Você está no período de teste grátis. Restam {daysLeft} dias. Assine o plano Anual por R$ 39,90 para evitar bloqueios!
+                  <button onClick={() => handleOpenPayment(prop.id)} style={{ marginLeft: '16px', background: '#FFF', color: '#F59E0B', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                    ASSINAR AGORA
+                  </button>
+                </div>
+              );
+            }
+          }
+          return null;
+        })()}
 
       <main className="container fade-in" style={{ padding: '32px 40px', flex: 1, maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
 
