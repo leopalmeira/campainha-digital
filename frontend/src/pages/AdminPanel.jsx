@@ -91,7 +91,7 @@ export default function AdminPanel() {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${API}/api/properties/${targetId}`);
+        const res = await fetch(`${API}/api/properties/${encodeURIComponent(targetId.trim().toLowerCase())}`);
         if (res.ok) {
           const data = await res.json();
           if (data.plan === 'Anual') {

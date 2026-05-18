@@ -21,6 +21,9 @@ export default function MasterAdminDashboard() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isEditingUser, setIsEditingUser] = useState(false);
+  const [editUserForm, setEditUserForm] = useState({});
   const [pendingUsers, setPendingUsers] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [isApproving, setIsApproving] = useState(false);
@@ -315,12 +318,54 @@ export default function MasterAdminDashboard() {
         body: JSON.stringify({ ...editForm, adminEmail: email })
       });
       if (res.ok) {
-        alert('Dados atualizados com sucesso!');
+        alert('Dados atualizados com sucesso! ✅');
         setIsEditing(false);
         setSelectedClient(null);
         fetchClients();
       }
     } catch (err) { console.error(err); }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('Excluir esta conta de usuário permanentemente do sistema? ⚠️')) return;
+    try {
+      const adminEmail = localStorage.getItem('cd_admin_email');
+      const res = await fetch(`${API}/api/admin/users/${userId}?adminEmail=${encodeURIComponent(adminEmail)}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        alert('Conta de usuário excluída com sucesso! ✅');
+        fetchAllUsers();
+        fetchPendingUsers();
+      } else {
+        alert('Erro ao excluir conta de usuário.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveEditUser = async () => {
+    try {
+      const adminEmail = localStorage.getItem('cd_admin_email');
+      const res = await fetch(`${API}/api/admin/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editUserForm, adminEmail })
+      });
+      if (res.ok) {
+        alert('Dados da conta de usuário atualizados com sucesso! ✅');
+        setIsEditingUser(false);
+        setSelectedUser(null);
+        fetchAllUsers();
+        fetchPendingUsers();
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Erro ao atualizar dados do usuário.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const deleteClient = async (id) => {
@@ -680,6 +725,8 @@ export default function MasterAdminDashboard() {
                       user={user} 
                       onAction={handleAuthorizeUser} 
                       disabled={isApproving}
+                      onEdit={(u) => { setSelectedUser(u); setEditUserForm(u); setIsEditingUser(true); }}
+                      onDelete={handleDeleteUser}
                     />
                   ))}
                 </div>

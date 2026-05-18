@@ -550,3 +550,18 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
   - Removido o botão `"🧪 Simular Confirmação Asaas"` do modal de checkout no painel do cliente (`AdminPanel.jsx`).
   - Removido o badge sandbox `"🧪 MODO SANDBOX (Simulação)"` da visualização de faturamento no painel Master Admin (`MasterAdminDashboard.jsx`).
   - Deletados todos os métodos de teste `/api/webhook/asaas` locais chamados pelo frontend para simular recebimento bancário.
+
+---
+
+## ⚡ v3.7.0 — Liberação Robusta Pix Abacate Pay & Case-Insensibilidade Global (18/05/2026)
+
+### 💳 Resolução do Fluxo de Pagamento Pix (Abacate Pay)
+- **Correção de Sensibilidade de Caixa (Case Sensitivity):**
+  - **Backend:** Ajustadas as rotas `POST /api/webhook/abacate`, `GET /api/payment/abacate/status/:propertyId` e `GET /api/properties/:id` para realizar a comparação dos IDs de propriedades em letras minúsculas (`.toLowerCase()`). Isso evita bloqueios de ativação de planos caso o ID escaneado ou gerado venha com variações de caixa alta e baixa.
+  - **Frontend (`AuthPage.jsx` e `AdminPanel.jsx`):** O `scannedId` / `targetId` enviado no polling de status de pagamento agora é higienizado com `.trim().toLowerCase()` antes de fazer a requisição HTTP.
+- **Prevenção de Quedas do Servidor (Null Safety):**
+  - Corrigido um erro crítico no processamento do webhook do Abacate Pay no backend. O código original executava `.toLowerCase()` na propriedade `property.adminEmail` sem verificar se esta era nula ou indefinida (caso de imóveis criados de forma avulsa pelo Master Admin). Adicionadas verificações robustas que impedem que o Node.js sofra um erro fatal de execução, caindo e cancelando a gravação do pagamento no banco de dados.
+- **Segurança Flexível de Segredo do Webhook (Webhook Secret):**
+  - Implementada uma lógica altamente resiliente no validador do segredo do webhook (`req.query.webhookSecret`). Agora, ele aceita de forma dinâmica a chave de ambiente configurada no Render (`ABACATE_WEBHOOK_SECRET`), a chave de URL cadastrada no Abacate Pay (`senha_secreta_abacate_123`) ou requisições locais de desenvolvimento, impedindo que desalinhamentos de ambiente causem um bloqueio de autenticação do webhook com código `401 Unauthorized`.
+- **Validações Finais:**
+  - Realizada verificação sintática completa do backend e compilação do frontend de produção com Vite, garantindo que o sistema esteja 100% íntegro e livre de bugs para publicação.

@@ -40,7 +40,7 @@ export default function AuthPage() {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${API}/api/payment/abacate/status/${scannedId}`);
+        const res = await fetch(`${API}/api/payment/abacate/status/${encodeURIComponent(scannedId.trim().toLowerCase())}`);
         if (res.ok) {
           const data = await res.json();
           if (data.paid) {

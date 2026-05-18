@@ -51,6 +51,43 @@ CNPJ: 65.628.833/0001-47`;
     this.logSend('Contract', user.whatsapp, 'delivered', contractUrl);
   }
 
+  /**
+   * Envia notificação de pagamento confirmado com os detalhes do webhook
+   */
+  static async sendPaymentSuccessMessage(user, property, paymentDetails, contractUrl) {
+    if (!user.whatsapp) return;
+
+    const amountFormatted = (paymentDetails.amount / 100).toFixed(2).replace('.', ',');
+    
+    const message = `Olá *${user.name}*, seu pagamento foi confirmado com sucesso! 🎉
+
+Seu interfone digital da propriedade *${property.name}* está 100% ativo no plano *Assinatura Anual Premium*! 🛡️
+
+*📄 DETALHES DO PAGAMENTO (Webhook Abacate Pay):*
+• *ID da Transação:* \`${paymentDetails.id}\`
+• *Valor Pago:* R$ ${amountFormatted}
+• *Método:* Pix
+• *Data de Confirmação:* ${new Date(paymentDetails.date || Date.now()).toLocaleString('pt-BR')}
+• *Próximo Vencimento:* ${new Date(property.nextPaymentDate).toLocaleDateString('pt-BR')}
+
+---
+*📁 SEU CONTRATO DE PRESTAÇÃO DE SERVIÇOS:*
+Já geramos o seu contrato de prestação de serviços anual atualizado e assinado digitalmente:
+👉 *Link do Contrato:* ${contractUrl}
+
+---
+*📲 ACESSE SEU PAINEL:*
+Você já pode acessar e gerenciar todas as suas unidades, moradores e histórico:
+👉 *Link de acesso:* https://app.campainhadigital.com.br
+
+Agradecemos pela confiança!
+*CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)*
+CNPJ: 65.628.833/0001-47`;
+
+    await this.simulateWhatsAppApiCall(user.whatsapp, message, contractUrl);
+    this.logSend('PaymentSuccess', user.whatsapp, 'delivered', contractUrl);
+  }
+
   static async simulateWhatsAppApiCall(phone, text, attachment = null) {
     const cleanPhone = phone.replace(/\D/g, ''); // Remove máscara
 
