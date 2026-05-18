@@ -387,8 +387,8 @@ app.post('/api/auth/link-qr', async (req, res) => {
   user.scannedPropertyId = propertyId;
   if (qrImage) user.qrImage = qrImage;
   if (paymentChoice) user.paymentChoice = paymentChoice; // 'trial' | 'annual'
-  user.status = 'approved'; // Auto approve immediately
-  user.role = 'manager'; // All administrators become managers immediately to avoid manual approval queue
+  user.status = 'pending'; // Exige aprovação manual do administrador
+  user.role = 'manager'; // Mantém o papel de manager, mas pendente de liberação
   
   // Create property automatically
   if (!existingProp) {
