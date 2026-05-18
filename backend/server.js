@@ -211,11 +211,6 @@ app.post('/api/payment/abacate/create', async (req, res) => {
         amount: amountInCents,
         description: `Assinatura ${platformConfig.planName || 'Anual'} - ${property.name}`,
         externalId: propertyId,
-        customer: {
-          name: property.clientName || user?.name || property.name,
-          email: property.adminEmail,
-          cellphone: (property.clientPhone || user?.whatsapp || '').replace(/\D/g, '')
-        },
         metadata: {
           propertyId: propertyId
         }
