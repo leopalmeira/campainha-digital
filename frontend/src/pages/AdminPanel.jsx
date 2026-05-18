@@ -623,7 +623,7 @@ export default function AdminPanel() {
             { key: 'support',    label: 'Suporte',      icon: ShieldCheck },
             { key: 'settings',   label: 'Configurações',icon: Settings }
           ].filter(tab => {
-            const selectedPropObj = properties.find(p => p.id === selectedProperty);
+            const selectedPropObj = properties.find(p => p.id === selectedProperty) || properties[0];
             const isIndividual = selectedPropObj?.type === 'individual' || selectedPropObj?.type === 'house';
             if (isIndividual && ['units', 'people', 'broadcast', 'settings'].includes(tab.key)) return false;
             return true;

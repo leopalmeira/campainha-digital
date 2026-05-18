@@ -607,5 +607,9 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - **Download do QR Code:** Adicionado um bloco visual para o QR Code da placa física, acompanhado de um botão de ação rápida "Download PNG" para baixar a imagem em alta resolução e "Testar Link" para validar o fluxo em uma nova guia.
 - **Botão Excluir Cliente Integrado:** Implementado o botão vermelho "EXCLUIR CLIENTE" com ícone `Trash2` diretamente nas ações do modal. O botão exibe um diálogo de confirmação duplo e seguro, permitindo a exclusão instantânea a partir do dossiê.
 
+### 🏠 Ocultação de Recursos Coletivos para Casa Simples (Foco e Limpeza)
+- **Ocultação de Abas Condominiais:** Ajustada a aba lateral de navegação no painel do cliente (`AdminPanel.jsx`) para que imóveis do tipo "Casa Simples" (`individual` ou `house`) tenham as abas "Avisos" (comunicados de condomínio), "Unidades", "Moradores" e "Configurações" ocultadas de forma robusta e definitiva. Como casas simples não moram em condomínio, essas funções coletivas eram irrelevantes e poluíam o painel.
+- **Resolução de Estado Assíncrono (Fallback Seguro):** Implementado fallback dinâmico (`properties[0]`) para resolver falhas de estado assíncronas do React na montagem inicial (quando `selectedProperty` ainda é nulo). Isso garante que o painel identifique e oculte os botões de condomínio desde o primeiro milissegundo de carregamento do painel.
+
 ### 🛡️ Teste de Integridade de Compilação
 - Compilação de produção com Vite (`npm run build`) executada com sucesso absoluto em 541ms, livre de quaisquer erros de JSX ou importações.
