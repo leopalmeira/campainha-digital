@@ -637,17 +637,17 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
-## ⚡ v3.9.2 — Codificação de URLs como IDs & Fila Serializada de Persistência no PostgreSQL (18/05/2026)
+## ⚡ v3.9.2 — Codificação de URLs como IDs, Express RegExp & Fila Serializada de Persistência no PostgreSQL (18/05/2026)
 
-### 🔗 Codificação Robusta de ID com `encodeURIComponent`
-- **Saneamento de URLs e IDs Complexos:** Estendida a codificação com `encodeURIComponent` no frontend e o roteamento de curinga (`*`) no backend para a aba **Base de Usuários**. Agora, toda e qualquer conta de usuário (mesmo aquelas associadas a IDs complexos contendo barras) pode ser editada e excluída permanentemente pelo Master Admin sem risco de erros `404 Not Found`.
-- **Roteamento de Curinga Fail-safe (`/api/properties/*`):** Como medida de segurança contra caches persistentes no navegador do usuário (que podem continuar executando a versão anterior do frontend sem codificação), alteramos a rota de deleção do Express de `/api/properties/:id` para `/api/properties/*`. O backend agora captura o ID diretamente de `req.params[0]`, permitindo que requisições com barras cruas (`https://kinsta.com`) sejam mapeadas, resolvidas e deletadas com sucesso imediatamente, independente do estado de cache do navegador!
+### 🔗 Codificação Robusta de ID com `encodeURIComponent` & Express RegExp
+- **Saneamento de URLs e IDs Complexos:** Estendida a codificação com `encodeURIComponent` no frontend e o roteamento de RegExp nativo no backend para a aba **Base de Usuários**. Agora, toda e qualquer conta de usuário (mesmo aquelas associadas a IDs complexos contendo barras) pode ser editada e excluída permanentemente pelo Master Admin sem risco de erros `404 Not Found`.
+- **Roteamento RegExp Nativo Fail-safe (`/^\/api\/properties\/(.+)$/`):** Para evitar erros de inicialização (`PathError: Missing parameter name`) causados por diferentes versões da biblioteca `path-to-regexp` utilizadas pelo Express localmente vs. no Render, atualizamos as rotas com asteriscos curingas (`*`) para Express RegExp nativo. O backend agora captura com sucesso qualquer formato de ID a partir de `req.params[0]`, permitindo que requisições com barras cruas (`https://kinsta.com`) sejam roteadas e deletadas imediatamente, independentemente de cache do navegador ou versão do Express!
 - **Fallbacks de E-mail no Painel Master:** Adicionado o fallback automático para `'leandro2703palmeira@gmail.com'` na extração do e-mail do sessionStorage. Isso evita falhas de autorização de deleção em caso de expiração ou limpeza temporária da sessão do Master Admin.
 
 ### ⚙️ Eliminação Completa de Condições de Corrida no PostgreSQL
 - **Fila Sequencial de Escrita (`pendingWrites`):** Desenvolvida uma fila global baseada em Promises encadeadas (`Promise.resolve()`) na função `saveToPostgres` em `backend/server.js`. Isso garante que todas as operações assíncronas de gravação persistam ordenadamente na nuvem do PostgreSQL sem colidir ou sobrescrever estados concorrentes.
 - **Middleware com Bloqueio de Leitura:** O middleware global que intercepta as chamadas de API foi atualizado para aguardar explicitamente a resolução de `pendingWrites` antes de chamar `loadFromDb()`. Isso impede que chamadas rápidas subsequentes do frontend (ex: `fetchClients()` imediatamente após um clique de exclusão) obtenham uma cópia obsoleta do banco do Postgres antes de o processo em background concluir a escrita, eliminando o fantasma dos clientes deletados que reapareciam.
 
-### 🧹 Deleção em Cascata Absoluta do Cliente
-- **Limpeza de Dados Orfãos:** Modificada a rota `DELETE /api/properties/*` para apagar cirurgicamente moradores (`residents`), visitantes (`visitors`), mensagens (`messages`) e contas administrativas de usuários (`users`) associadas ao ID da propriedade deletada.
+### 🧹 Deleção em Cascata Absoluta do Cliente & Usuário
+- **Limpeza de Dados Orfãos:** Modificada a rota de exclusão de propriedades com RegExp para apagar cirurgicamente moradores (`residents`), visitantes (`visitors`), mensagens (`messages`) e contas administrativas de usuários (`users`) associadas ao ID da propriedade deletada.
 - **Awaiting Local Saves:** Atualizados os endpoints administrativos de deleção no backend para serem 100% assíncronos e explicitamente aguardarem (`await`) os métodos de persistência locais e na nuvem antes de responderem de volta ao frontend.

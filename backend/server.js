@@ -835,8 +835,8 @@ app.post('/api/admin/authorize-user', async (req, res) => {
   res.json({ success: true, message: 'Usuário atualizado.' });
 });
 
-// PUT /api/admin/users/* — Editar conta de usuário diretamente
-app.put('/api/admin/users/*', async (req, res) => {
+// PUT /api/admin/users/(.+) — Editar conta de usuário diretamente
+app.put(/^\/api\/admin\/users\/(.+)$/, async (req, res) => {
   const { adminEmail, name, email, whatsapp, scannedPropertyId, role, status } = req.body;
   if (adminEmail !== MASTER_ADMIN_EMAIL) return res.status(403).json({ error: 'Unauthorized' });
 
@@ -860,8 +860,8 @@ app.put('/api/admin/users/*', async (req, res) => {
   res.json({ success: true, message: 'Usuário atualizado com sucesso.', user });
 });
 
-// DELETE /api/admin/users/* — Excluir conta de usuário permanentemente
-app.delete('/api/admin/users/*', async (req, res) => {
+// DELETE /api/admin/users/(.+) — Excluir conta de usuário permanentemente
+app.delete(/^\/api\/admin\/users\/(.+)$/, async (req, res) => {
   const { adminEmail } = req.query;
   const reqEmailLower = (adminEmail || '').trim().toLowerCase();
   const masterEmailLower = MASTER_ADMIN_EMAIL.trim().toLowerCase();
@@ -991,7 +991,7 @@ app.get('/api/properties/:id/units', (req, res) => {
   res.json(prop.units.map(u => ({ id: u.id, name: u.name, block: u.block || '', street: u.street || '', number: u.number || '' })));
 });
 
-app.delete('/api/properties/*', async (req, res) => {
+app.delete(/^\/api\/properties\/(.+)$/, async (req, res) => {
   const { adminEmail } = req.query;
   const targetId = (req.params[0] || '').trim().toLowerCase();
   
