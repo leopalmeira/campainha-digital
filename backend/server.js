@@ -184,7 +184,7 @@ const generateAccessCode = () => crypto.randomBytes(3).toString('hex').toUpperCa
 
 // ─── Abacate Pay Payment Routes ────────────────────────────────────────────────
 
-const ABACATE_API_KEY = process.env.ABACATE_API_KEY || 'abc_dev_CwqxYk4wh23UK2Mpkb5ApYws';
+const ABACATE_API_KEY = process.env.ABACATE_API_KEY || 'abc_prod_ydwCLfYbLkygtA0xrsdtzQaH';
 const ABACATE_WEBHOOK_SECRET = process.env.ABACATE_WEBHOOK_SECRET || 'senha_secreta_abacate_123';
 
 // POST /api/payment/abacate/create — Gera cobrança Pix para um cliente
