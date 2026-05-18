@@ -1367,9 +1367,7 @@ function BillingTab({ clients, API, onRefresh }) {
 
             <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '16px', marginBottom: '20px' }}>
               <p style={{ margin: '0 0 8px', fontSize: '14px', color: '#64748B' }}>Cliente: <strong>{pixData.clientName}</strong></p>
-              {pixData.isSimulated && (
-                <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#92400E', padding: '3px 10px', borderRadius: '100px', fontWeight: 700 }}>🧪 MODO SANDBOX (Simulação)</span>
-              )}
+
             </div>
 
             {pixData.pixQrCode ? (

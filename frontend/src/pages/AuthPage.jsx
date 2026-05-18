@@ -56,28 +56,7 @@ export default function AuthPage() {
     return () => clearInterval(interval);
   }, [step, scannedId, isPaid]);
 
-  const simulatePayment = async () => {
-    try {
-      const res = await fetch(`${API}/api/webhook/asaas`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: 'PAYMENT_RECEIVED',
-          payment: {
-            externalReference: scannedId,
-            value: 39.90
-          }
-        })
-      });
-      if (res.ok) {
-        alert("Simulação enviada! O sistema vai detectar o pagamento e liberar na tela em instantes.");
-      } else {
-        alert("Erro ao simular pagamento.");
-      }
-    } catch (err) {
-      alert("Erro de conexão na simulação.");
-    }
-  };
+
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -530,10 +509,6 @@ export default function AuthPage() {
                     </div>
                     
                     <p style={{ fontSize: '12px', color: '#64748B', marginTop: '16px', lineHeight: '1.4' }}>Após o pagamento, o acesso é liberado em instantes e o recibo enviado para o seu WhatsApp/E-mail.</p>
-                    
-                    <button onClick={simulatePayment} style={{ marginTop: '24px', background: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', border: '1px dashed #3B82F6', padding: '12px', borderRadius: '12px', cursor: 'pointer', width: '100%', fontSize: '13px', fontWeight: 800, transition: 'all 0.2s' }}>
-                      🧪 Simular Confirmação de Pagamento
-                    </button>
                   </div>
                 ) : (
                   <div style={{ marginTop: '32px', padding: '16px', background: '#F1F5F9', borderRadius: '12px', fontSize: '13px', color: '#475569' }}>

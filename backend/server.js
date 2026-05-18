@@ -199,24 +199,9 @@ app.post('/api/payment/asaas/create', async (req, res) => {
   const servicePrice = platformConfig.servicePriceAnnual || 39.90;
   const pixDueDays   = platformConfig.pixDueDays || 3;
 
-  // Se a chave Asaas não estiver configurada, retorna simulação
+  // Exige estritamente a chave do Asaas em modo de Produção
   if (!ASAAS_API_KEY) {
-    try {
-      const mockPayPayload = `00020101021226850014br.gov.bcb.pix2563pix-h.asaas.com/qr/v2/simulado-${propertyId}520400005303986540539.905802BR5925Campainha Digital Simula6009Rio de Jan62070503***63041D9C`;
-      const qrCodeDataUrl = await QRCode.toDataURL(mockPayPayload, { width: 400 });
-      const base64Data = qrCodeDataUrl.split(',')[1];
-      
-      return res.json({
-        success: true,
-        isSimulated: true,
-        paymentId: `simulado-${propertyId}`,
-        pixQrCode: base64Data,
-        pixCopiaECola: mockPayPayload,
-        value: servicePrice
-      });
-    } catch (e) {
-      return res.status(500).json({ error: 'Falha ao gerar Pix simulado.' });
-    }
+    return res.status(500).json({ error: 'Erro de Configuração: A Chave de API de Produção do Asaas (ASAAS_API_KEY) não foi definida no servidor.' });
   }
 
   try {
