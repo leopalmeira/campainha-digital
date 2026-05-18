@@ -26,6 +26,18 @@ export default function MasterAdminDashboard() {
   const [isApproving, setIsApproving] = useState(false);
   const [userFilter, setUserFilter] = useState('all'); // all | pending | approved | manager
 
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [lastClientsState, setLastClientsState] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const triggerToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => {
+      setToast(current => current === msg ? null : current);
+    }, 8000);
+  };
+
   const [newClient, setNewClient] = useState({
     name: '', // Property Name
     type: 'house',
@@ -62,7 +74,7 @@ export default function MasterAdminDashboard() {
     loadAll(false);
     const interval = setInterval(() => { loadAll(true); }, 5000);
     return () => clearInterval(interval);
-  }, [navigate]);
+  }, [navigate, lastClientsState]);
 
   const fetchSupportTickets = async () => {
     try {
@@ -97,17 +109,40 @@ export default function MasterAdminDashboard() {
     }
   };
 
-  const fetchClients = async () => {
-    setLoading(true);
+  const fetchClients = async (hideLoading = false) => {
+    if (!hideLoading) setLoading(true);
     try {
       const email = sessionStorage.getItem('cd_admin_email');
       const res = await fetch(`${API}/api/properties?email=${encodeURIComponent(email)}`);
       const data = await res.json();
+      
+      // Compara com o estado anterior para disparar notificações se houver pagamentos novos
+      if (lastClientsState && lastClientsState.length > 0) {
+        data.forEach(newC => {
+          const oldC = lastClientsState.find(o => o.id === newC.id);
+          // Se o plano mudou para Anual ou se a data de validade aumentou significativamente
+          if (oldC && (
+            (oldC.plan !== 'Anual' && newC.plan === 'Anual') || 
+            (new Date(newC.nextPaymentDate) > new Date(oldC.nextPaymentDate) + 5 * 24 * 60 * 60 * 1000)
+          )) {
+            const msg = `🎉 Pagamento confirmado para ${newC.clientName || newC.name}! Plano Anual ativado até ${new Date(newC.nextPaymentDate).toLocaleDateString('pt-BR')}.`;
+            triggerToast(msg);
+            setNotifications(prev => [{
+              id: Date.now(),
+              message: msg,
+              time: new Date().toLocaleTimeString('pt-BR'),
+              read: false
+            }, ...prev]);
+          }
+        });
+      }
+      
+      setLastClientsState(data);
       setClients(data);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!hideLoading) setLoading(false);
     }
   };
 
@@ -316,6 +351,17 @@ export default function MasterAdminDashboard() {
   return (
     <div style={{ minHeight: '100vh', background: '#FFFFFF', color: '#1E293B', display: 'flex', fontFamily: 'Inter, sans-serif' }}>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {toast && (
+        <div className="fade-in" style={{ position: 'fixed', bottom: '24px', right: '24px', background: '#0F172A', color: '#FFF', padding: '16px 24px', borderRadius: '16px', border: '1px solid #1E293B', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: '12px', zIndex: 10000, maxWidth: '400px' }}>
+          <div style={{ background: '#10B981', color: '#FFF', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '16px' }}>✓</div>
+          <div style={{ flex: 1 }}>
+            <strong style={{ display: 'block', fontSize: '13px', color: '#10B981' }}>Nova Atualização Financeira</strong>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#94A3B8', lineHeight: 1.4 }}>{toast}</p>
+          </div>
+          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>×</button>
+        </div>
+      )}
       
       {/* SIDEBAR - PREMIUM DARK DESIGN */}
       <aside style={{ width: '280px', background: '#070B14', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', zIndex: 100 }}>
@@ -374,8 +420,43 @@ export default function MasterAdminDashboard() {
             </h2>
             <p style={{ color: '#64748B', fontSize: '16px', marginTop: '4px' }}>Controle total sobre a infraestrutura Campainha Digital.</p>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-             <button style={{ padding: '12px', borderRadius: '12px', background: '#FFF', border: '1px solid #E2E8F0', color: '#64748B' }}><Bell size={20}/></button>
+          <div style={{ display: 'flex', gap: '12px', position: 'relative' }}>
+             <button 
+               onClick={() => {
+                 setShowNotifications(!showNotifications);
+                 // Marca todas como lidas ao abrir o sino
+                 setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+               }} 
+               style={{ padding: '12px', borderRadius: '12px', background: '#FFF', border: '1px solid #E2E8F0', color: '#64748B', position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+               title="Notificações Financeiras"
+             >
+               <Bell size={20}/>
+               {notifications.some(n => !n.read) && (
+                 <span style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', background: '#EF4444', borderRadius: '50%' }} />
+               )}
+             </button>
+             
+             {showNotifications && (
+               <div className="fade-in" style={{ position: 'absolute', top: '56px', right: '180px', width: '340px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 1000, padding: '16px', color: '#0F172A' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #F1F5F9', paddingBottom: '8px' }}>
+                   <strong style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Notificações Financeiras</strong>
+                   <span style={{ fontSize: '11px', background: '#ECFDF5', color: '#10B981', padding: '2px 8px', borderRadius: '100px', fontWeight: 700 }}>Real-time</span>
+                 </div>
+                 {notifications.length === 0 ? (
+                   <p style={{ margin: 0, padding: '24px 0', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>Nenhum pagamento recebido nesta sessão.</p>
+                 ) : (
+                   <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                     {notifications.map(n => (
+                       <div key={n.id} style={{ padding: '10px', borderRadius: '10px', background: '#F8FAFC', borderLeft: '4px solid #10B981', fontSize: '12px' }}>
+                         <p style={{ margin: 0, fontSize: '12px', color: '#334155', lineHeight: 1.4, fontWeight: 600 }}>{n.message}</p>
+                         <span style={{ fontSize: '10px', color: '#94A3B8', display: 'block', marginTop: '6px', textAlign: 'right', fontWeight: 500 }}>{n.time}</span>
+                       </div>
+                     ))}
+                   </div>
+                 )}
+               </div>
+             )}
+
              <button onClick={() => setActiveTab('register')} style={{ padding: '0 24px', height: '48px', borderRadius: '12px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}>
                <Plus size={20} /> Novo Cliente
              </button>
