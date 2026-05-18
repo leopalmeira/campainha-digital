@@ -185,6 +185,7 @@ const generateAccessCode = () => crypto.randomBytes(3).toString('hex').toUpperCa
 // ─── Asaas Payment Routes ─────────────────────────────────────────────────────
 
 // POST /api/payment/asaas/create — Gera cobrança Pix para um cliente
+// POST /api/payment/asaas/create — Gera cobrança Pix para um cliente
 app.post('/api/payment/asaas/create', async (req, res) => {
   const { propertyId } = req.body;
   if (!propertyId) return res.status(400).json({ error: 'propertyId é obrigatório.' });
@@ -192,48 +193,74 @@ app.post('/api/payment/asaas/create', async (req, res) => {
   const property = properties.find(p => p.id === propertyId);
   if (!property) return res.status(404).json({ error: 'Propriedade não encontrada.' });
 
+  const user = users.find(u => u.email === property.adminEmail);
+
   // Usa preço dinâmico das configurações
   const servicePrice = platformConfig.servicePriceAnnual || 39.90;
   const pixDueDays   = platformConfig.pixDueDays || 3;
 
   // Se a chave Asaas não estiver configurada, retorna simulação
   if (!ASAAS_API_KEY) {
-    const fakeQr = Buffer.from(`SIMULADO:PIX:${propertyId}:${servicePrice}`).toString('base64');
-    return res.json({
-      success: true,
-      isSimulated: true,
-      pixQrCode: fakeQr,
-      pixCopiaECola: `00020101021226870014br.gov.bcb.pix2565simulado.pix.${propertyId}5204000053039865802BR5925CAMPAINHA DIGITAL6009SAO PAULO62140510${propertyId.slice(0,10)}6304ABCD`,
-      value: servicePrice
-    });
+    try {
+      const mockPayPayload = `00020101021226850014br.gov.bcb.pix2563pix-h.asaas.com/qr/v2/simulado-${propertyId}520400005303986540539.905802BR5925Campainha Digital Simula6009Rio de Jan62070503***63041D9C`;
+      const qrCodeDataUrl = await QRCode.toDataURL(mockPayPayload, { width: 400 });
+      const base64Data = qrCodeDataUrl.split(',')[1];
+      
+      return res.json({
+        success: true,
+        isSimulated: true,
+        paymentId: `simulado-${propertyId}`,
+        pixQrCode: base64Data,
+        pixCopiaECola: mockPayPayload,
+        value: servicePrice
+      });
+    } catch (e) {
+      return res.status(500).json({ error: 'Falha ao gerar Pix simulado.' });
+    }
   }
 
   try {
     // 1. Criar/buscar cliente no Asaas
     let asaasCustomerId = property.asaasCustomerId;
     if (!asaasCustomerId) {
+      const name = property.clientName || user?.name || property.name;
+      const email = property.adminEmail;
+      const phone = property.clientPhone || user?.whatsapp || '';
+      const cpfCnpj = (property.clientDocument || user?.document || '').replace(/\D/g, '');
+
+      if (!cpfCnpj) {
+        return res.status(400).json({ error: 'O CPF/CNPJ é obrigatório para gerar o pagamento no Asaas de Produção. Por favor, forneça seu documento.' });
+      }
+
       const customerRes = await axios.post(`${ASAAS_API_URL}/customers`, {
-        name: property.clientName || property.name,
-        email: property.adminEmail,
-        phone: property.clientPhone || '',
-        cpfCnpj: property.clientDocument?.replace(/\D/g, '') || ''
+        name,
+        email,
+        phone: phone.replace(/\D/g, ''),
+        cpfCnpj
       }, {
         headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' }
       });
       asaasCustomerId = customerRes.data.id;
+      
       // Salvar o ID do cliente Asaas na propriedade
       property.asaasCustomerId = asaasCustomerId;
+      if (phone) property.clientPhone = phone;
+      if (cpfCnpj) property.clientDocument = cpfCnpj;
       saveDb();
     }
 
-    // 2. Criar cobrança Pix com preço dinâmico
+    // 2. Criar cobrança Pix
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + pixDueDays);
+
     const chargeRes = await axios.post(`${ASAAS_API_URL}/payments`, {
       customer: asaasCustomerId,
       billingType: 'PIX',
       value: servicePrice,
-      dueDate: new Date(Date.now() + pixDueDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      description: `${platformConfig.planName || 'Assinatura'} - Campainha Digital - ${property.name || property.id}`,
-      externalReference: propertyId
+      dueDate: dueDate.toISOString().split('T')[0],
+      description: `Assinatura Anual Campainha Digital - Placa ${propertyId}`,
+      externalReference: propertyId,
+      postalService: false
     }, {
       headers: { 'access_token': ASAAS_API_KEY, 'Content-Type': 'application/json' }
     });
@@ -249,8 +276,9 @@ app.post('/api/payment/asaas/create', async (req, res) => {
       success: true,
       isSimulated: false,
       paymentId,
-      pixQrCode: pixRes.data.encodedImage,
-      pixCopiaECola: pixRes.data.payload,
+      invoiceUrl: chargeRes.data.invoiceUrl,
+      pixQrCode: pixRes.data.encodedImage, // Imagem Base64
+      pixCopiaECola: pixRes.data.payload, // Código Copia e Cola
       value: servicePrice
     });
 
@@ -332,8 +360,15 @@ app.post('/api/admin/login', (req, res) => {
 
 // ─── Unified Registration Routes ──────────────────────────────────────────────
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, whatsapp, password } = req.body;
-  if (!name || !email || !password || !whatsapp) return res.status(400).json({ error: 'Nome, e-mail, WhatsApp e senha são obrigatórios.' });
+  const { name, email, whatsapp, password, document } = req.body;
+  if (!name || !email || !password || !whatsapp || !document) {
+    return res.status(400).json({ error: 'Nome, e-mail, WhatsApp, CPF/CNPJ e senha são obrigatórios.' });
+  }
+
+  const cleanDoc = document.replace(/\D/g, '');
+  if (cleanDoc.length !== 11 && cleanDoc.length !== 14) {
+    return res.status(400).json({ error: 'CPF deve conter 11 dígitos e CNPJ 14 dígitos.' });
+  }
 
   const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
   if (existing) return res.status(400).json({ error: 'Este e-mail já está cadastrado.' });
@@ -344,6 +379,7 @@ app.post('/api/auth/register', async (req, res) => {
     email: email.toLowerCase(),
     whatsapp,
     password,
+    document: cleanDoc,
     role: 'user', // Starts as a simple user
     status: 'active', // Active immediately so they appear in the dashboard
     scannedPropertyId: null,
@@ -396,6 +432,8 @@ app.post('/api/auth/link-qr', async (req, res) => {
       adminEmail: user.email,
       adminPassword: user.password,
       clientName: user.name,
+      clientPhone: user.whatsapp,
+      clientDocument: user.document || '',
       clientCode,
       doormanCode: null,
       units: isCollective ? [] : [{ id: uuidv4(), name: 'Principal', accessCode: clientCode }],
@@ -415,6 +453,8 @@ app.post('/api/auth/link-qr', async (req, res) => {
     existingProp.adminEmail = user.email;
     existingProp.adminPassword = user.password;
     existingProp.clientName = user.name;
+    existingProp.clientPhone = user.whatsapp;
+    existingProp.clientDocument = user.document || '';
     saveDb();
   }
 
@@ -739,85 +779,6 @@ app.get('/api/properties/:id/support', (req, res) => {
 });
 
 // ─── INTEGRAÇÃO ASAAS (PAGAMENTO E WEBHOOK) ────────────────────────────────────────────────
-app.post('/api/payment/asaas/create', async (req, res) => {
-  const { propertyId } = req.body;
-  const prop = properties.find(p => p.id === propertyId);
-  const user = users.find(u => u.email === prop?.adminEmail);
-
-  if (!prop || !user) return res.status(404).json({ error: 'Propriedade ou usuário não encontrado.' });
-  
-  if (!ASAAS_API_KEY) {
-    try {
-      const mockPayPayload = `00020101021226850014br.gov.bcb.pix2563pix-h.asaas.com/qr/v2/simulado-${propertyId}520400005303986540539.905802BR5925Campainha Digital Simula6009Rio de Jan62070503***63041D9C`;
-      const qrCodeDataUrl = await QRCode.toDataURL(mockPayPayload, { width: 400 });
-      const base64Data = qrCodeDataUrl.split(',')[1];
-      
-      return res.json({
-        success: true,
-        paymentId: `simulado-${propertyId}`,
-        invoiceUrl: '#',
-        pixQrCode: base64Data,
-        pixCopiaECola: mockPayPayload,
-        isSimulated: true
-      });
-    } catch (e) {
-      return res.status(500).json({ error: 'Falha ao gerar Pix simulado.' });
-    }
-  }
-
-  try {
-    let customerId = prop.asaasCustomerId;
-
-    // 1. Criar cliente no Asaas se não existir
-    if (!customerId) {
-      const customerRes = await axios.post(`${ASAAS_API_URL}/customers`, {
-        name: user.name,
-        email: user.email,
-        mobilePhone: user.whatsapp || user.phone,
-        externalReference: propertyId
-      }, { headers: { access_token: ASAAS_API_KEY } });
-      
-      customerId = customerRes.data.id;
-      prop.asaasCustomerId = customerId;
-      saveDb();
-    }
-
-    // 2. Criar a cobrança via PIX
-    // Com Repasse de Taxa: se você quiser receber exatos 39,90 e o cliente pagar a taxa, o Asaas calcula.
-    // Aqui estamos enviando o valor final de 39,90.
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 3); // Vence em 3 dias
-
-    const paymentRes = await axios.post(`${ASAAS_API_URL}/payments`, {
-      customer: customerId,
-      billingType: 'PIX',
-      value: 39.90, // Valor da assinatura
-      dueDate: dueDate.toISOString().split('T')[0],
-      description: `Assinatura Anual Campainha Digital - Placa ${propertyId}`,
-      externalReference: propertyId,
-      postalService: false
-    }, { headers: { access_token: ASAAS_API_KEY } });
-
-    const paymentId = paymentRes.data.id;
-
-    // 3. Obter o QRCode do PIX
-    const qrCodeRes = await axios.get(`${ASAAS_API_URL}/payments/${paymentId}/pixQrCode`, {
-      headers: { access_token: ASAAS_API_KEY }
-    });
-
-    res.json({
-      success: true,
-      paymentId: paymentId,
-      invoiceUrl: paymentRes.data.invoiceUrl,
-      pixQrCode: qrCodeRes.data.encodedImage, // Imagem Base64 do QR
-      pixCopiaECola: qrCodeRes.data.payload // Código Copia e Cola
-    });
-
-  } catch (error) {
-    console.error('Erro na integração com Asaas:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Falha ao processar pagamento.', details: error.response?.data });
-  }
-});
 
 // Webhook para receber confirmação de pagamento do Asaas
 app.post('/api/webhook/asaas', async (req, res) => {

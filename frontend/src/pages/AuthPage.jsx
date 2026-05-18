@@ -12,7 +12,25 @@ export default function AuthPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [document, setDocument] = useState('');
   const [password, setPassword] = useState('');
+
+  const formatCpfCnpj = (value) => {
+    const cleanValue = value.replace(/\D/g, '');
+    if (cleanValue.length <= 11) {
+      return cleanValue
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    } else {
+      return cleanValue
+        .substring(0, 14)
+        .replace(/^(\d{2})(\d)/, '$1.$2')
+        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/\.(\d{3})(\d)/, '.$1/$2')
+        .replace(/(\d{4})(\d)/, '$1-$2');
+    }
+  };
   const [userId, setUserId] = useState('');
   const [scannedId, setScannedId] = useState('');
   const [showScanner, setShowScanner] = useState(false);
@@ -154,10 +172,18 @@ export default function AuthPage() {
         return;
       }
 
+      // Validate Document roughly
+      const cleanDoc = document.replace(/\D/g, '');
+      if (cleanDoc.length !== 11 && cleanDoc.length !== 14) {
+        alert('Por favor, informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.');
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch(`${API}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, whatsapp, password })
+        body: JSON.stringify({ name, email, whatsapp, password, document })
       });
       const data = await res.json();
       if (res.ok) {
@@ -270,6 +296,7 @@ export default function AuthPage() {
         
         if (paymentChoice === 'trial') {
           setIsPaid(true);
+          setStep(4);
         } else {
           // Chamar Asaas para gerar o PIX
           try {
@@ -278,20 +305,21 @@ export default function AuthPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ propertyId: scannedId })
             });
+            const asaasData = await asaasRes.json();
             if (asaasRes.ok) {
-              const asaasData = await asaasRes.json();
               if (asaasData.success && asaasData.pixQrCode) {
                  setPixData(asaasData);
+                 setStep(4);
+              } else {
+                 alert('Falha ao gerar cobrança Pix: Dados retornados incompletos.');
               }
             } else {
-               console.log("Asaas Integration maybe not configured yet");
+               alert(`Erro no Asaas: ${asaasData.error || 'Falha ao processar.'} ${asaasData.detail || ''}`);
             }
           } catch(e) {
-             console.log("Error calling Asaas endpoint");
+             alert("Erro de conexão ao processar pagamento com o Asaas.");
           }
         }
-
-        setStep(4);
       } else {
         const data = await res.json();
         alert(data.error || 'Erro ao vincular placa e plano.');
@@ -391,6 +419,10 @@ export default function AuthPage() {
               <div style={{ position: 'relative' }}>
                 <Phone size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
                 <input type="tel" placeholder="WhatsApp (DDD + Número)" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={whatsapp} onChange={handleWhatsappChange} required />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <ShieldCheck size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
+                <input type="text" placeholder="CPF ou CNPJ (para faturamento/Asaas)" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={document} onChange={e => setDocument(formatCpfCnpj(e.target.value))} required />
               </div>
               <div style={{ position: 'relative' }}>
                 <Lock size={20} className="text-muted" style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: '16px' }} />
