@@ -288,6 +288,21 @@ app.post('/api/webhook/abacate', express.json(), (req, res) => {
   res.status(200).send('OK');
 });
 
+// GET /api/payment/abacate/status/:propertyId — Checa se a propriedade já foi paga e aprovada
+app.get('/api/payment/abacate/status/:propertyId', (req, res) => {
+  const { propertyId } = req.params;
+  const property = properties.find(p => p.id === propertyId);
+  if (!property) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+  
+  const user = users.find(u => u.email === property.adminEmail);
+  const isApproved = user ? user.status === 'approved' : false;
+  
+  return res.json({
+    paid: property.plan === 'Anual',
+    approved: isApproved
+  });
+});
+
 
 
 // ─── Master Admin Credentials ────────────────────────────────────────────────

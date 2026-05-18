@@ -34,24 +34,24 @@ export default function AuthPage() {
   const canvasRef = useRef(null);
   const navigate = useNavigate();
 
-  // Polling para checar se o Pix foi pago/confirmado no Asaas
+  // Polling para checar se o Pix foi pago/confirmado no Abacate Pay
   useEffect(() => {
     if (step !== 4 || !scannedId || isPaid) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${API}/api/properties/${scannedId}`);
+        const res = await fetch(`${API}/api/payment/abacate/status/${scannedId}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.plan === 'Anual') {
+          if (data.paid) {
             setIsPaid(true);
             clearInterval(interval);
           }
         }
       } catch (err) {
-        console.error("Erro no polling de confirmacao:", err);
+        console.error("Erro no polling de confirmacao do Abacate Pay:", err);
       }
-    }, 3000);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [step, scannedId, isPaid]);
@@ -533,10 +533,22 @@ export default function AuthPage() {
                     Aguardando liberação do sistema.
                   </div>
                 )}
-                
-                <button onClick={() => { if (propertyType === 'individual' && clientUnitId) { navigate(`/morador/${clientUnitId}`); } else { navigate('/admin'); } }} className="btn-primary w-full" style={{ marginTop: '24px' }}>
-                  Acessar Meu Painel <ArrowRight size={20} />
-                </button>
+
+                {isPaid ? (
+                  <div style={{ marginTop: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#DCFCE7', border: '1px solid #86EFAC', color: '#166534', padding: '16px', borderRadius: '12px', fontWeight: 800, fontSize: '14px', marginBottom: '16px' }}>
+                      <CheckCircle2 size={24} style={{ color: '#15803D' }} />
+                      <span>✓ Pagamento Confirmado com Sucesso! Seu acesso foi liberado.</span>
+                    </div>
+                    <button onClick={() => { if (propertyType === 'individual' && clientUnitId) { navigate(`/morador/${clientUnitId}`); } else { navigate('/admin'); } }} className="btn-primary w-full">
+                      Acessar Meu Painel <ArrowRight size={20} />
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', background: '#FEF3C7', border: '1px solid #FCD34D', color: '#92400E', padding: '16px', borderRadius: '12px', fontWeight: 700, fontSize: '13px', textAlign: 'center' }}>
+                    <span>⏳ Aguardando a confirmação do pagamento... Assim que pagar, o acesso será liberado automaticamente. Não saia desta página!</span>
+                  </div>
+                )}
               </>
             )}
           </div>
