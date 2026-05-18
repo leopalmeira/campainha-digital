@@ -33,6 +33,13 @@ export default function MasterAdminDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const lastClientsStateRef = useRef(null);
   const [toast, setToast] = useState(null);
+  const [modalTab, setModalTab] = useState('info'); // 'info' | 'tech'
+
+  useEffect(() => {
+    if (selectedClient) {
+      setModalTab('info');
+    }
+  }, [selectedClient]);
 
   const triggerToast = (msg) => {
     setToast(msg);
@@ -964,97 +971,314 @@ export default function MasterAdminDashboard() {
 
       {/* CLIENT DETAIL MODAL */}
       {selectedClient && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: '#FFF', padding: '40px', borderRadius: '32px', width: '90%', maxWidth: '800px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '32px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>
+          <div style={{ background: '#FFF', padding: '40px', borderRadius: '32px', width: '90%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 60px -15px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }}>Dossiê do Cliente</h3>
-                <p style={{ color: '#64748B', margin: 0 }}>ID Único: {selectedClient.id}</p>
+                <h3 style={{ margin: 0, fontSize: '26px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Briefcase size={28} color="#3B82F6" /> Dossiê do Cliente
+                </h3>
+                <p style={{ color: '#64748B', margin: '4px 0 0', fontSize: '13px' }}>ID Único da Placa: <code style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', color: '#0F172A', fontWeight: 700 }}>{selectedClient.id}</code></p>
               </div>
-              <button onClick={() => { setSelectedClient(null); setIsEditing(false); }} style={{ padding: '8px', borderRadius: '12px', background: '#F1F5F9', border: 'none', cursor: 'pointer' }}><X size={20}/></button>
+              <button onClick={() => { setSelectedClient(null); setIsEditing(false); }} style={{ padding: '8px', borderRadius: '12px', background: '#F1F5F9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}><X size={20}/></button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
-              <div>
-                <DetailRow label="NOME COMPLETO" value={selectedClient.clientName} isEdit={isEditing} onChange={v => setEditForm({...editForm, clientName: v})} />
-                <DetailRow label="EMPRESA" value={selectedClient.companyName || "Pessoa Física"} isEdit={isEditing} onChange={v => setEditForm({...editForm, companyName: v})} />
-                <DetailRow label="CPF / CNPJ" value={selectedClient.clientDocument || "---"} isEdit={isEditing} onChange={v => setEditForm({...editForm, clientDocument: v})} />
-                <DetailRow label="CONTATO" value={`${selectedClient.adminEmail} / ${selectedClient.clientPhone}`} isEdit={isEditing} onChange={v => {
-                  const [em, ph] = v.split(' / ');
-                  setEditForm({...editForm, adminEmail: em, clientPhone: ph});
-                }} />
-                <DetailRow label="ENDEREÇO" value={selectedClient.clientAddress || "---"} isEdit={isEditing} onChange={v => setEditForm({...editForm, clientAddress: v})} />
-                <DetailRow 
-                  label="PREÇO CUSTOMIZADO DA ASSINATURA (R$)" 
-                  value={isEditing ? (editForm.customPrice !== undefined && editForm.customPrice !== null ? editForm.customPrice : '') : (selectedClient.customPrice !== undefined && selectedClient.customPrice !== null ? `R$ ${Number(selectedClient.customPrice).toFixed(2)}` : "Usando Padrão Global (R$ 39,90)")} 
-                  isEdit={isEditing} 
-                  onChange={v => setEditForm({...editForm, customPrice: v === '' ? null : Number(v)})} 
-                />
-              </div>
-              <div>
-                <DetailRow label="PROPRIEDADE" value={selectedClient.name} isEdit={isEditing} onChange={v => setEditForm({...editForm, name: v})} />
-                <DetailRow label="TIPO" value={selectedClient.type?.toUpperCase()} />
-                <DetailRow label="UNIDADES" value={selectedClient.units?.length || 0} />
-                <DetailRow label="PLANO" value={selectedClient.plan || "PRO"} isEdit={isEditing} onChange={v => setEditForm({...editForm, plan: v})} />
-                <DetailRow label="ACESSOS" value={`ADMIN: ${selectedClient.clientCode} | PORTARIA: ${selectedClient.doormanCode || 'N/A'}`} />
-                <DetailRow label="ID DA PLACA" value={selectedClient.id} />
-                <DetailRow label="URL DE ACESSO" value={`${window.location.origin}/chamada/${selectedClient.id}`} />
-                
-                <div style={{ marginTop: '16px', background: '#F8FAFC', padding: '16px', borderRadius: '20px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', marginBottom: '12px' }}>QR CODE DA PLACA</div>
-                  <div style={{ background: '#FFF', padding: '12px', borderRadius: '16px', display: 'inline-block', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                    <img src={selectedClient.qrCode || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/chamada/${selectedClient.id}`)}`} alt="QR Code" style={{ width: '150px', height: '150px' }} />
-                  </div>
-                </div>
+            {/* Abas do Modal */}
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #F1F5F9', marginBottom: '28px', paddingBottom: '2px' }}>
+              <button 
+                onClick={() => setModalTab('info')} 
+                style={{ 
+                  padding: '10px 20px', 
+                  borderRadius: '10px 10px 0 0', 
+                  border: 'none', 
+                  background: 'none', 
+                  color: modalTab === 'info' ? '#3B82F6' : '#64748B', 
+                  borderBottom: modalTab === 'info' ? '3px solid #3B82F6' : '3px solid transparent',
+                  fontWeight: 700, 
+                  fontSize: '14px',
+                  cursor: 'pointer', 
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <FileText size={16} /> Dados Cadastrais
+              </button>
+              <button 
+                onClick={() => setModalTab('tech')} 
+                style={{ 
+                  padding: '10px 20px', 
+                  borderRadius: '10px 10px 0 0', 
+                  border: 'none', 
+                  background: 'none', 
+                  color: modalTab === 'tech' ? '#3B82F6' : '#64748B', 
+                  borderBottom: modalTab === 'tech' ? '3px solid #3B82F6' : '3px solid transparent',
+                  fontWeight: 700, 
+                  fontSize: '14px',
+                  cursor: 'pointer', 
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Settings2 size={16} /> Configuração Técnica
+              </button>
+            </div>
 
-                <div style={{ marginTop: '16px' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', marginBottom: '8px' }}>CÓDIGOS DE ACESSO (MORADORES)</div>
-                  <div style={{ maxHeight: '120px', overflowY: 'auto', background: '#F8FAFC', padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                    {selectedClient.units?.map(u => (
-                      <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px', paddingBottom: '4px', borderBottom: '1px solid #F1F5F9' }}>
-                        <span style={{ fontWeight: 600 }}>{u.name}</span>
-                        <code style={{ color: '#10B981', fontWeight: 800 }}>{u.accessCode}</code>
-                      </div>
-                    ))}
-                    {!selectedClient.units || selectedClient.units.length === 0 && (
-                      <div style={{ fontSize: '12px', color: '#94A3B8', textAlign: 'center' }}>Nenhuma unidade cadastrada.</div>
+            {/* Conteúdo Aba 1: Dados Cadastrais */}
+            {modalTab === 'info' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                <div>
+                  <DetailRow label="NOME COMPLETO DO TITULAR" value={selectedClient.clientName} isEdit={isEditing} onChange={v => setEditForm({...editForm, clientName: v})} />
+                  <DetailRow label="CPF / CNPJ DO CLIENTE" value={selectedClient.clientDocument || "---"} isEdit={isEditing} onChange={v => setEditForm({...editForm, clientDocument: v})} />
+                  <DetailRow label="NOME DA EMPRESA / CONDOMÍNIO (CONTRATUAL)" value={selectedClient.companyName || "Pessoa Física"} isEdit={isEditing} onChange={v => setEditForm({...editForm, companyName: v})} />
+                </div>
+                <div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', marginBottom: '4px' }}>E-MAIL ADMINISTRATIVO</div>
+                    {isEditing ? (
+                      <input 
+                        type="email" 
+                        value={editForm.adminEmail !== undefined ? editForm.adminEmail : selectedClient.adminEmail || ''} 
+                        onChange={e => setEditForm({...editForm, adminEmail: e.target.value})} 
+                        style={{ ...inputStyle, padding: '8px 12px' }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: '15px', fontWeight: 600, color: '#1E293B' }}>{selectedClient.adminEmail || "---"}</div>
                     )}
                   </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', marginBottom: '4px' }}>WHATSAPP / TELEFONE</div>
+                    {isEditing ? (
+                      <input 
+                        type="text" 
+                        value={editForm.clientPhone !== undefined ? editForm.clientPhone : selectedClient.clientPhone || ''} 
+                        onChange={e => setEditForm({...editForm, clientPhone: e.target.value})} 
+                        style={{ ...inputStyle, padding: '8px 12px' }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: '15px', fontWeight: 600, color: '#1E293B' }}>{selectedClient.clientPhone || "---"}</div>
+                    )}
+                  </div>
+
+                  <DetailRow label="ENDEREÇO DE FATURAMENTO" value={selectedClient.clientAddress || "---"} isEdit={isEditing} onChange={v => setEditForm({...editForm, clientAddress: v})} />
+                  
+                  <DetailRow 
+                    label="PREÇO CUSTOMIZADO DA ASSINATURA ANUAL (R$)" 
+                    value={isEditing ? (editForm.customPrice !== undefined && editForm.customPrice !== null ? editForm.customPrice : '') : (selectedClient.customPrice !== undefined && selectedClient.customPrice !== null ? `R$ ${Number(selectedClient.customPrice).toFixed(2)}` : "Usando Padrão Global (R$ 39,90)")} 
+                    isEdit={isEditing} 
+                    onChange={v => setEditForm({...editForm, customPrice: v === '' ? null : Number(v)})} 
+                  />
                 </div>
               </div>
-            </div>
+            )}
 
-            <div style={{ marginTop: '40px', display: 'flex', gap: '16px' }}>
+            {/* Conteúdo Aba 2: Configuração Técnica */}
+            {modalTab === 'tech' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' }}>
+                <div>
+                  <DetailRow label="NOME DA INSTALAÇÃO (PROPRIEDADE)" value={selectedClient.name} isEdit={isEditing} onChange={v => setEditForm({...editForm, name: v})} />
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                    <div>
+                      <div style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', marginBottom: '4px' }}>TIPO DE PROPRIEDADE</div>
+                      {isEditing ? (
+                        <select 
+                          value={editForm.type !== undefined ? editForm.type : selectedClient.type || 'house'} 
+                          onChange={e => setEditForm({...editForm, type: e.target.value})} 
+                          style={{ ...inputStyle, padding: '8px 12px', fontSize: '14px' }}
+                        >
+                          <option value="house">Casa Simples</option>
+                          <option value="village">Vila / Village</option>
+                          <option value="condo">Condomínio Vertical</option>
+                          <option value="collective">Escritórios / Coworking</option>
+                        </select>
+                      ) : (
+                        <div style={{ fontSize: '15px', fontWeight: 600, color: '#1E293B', textTransform: 'uppercase' }}>{selectedClient.type || 'house'}</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', marginBottom: '4px' }}>PLANO DO SISTEMA</div>
+                      {isEditing ? (
+                        <select 
+                          value={editForm.plan !== undefined ? editForm.plan : selectedClient.plan || 'PRO'} 
+                          onChange={e => setEditForm({...editForm, plan: e.target.value})} 
+                          style={{ ...inputStyle, padding: '8px 12px', fontSize: '14px' }}
+                        >
+                          <option value="Basic">Basic (R$ 49/mês)</option>
+                          <option value="Pro">Pro (R$ 149/mês)</option>
+                          <option value="Enterprise">Enterprise (Custom)</option>
+                          <option value="Anual">Anual (R$ 39,90)</option>
+                        </select>
+                      ) : (
+                        <div style={{ fontSize: '15px', fontWeight: 600, color: '#1E293B' }}>{selectedClient.plan || "PRO"}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <DetailRow label="UNIDADES DETECTADAS" value={`${selectedClient.units?.length || 0} Unidade(s)`} />
+                  <DetailRow label="ACESSOS TÉCNICOS" value={`CÓDIGO ADMIN: ${selectedClient.clientCode} | PORTARIA: ${selectedClient.doormanCode || 'N/A'}`} />
+                  
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', marginBottom: '4px' }}>URL PÚBLICA DE CHAMADA</div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <code style={{ fontSize: '12px', background: '#F8FAFC', padding: '10px 14px', borderRadius: '8px', border: '1px solid #E2E8F0', flex: 1, overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                        {`${window.location.origin}/chamada/${selectedClient.id}`}
+                      </code>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/chamada/${selectedClient.id}`);
+                          triggerToast('URL copiada para a área de transferência! 📋');
+                        }}
+                        style={{ padding: '10px', borderRadius: '8px', background: '#3B82F6', color: '#FFF', border: 'none', cursor: 'pointer' }}
+                        title="Copiar URL"
+                      >
+                        <Copy size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '20px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', marginBottom: '8px' }}>CÓDIGOS DE ACESSO INDIVIDUAIS (MORADORES)</div>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#F8FAFC', padding: '16px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                      {selectedClient.units?.map(u => (
+                        <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #E2E8F0' }}>
+                          <span style={{ fontWeight: 600, color: '#334155' }}>{u.name}</span>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <code style={{ color: '#10B981', fontWeight: 800, fontSize: '13px' }}>{u.accessCode}</code>
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(u.accessCode);
+                                triggerToast(`Código de ${u.name} copiado! 📋`);
+                              }}
+                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px', color: '#94A3B8' }}
+                              title="Copiar Código"
+                            >
+                              <Copy size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {(!selectedClient.units || selectedClient.units.length === 0) && (
+                        <div style={{ fontSize: '12px', color: '#94A3B8', textAlign: 'center' }}>Nenhuma unidade cadastrada.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC', padding: '24px', borderRadius: '24px', border: '1px solid #E2E8F0' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '16px', letterSpacing: '0.5px' }}>QR CODE PARA IMPRESSÃO DA PLACA</div>
+                  
+                  <div id="print-qr-code" style={{ background: '#FFF', padding: '20px', borderRadius: '20px', border: '1px solid #CBD5E1', boxShadow: '0 8px 24px rgba(0,0,0,0.06)' }}>
+                    <img 
+                      src={selectedClient.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`${window.location.origin}/chamada/${selectedClient.id}`)}`} 
+                      alt="QR Code" 
+                      style={{ width: '180px', height: '180px', display: 'block' }} 
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', width: '100%', marginTop: '20px' }}>
+                    <button 
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = selectedClient.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(`${window.location.origin}/chamada/${selectedClient.id}`)}`;
+                        link.download = `qrcode_${selectedClient.id}.png`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', background: '#0F172A', color: '#FFF', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                    >
+                      <Download size={14} /> Download PNG
+                    </button>
+                    
+                    <button 
+                      onClick={() => {
+                        window.open(`${window.location.origin}/chamada/${selectedClient.id}`, '_blank');
+                      }}
+                      style={{ padding: '10px 14px', borderRadius: '10px', background: '#FFF', border: '1px solid #CBD5E1', color: '#0F172A', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <ExternalLink size={14} /> Testar Link
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Ações do Modal */}
+            <div style={{ marginTop: '40px', display: 'flex', gap: '16px', flexWrap: 'wrap', borderTop: '1px solid #F1F5F9', paddingTop: '24px' }}>
               <button 
                 onClick={() => {
                   const data = `
+DOSSIÊ DE CLIENTE - CAMPAINHA DIGITAL
+=======================================
 CLIENTE: ${selectedClient.clientName}
-CPF/CNPJ: ${selectedClient.clientDocument}
-EMPRESA: ${selectedClient.companyName}
+CPF/CNPJ: ${selectedClient.clientDocument || 'Não informado'}
+EMPRESA: ${selectedClient.companyName || 'Pessoa Física'}
 EMAIL: ${selectedClient.adminEmail}
-TELEFONE: ${selectedClient.clientPhone}
-ENDEREÇO: ${selectedClient.clientAddress}
+TELEFONE: ${selectedClient.clientPhone || 'Não informado'}
+ENDEREÇO: ${selectedClient.clientAddress || 'Não informado'}
+PREÇO ANUAL: ${selectedClient.customPrice !== null ? `R$ ${selectedClient.customPrice}` : 'Preço Padrão (R$ 39,90)'}
 
+DADOS TÉCNICOS:
 PROPRIEDADE: ${selectedClient.name}
 TIPO: ${selectedClient.type}
 PLANO: ${selectedClient.plan}
+ID DA PLACA: ${selectedClient.id}
 
+ACESSOS:
 CÓDIGO ADMIN: ${selectedClient.clientCode}
 CÓDIGO PORTARIA: ${selectedClient.doormanCode || 'N/A'}
-ID PLACA: ${selectedClient.id}
-URL: ${selectedClient.url}
+URL: ${window.location.origin}/chamada/${selectedClient.id}
                   `;
-                  navigator.clipboard.writeText(data);
-                  alert('Todos os dados foram copiados para a área de transferência!');
+                  navigator.clipboard.writeText(data.trim());
+                  triggerToast('Dossiê completo copiado! 📋');
                 }}
-                style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#0F172A', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                style={{ padding: '14px 20px', borderRadius: '12px', background: '#0F172A', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
               >
-                <Copy size={18} /> COPIAR TODOS OS DADOS
+                <Copy size={16} /> COPIAR DOSSIÊ
               </button>
+
+              <button 
+                onClick={async () => {
+                  if (window.confirm(`⚠️ EXCLUSÃO PERMANENTE ⚠️\n\nTem certeza absoluta de que deseja excluir o cliente "${selectedClient.clientName || selectedClient.name}"?\n\nEsta ação excluirá a propriedade, todas as suas unidades e removerá permanentemente as contas de todos os usuários administradores/moradores associados no banco de dados. Esta ação é IRREVERSÍVEL!`)) {
+                    await deleteClient(selectedClient.id);
+                    setSelectedClient(null);
+                  }
+                }}
+                style={{ padding: '14px 20px', borderRadius: '12px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECACA', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
+              >
+                <Trash2 size={16} /> EXCLUIR CLIENTE
+              </button>
+
+              <div style={{ flex: 1 }} />
+
               {isEditing ? (
-                <button onClick={handleSaveEdit} style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#10B981', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer' }}>SALVAR ALTERAÇÕES</button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button 
+                    onClick={() => { setIsEditing(false); setEditForm({}); }} 
+                    style={{ padding: '14px 20px', borderRadius: '12px', background: '#F1F5F9', color: '#64748B', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleSaveEdit} 
+                    style={{ padding: '14px 24px', borderRadius: '12px', background: '#10B981', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}
+                  >
+                    SALVAR ALTERAÇÕES
+                  </button>
+                </div>
               ) : (
-                <button onClick={() => { setIsEditing(true); setEditForm(selectedClient); }} style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer' }}>EDITAR DADOS</button>
+                <button 
+                  onClick={() => { setIsEditing(true); setEditForm(selectedClient); }} 
+                  style={{ padding: '14px 24px', borderRadius: '12px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '14px' }}
+                >
+                  EDITAR DADOS
+                </button>
               )}
             </div>
           </div>

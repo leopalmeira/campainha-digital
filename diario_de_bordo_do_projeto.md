@@ -586,3 +586,26 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ### 🚪 Correção de Credenciais no PorteiroDashboard
 - **SessionStorage com Fallback:** Ajustado o carregamento de papéis e e-mail no useEffect do `PorteiroDashboard.jsx` para buscar de `sessionStorage` com fallback para `localStorage`, prevenindo deslogamentos e erros de autorização para o operador da portaria.
+
+---
+
+## ⚡ v3.9.0 — Sincronismo Real-Time PostgreSQL (Fonte da Verdade) e Modal Premium de Dossiê do Cliente (18/05/2026)
+
+### 💾 Sincronismo Real-Time com PostgreSQL (Prevenção de Clientes Ressuscitados)
+- **Middleware Global de Sincronização:** Desenvolvido um middleware global no backend (`server.js`) que intercepta todas as requisições que começam com `/api/` e executa um recarregamento completo dos dados (`loadFromDb()`) diretamente do banco PostgreSQL antes de executar qualquer lógica de rota.
+- **Fim das Sobregravações de Cache:** Isso impede que o cache in-memory do Node.js sobregrave o PostgreSQL com dados obsoletos nas operações subsequentes de escrita assíncronas (como ligações, mensagens de suporte, visitas ou acessos do porteiro). 
+- **Efeito Imediato de Remoções Manuais:** Se um registro de cliente ou usuário for apagado manualmente no banco de dados, a mudança é refletida no painel no exato instante da próxima requisição de leitura do frontend, sem a necessidade de reiniciar a aplicação ou sofrer com o "retorno" de dados excluídos.
+
+### 👥 Limpeza em Cascata na Exclusão de Clientes
+- **Deleção Consistente no Backend:** A rota `DELETE /api/properties/:id` foi aprimorada para, além de remover a propriedade, excluir em cascata todas as contas de usuários associadas a essa placa (comparando tanto o e-mail administrativo quanto o `scannedPropertyId`). Isso evita contas órfãs, loops de Onboarding ou re-vínculos inválidos.
+
+### 📁 Modal de Dossiê do Cliente Premium com Abas e Ações
+- **Design de Alta Performance Visual:** O modal `selectedClient` (Dossiê do Cliente) no painel Master Admin foi inteiramente reconstruído para usar uma interface premium baseada em duas abas principais:
+  - **Aba 1: Dados Cadastrais:** Organiza de forma elegante os dados de contato do cliente, CPF/CNPJ, empresa, endereço e valores de assinatura.
+  - **Aba 2: Configuração Técnica:** Exibe o tipo de propriedade, plano ativo, acessos técnicos, links diretos de chamada e a lista pesquisável de códigos de moradores para cada unidade.
+- **Edição Limpa e Segura:** Removida a edição de contato em formato de string composta (`"Email / Telefone"`), que causava erros caso o usuário apagasse a barra separadora. Agora o E-mail Administrativo e WhatsApp possuem campos de input individuais no formulário de edição.
+- **Download do QR Code:** Adicionado um bloco visual para o QR Code da placa física, acompanhado de um botão de ação rápida "Download PNG" para baixar a imagem em alta resolução e "Testar Link" para validar o fluxo em uma nova guia.
+- **Botão Excluir Cliente Integrado:** Implementado o botão vermelho "EXCLUIR CLIENTE" com ícone `Trash2` diretamente nas ações do modal. O botão exibe um diálogo de confirmação duplo e seguro, permitindo a exclusão instantânea a partir do dossiê.
+
+### 🛡️ Teste de Integridade de Compilação
+- Compilação de produção com Vite (`npm run build`) executada com sucesso absoluto em 541ms, livre de quaisquer erros de JSX ou importações.

@@ -41,6 +41,14 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use('/contracts', express.static(path.join(__dirname, 'contracts')));
 
+// Middleware global de sincronismo em tempo real com o banco de dados
+app.use(async (req, res, next) => {
+  if (req.path && req.path.startsWith('/api/')) {
+    await loadFromDb();
+  }
+  next();
+});
+
 // ─── Paths dos bancos JSON ────────────────────────────────────────────────────
 const dbPath           = path.join(__dirname, 'db.json');
 const residentsDbPath  = path.join(__dirname, 'residents.json');
@@ -92,6 +100,32 @@ function loadDbLocal() {
   if (fs.existsSync(configDbPath))    platformConfig = { ...platformConfig, ...JSON.parse(fs.readFileSync(configDbPath, 'utf8')) };
 }
 
+// Função para carregar todos os dados do PostgreSQL de forma otimizada (Fonte da Verdade)
+async function loadFromDb() {
+  if (!pool) {
+    loadDbLocal();
+    return;
+  }
+  try {
+    const res = await pool.query('SELECT key, data FROM campainha_database');
+    res.rows.forEach(row => {
+      const key = row.key;
+      const parsedData = row.data;
+      if (key === 'properties') properties = parsedData;
+      else if (key === 'residents') residents = parsedData;
+      else if (key === 'visitors') visitors = parsedData;
+      else if (key === 'messages') messages = parsedData;
+      else if (key === 'users') users = parsedData;
+      else if (key === 'subscriptions') subscriptions = parsedData;
+      else if (key === 'support') supportTickets = parsedData;
+      else if (key === 'config') platformConfig = { ...platformConfig, ...parsedData };
+    });
+  } catch (err) {
+    console.error("[DATABASE] Erro ao carregar dados do PostgreSQL:", err);
+    loadDbLocal();
+  }
+}
+
 // Inicializa o PostgreSQL
 async function initPostgres() {
   if (!pool) {
@@ -115,19 +149,8 @@ async function initPostgres() {
 
     const keys = ['properties', 'residents', 'visitors', 'messages', 'users', 'subscriptions', 'support', 'config'];
     for (const key of keys) {
-      const res = await pool.query('SELECT data FROM campainha_database WHERE key = $1', [key]);
-      if (res.rows.length > 0) {
-        const parsedData = res.rows[0].data;
-        if (key === 'properties') properties = parsedData;
-        else if (key === 'residents') residents = parsedData;
-        else if (key === 'visitors') visitors = parsedData;
-        else if (key === 'messages') messages = parsedData;
-        else if (key === 'users') users = parsedData;
-        else if (key === 'subscriptions') subscriptions = parsedData;
-        else if (key === 'support') supportTickets = parsedData;
-        else if (key === 'config') platformConfig = { ...platformConfig, ...parsedData };
-        console.log(`[DATABASE] Carregado '${key}' do PostgreSQL (${Array.isArray(parsedData) ? parsedData.length : 1} itens).`);
-      } else {
+      const res = await pool.query('SELECT 1 FROM campainha_database WHERE key = $1', [key]);
+      if (res.rows.length === 0) {
         // Insere dados iniciais se a chave estiver vazia no banco PostgreSQL
         let initialData = [];
         if (key === 'properties') initialData = properties;
@@ -147,6 +170,7 @@ async function initPostgres() {
         console.log(`[DATABASE] Sincronizado '${key}' inicial para o PostgreSQL.`);
       }
     }
+    await loadFromDb();
     console.log("[DATABASE] Todos os dados foram importados com sucesso do PostgreSQL!");
   } catch (err) {
     console.error("[DATABASE] Erro ao carregar PostgreSQL. Recorrendo ao JSON local:", err);
@@ -960,7 +984,16 @@ app.delete('/api/properties/:id', (req, res) => {
   }
 
   properties = properties.filter(p => p.id !== req.params.id);
+  
+  // Limpa também as contas de usuário vinculadas a este cliente (tanto por e-mail administrativo quanto por placa escaneada)
+  if (prop.adminEmail) {
+    users = users.filter(u => u.email?.toLowerCase() !== prop.adminEmail.toLowerCase() && u.scannedPropertyId !== req.params.id);
+  } else {
+    users = users.filter(u => u.scannedPropertyId !== req.params.id);
+  }
+
   saveDb();
+  saveUsers();
   res.json({ success: true });
 });
 
