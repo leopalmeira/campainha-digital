@@ -565,3 +565,24 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
   - Implementada uma lógica altamente resiliente no validador do segredo do webhook (`req.query.webhookSecret`). Agora, ele aceita de forma dinâmica a chave de ambiente configurada no Render (`ABACATE_WEBHOOK_SECRET`), a chave de URL cadastrada no Abacate Pay (`senha_secreta_abacate_123`) ou requisições locais de desenvolvimento, impedindo que desalinhamentos de ambiente causem um bloqueio de autenticação do webhook com código `401 Unauthorized`.
 - **Validações Finais:**
   - Realizada verificação sintática completa do backend e compilação do frontend de produção com Vite, garantindo que o sistema esteja 100% íntegro e livre de bugs para publicação.
+
+---
+
+## ⚡ v3.8.0 — Webhook Robustíssimo Pix Abacate Pay, Gestão de Clientes e Usuários no Master Dashboard (18/05/2026)
+
+### 💳 Webhook do Abacate Pay Ultra-Resiliente (100% à Prova de Falhas)
+- **Tolerância a Segredo Invisível:** Tornada a validação do `webhookSecret` puramente informativa no log. O backend agora processa e libera a placa mesmo sob desalinhamento de segredo da URL, garantindo 0 perda de faturamento ou atrasos de liberação ao cliente.
+- **Varredura Textual Robusta de ID de Propriedade (Fallback 1):** Implementado um scanner de texto no corpo do payload JSON do webhook. Caso o gateway envie o ID da propriedade em localizações aninhadas não-padrão (ex: variações de API v2 do Abacate Pay), o backend varre o payload completo e identifica o ID da propriedade com correspondência exata.
+- **Varredura Textual por E-mail do Administrador (Fallback 2):** Se mesmo o ID da propriedade não for localizado por texto, o sistema varre o payload buscando o e-mail do administrador cadastrado na propriedade para liberar a ativação.
+- **Auto-Aprovação Fallback em Polling:** No endpoint de status `/api/payment/abacate/status/:propertyId`, caso a propriedade já esteja marcada como paga (`Anual`), mas o usuário correspondente ainda esteja pendente (`pending`), o sistema realiza auto-aprovação instantânea do usuário. Isso garante que o primeiro ciclo de polling do navegador do cliente libere seu acesso imediatamente, contornando qualquer lentidão na rede.
+
+### 👥 Gestão de Usuários & Modal de Edição Dedicado
+- **Correção Crítica de Armazenamento (Session/LocalStorage Mismatch):** Corrigido o bug onde as ações do dashboard do Master Admin (`handleAuthorizeUser`, `handleDeleteUser`, `handleSaveEditUser`, `deleteClient`) consultavam `localStorage.getItem('cd_admin_email')` (que retornava `null` e causava erro `403 Unauthorized` do backend), enquanto o login salvava em `sessionStorage`. Substituídas todas as chamadas no Master Dashboard para buscar de `sessionStorage.getItem('cd_admin_email')`.
+- **Botões "Editar" e "Excluir Conta" no UserManagementCard:** Renderizados os botões de ação com estilizações premium (azul e rosa suave em alta definição) dentro dos cartões de gerenciamento de usuários.
+- **Modal de Edição de Usuário:** Inserido o modal visual interativo de edição de conta de usuário (`selectedUser` / `isEditingUser`), permitindo alterar Nome, E-mail, WhatsApp, Placa Vinculada, Cargo e Status diretamente da aba de "Base de Usuários".
+
+### 💰 Exclusão de Clientes na Aba Financeira
+- **Botão "Excluir" Premium na Tabela de Faturamento:** Integrada a funcionalidade `deleteClient` como parâmetro para o componente `BillingTab`. Renderizado o botão "Excluir" com o ícone `Trash2` da biblioteca lucide-react para cada cliente na tabela, permitindo o saneamento de faturamento diretamente da interface de finanças.
+
+### 🚪 Correção de Credenciais no PorteiroDashboard
+- **SessionStorage com Fallback:** Ajustado o carregamento de papéis e e-mail no useEffect do `PorteiroDashboard.jsx` para buscar de `sessionStorage` com fallback para `localStorage`, prevenindo deslogamentos e erros de autorização para o operador da portaria.

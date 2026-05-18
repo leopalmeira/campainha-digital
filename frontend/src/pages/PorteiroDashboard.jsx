@@ -36,9 +36,9 @@ export default function PorteiroDashboard() {
   };
 
   useEffect(() => {
-    const role = localStorage.getItem('cd_admin_role');
-    const adminEmail = localStorage.getItem('cd_admin_email');
-    const singlePropertyId = localStorage.getItem('cd_doorman_propertyId');
+    const role = sessionStorage.getItem('cd_admin_role') || localStorage.getItem('cd_admin_role');
+    const adminEmail = sessionStorage.getItem('cd_admin_email') || localStorage.getItem('cd_admin_email');
+    const singlePropertyId = sessionStorage.getItem('cd_doorman_propertyId') || localStorage.getItem('cd_doorman_propertyId');
 
     const fetchData = async () => {
       try {

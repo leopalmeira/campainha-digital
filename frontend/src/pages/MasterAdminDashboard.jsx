@@ -258,7 +258,7 @@ export default function MasterAdminDashboard() {
   };
 
   const handleAuthorizeUser = async (userId, action, propertyType) => {
-    const adminEmail = localStorage.getItem('cd_admin_email');
+    const adminEmail = sessionStorage.getItem('cd_admin_email');
     setIsApproving(true);
     try {
       const res = await fetch(`${API}/api/admin/authorize-user`, {
@@ -311,14 +311,14 @@ export default function MasterAdminDashboard() {
 
   const handleSaveEdit = async () => {
     try {
-      const email = localStorage.getItem('cd_admin_email');
+      const email = sessionStorage.getItem('cd_admin_email');
       const res = await fetch(`${API}/api/properties/${selectedClient.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...editForm, adminEmail: email })
       });
       if (res.ok) {
-        alert('Dados atualizados com sucesso! ✅');
+        alert('Dados updated com sucesso! ✅');
         setIsEditing(false);
         setSelectedClient(null);
         fetchClients();
@@ -329,7 +329,7 @@ export default function MasterAdminDashboard() {
   const handleDeleteUser = async (userId) => {
     if (!window.confirm('Excluir esta conta de usuário permanentemente do sistema? ⚠️')) return;
     try {
-      const adminEmail = localStorage.getItem('cd_admin_email');
+      const adminEmail = sessionStorage.getItem('cd_admin_email');
       const res = await fetch(`${API}/api/admin/users/${userId}?adminEmail=${encodeURIComponent(adminEmail)}`, {
         method: 'DELETE'
       });
@@ -347,7 +347,7 @@ export default function MasterAdminDashboard() {
 
   const handleSaveEditUser = async () => {
     try {
-      const adminEmail = localStorage.getItem('cd_admin_email');
+      const adminEmail = sessionStorage.getItem('cd_admin_email');
       const res = await fetch(`${API}/api/admin/users/${selectedUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -370,7 +370,7 @@ export default function MasterAdminDashboard() {
 
   const deleteClient = async (id) => {
     if (!window.confirm('Excluir este cliente permanentemente?')) return;
-    const email = localStorage.getItem('cd_admin_email');
+    const email = sessionStorage.getItem('cd_admin_email');
     try {
       await fetch(`${API}/api/properties/${id}?adminEmail=${encodeURIComponent(email)}`, { method: 'DELETE' });
       fetchClients();
@@ -476,7 +476,7 @@ export default function MasterAdminDashboard() {
               <p style={{ fontSize: '11px', color: '#64748B', margin: 0 }}>Administrador Master</p>
             </div>
           </div>
-          <button onClick={() => { localStorage.clear(); navigate('/auth'); }} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#EF4444', background: 'rgba(239, 68, 68, 0.05)', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
+          <button onClick={() => { sessionStorage.clear(); localStorage.clear(); navigate('/auth'); }} style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#EF4444', background: 'rgba(239, 68, 68, 0.05)', fontWeight: 600, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
             <LogOut size={14} /> Encerrar Sessão
           </button>
           <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '10px', color: '#475569' }}>
@@ -879,7 +879,7 @@ export default function MasterAdminDashboard() {
           )}
 
           {activeTab === 'billing' && (
-            <BillingTab clients={clients} API={API} onRefresh={fetchClients} />
+            <BillingTab clients={clients} API={API} onRefresh={fetchClients} onDeleteClient={deleteClient} />
           )}
 
           {activeTab === 'support' && (
@@ -1060,6 +1060,60 @@ URL: ${selectedClient.url}
           </div>
         </div>
       )}
+
+      {/* USER EDIT MODAL */}
+      {selectedUser && isEditingUser && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: '#FFF', padding: '40px', borderRadius: '32px', width: '90%', maxWidth: '500px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>Editar Usuário</h3>
+                <p style={{ color: '#64748B', margin: 0, fontSize: '13px' }}>ID: {selectedUser.id}</p>
+              </div>
+              <button onClick={() => { setSelectedUser(null); setIsEditingUser(false); }} style={{ padding: '8px', borderRadius: '12px', background: '#F1F5F9', border: 'none', cursor: 'pointer' }}><X size={20}/></button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <Label>Nome Completo</Label>
+                <Input type="text" value={editUserForm.name || ''} onChange={e => setEditUserForm({...editUserForm, name: e.target.value})} />
+              </div>
+              <div>
+                <Label>E-mail</Label>
+                <Input type="email" value={editUserForm.email || ''} onChange={e => setEditUserForm({...editUserForm, email: e.target.value})} />
+              </div>
+              <div>
+                <Label>WhatsApp</Label>
+                <Input type="tel" value={editUserForm.whatsapp || ''} onChange={e => setEditUserForm({...editUserForm, whatsapp: e.target.value})} />
+              </div>
+              <div>
+                <Label>ID de Placa Vinculada</Label>
+                <Input type="text" value={editUserForm.scannedPropertyId || ''} onChange={e => setEditUserForm({...editUserForm, scannedPropertyId: e.target.value})} />
+              </div>
+              <div>
+                <Label>Cargo / Role</Label>
+                <select style={inputStyle} value={editUserForm.role || 'user'} onChange={e => setEditUserForm({...editUserForm, role: e.target.value})}>
+                  <option value="user">Usuário Comum</option>
+                  <option value="manager">Gestor de Condomínio</option>
+                </select>
+              </div>
+              <div>
+                <Label>Status</Label>
+                <select style={inputStyle} value={editUserForm.status || 'pending'} onChange={e => setEditUserForm({...editUserForm, status: e.target.value})}>
+                  <option value="pending">Pendente</option>
+                  <option value="approved">Aprovado</option>
+                  <option value="denied">Recusado / Bloqueado</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '32px', display: 'flex', gap: '12px' }}>
+              <button onClick={() => { setSelectedUser(null); setIsEditingUser(false); }} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#F1F5F9', color: '#64748B', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={handleSaveEditUser} style={{ flex: 1, padding: '12px', borderRadius: '12px', background: '#10B981', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Salvar Alterações</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1158,7 +1212,7 @@ function PendingUserCard({ user, onAuthorize, disabled }) {
   );
 }
 
-function UserManagementCard({ user, onAction, disabled }) {
+function UserManagementCard({ user, onAction, disabled, onEdit, onDelete }) {
   const [propertyType, setPropertyType] = useState('house');
   const isManager = user.role === 'manager';
   const isPending = user.role === 'user' && !!user.scannedPropertyId;
@@ -1305,6 +1359,26 @@ function UserManagementCard({ user, onAction, disabled }) {
         {!isDenied && (
           <button onClick={() => onAction(user.id, 'deny')} disabled={disabled} style={{ padding: '8px 18px', borderRadius: '10px', background: '#FFF', border: '1px solid #EF4444', color: '#EF4444', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}>Recusar / Bloquear</button>
         )}
+
+        {onEdit && (
+          <button 
+            onClick={() => onEdit(user)} 
+            disabled={disabled} 
+            style={{ padding: '8px 18px', borderRadius: '10px', background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#3B82F6', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}
+          >
+            Editar
+          </button>
+        )}
+        
+        {onDelete && (
+          <button 
+            onClick={() => onDelete(user.id)} 
+            disabled={disabled} 
+            style={{ padding: '8px 18px', borderRadius: '10px', background: '#FFF1F2', border: '1px solid #FECACA', color: '#E11D48', fontWeight: 700, fontSize: '13px', cursor: 'pointer', opacity: disabled ? 0.6 : 1 }}
+          >
+            Excluir Conta
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1345,7 +1419,7 @@ function DetailRow({ label, value, isEdit, onChange }) {
 }
 
 // ─── COMPONENTE FINANCEIRO COMPLETO ─────────────────────────────────────────
-function BillingTab({ clients, API, onRefresh }) {
+function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
   const [loading, setLoading] = useState(false);
   const [generatingPix, setGeneratingPix] = useState(null);
   const [pixData, setPixData] = useState(null);
@@ -1554,6 +1628,16 @@ function BillingTab({ clients, API, onRefresh }) {
                         style={{ padding: '6px 12px', borderRadius: '8px', background: '#FFF7ED', color: '#D97706', border: '1px solid #FDE68A', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Clock size={12} /> +15 dias
                       </button>
+                      {/* Excluir Cliente */}
+                      {onDeleteClient && (
+                        <button
+                          onClick={() => onDeleteClient(client.id)}
+                          disabled={loading}
+                          title="Excluir cliente permanentemente"
+                          style={{ padding: '6px 12px', borderRadius: '8px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECACA', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Trash2 size={12} /> Excluir
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
