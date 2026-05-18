@@ -515,7 +515,25 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - [x] ~~Criar tela de pagamento no app do cliente (para ele mesmo gerar o próprio Pix e copiar o código).~~
 - [x] ~~Auto-aprovação para cadastros do tipo Casa Simples (individual).~~
 - [x] ~~Correção no scanner de câmera QR e remoção de input manual no onboarding.~~
-- [ ] Ativar Asaas em modo de Produção (aguardando validação da conta pelo Asaas).
+- [x] ~~Ativar Asaas em modo de Produção (API Key de Produção ativada e validada).~~
 - [ ] Ativação da API real de WhatsApp no `whatsappService.js` (Evolution API ou Meta).
 - [ ] Sistema de notificações push para inadimplência (FCM ou Web Push).
 - [ ] Migração final para PostgreSQL/Neon (eliminar limitação do JSON no Render Free).
+
+---
+
+## 🚀 v3.6.0 — Ativação de Asaas Produção, Validação de CPF/CNPJ e Refatoração de Onboarding (18/05/2026)
+
+### 💳 Ativação do Asaas em Produção (Chave Oficial)
+- **Escape de Variáveis de Ambiente:** Corrigido bug onde a chave de produção do Asaas contendo caracteres de cifrão (`$`) era corrompida na inicialização do dotenv. A chave foi colocada sob aspas simples (`'...'`) no arquivo `.env`.
+- **Backend Direcionado à Produção:** Variáveis do backend redirecionadas para a API oficial do Asaas (`https://api.asaas.com/v3`).
+
+### 🛡️ Validação Obrigatória de CPF/CNPJ no Cadastro
+- **Novo Campo no Formulário:** Adicionado um campo obrigatório para CPF/CNPJ no formulário de criação de conta do cliente (`AuthPage.jsx`).
+- **Máscara Inteligente em Tempo Real:** Criado um helper de formatação que formata dinamicamente o CPF (`000.000.000-00`) ou CNPJ (`00.000.000/0000-00`) conforme o usuário digita.
+- **Validação de Tamanho no Backend:** O backend valida se o documento possui exatamente 11 dígitos (CPF) ou 14 dígitos (CNPJ) antes de concluir o registro.
+
+### 🧩 Refatoração do Fluxo de Pagamento e Tratamento de Erros
+- **Vínculo Automático de Parâmetros:** A rota de vinculação de placas (`/api/auth/link-qr`) agora transfere automaticamente as informações de telefone (`clientPhone`) e documento (`clientDocument`) da conta do usuário para o cadastro da propriedade física.
+- **Resolução de Fallbacks no Checkout:** A rota de geração de Pix `/api/payment/asaas/create` foi refatorada e unificada. Agora ela resolve falhas dinamicamente buscando os parâmetros no usuário vinculado caso estes não estejam salvos na propriedade.
+- **Interrupção de Fluxo em Caso de Erro:** Corrigido o bug visual onde o cliente era enviado para a tela de aguardo de confirmação mesmo que a chamada ao Asaas falhasse. Agora, se ocorrer um erro na API do Asaas (ex: CPF inválido), o sistema exibe um alerta explicativo na tela e mantém o usuário na etapa de checkout.
