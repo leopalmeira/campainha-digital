@@ -182,10 +182,13 @@ app.put('/api/support/:id/close', (req, res) => {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const generateAccessCode = () => crypto.randomBytes(3).toString('hex').toUpperCase();
 
-// ─── Asaas Payment Routes ─────────────────────────────────────────────────────
+// ─── Abacate Pay Payment Routes ────────────────────────────────────────────────
 
-// POST /api/payment/asaas/create — Gera cobrança Pix para um cliente
-app.post('/api/payment/asaas/create', async (req, res) => {
+const ABACATE_API_KEY = process.env.ABACATE_API_KEY || 'abc_dev_CwqxYk4wh23UK2Mpkb5ApYws';
+const ABACATE_WEBHOOK_SECRET = process.env.ABACATE_WEBHOOK_SECRET || 'senha_secreta_abacate_123';
+
+// POST /api/payment/abacate/create — Gera cobrança Pix para um cliente
+app.post('/api/payment/abacate/create', async (req, res) => {
   const { propertyId } = req.body;
   if (!propertyId) return res.status(400).json({ error: 'propertyId é obrigatório.' });
 
@@ -193,82 +196,101 @@ app.post('/api/payment/asaas/create', async (req, res) => {
   if (!property) return res.status(404).json({ error: 'Propriedade não encontrada.' });
 
   const user = users.find(u => u.email === property.adminEmail);
-  const servicePrice = platformConfig.servicePriceAnnual || 39.90;
-  const pixDueDays = platformConfig.pixDueDays || 3;
 
-  if (!ASAAS_API_KEY) {
-    console.error('[ASAAS] Chave de API não configurada.');
-    return res.status(500).json({ error: 'Erro de Configuração do servidor.' });
-  }
+  // Usa preço dinâmico das configurações (em Reais, converter para centavos)
+  const servicePrice = platformConfig.servicePriceAnnual || 39.90;
+  const amountInCents = Math.round(servicePrice * 100);
 
   try {
-    let asaasCustomerId = property.asaasCustomerId;
-    const defaultCnpj = '65628833000147'; // CNPJ Campainha Digital para burlar bloqueio do Asaas
-
-    if (!asaasCustomerId) {
-      console.log(`[ASAAS] Criando novo cliente para propriedade: ${propertyId}`);
-      const customerRes = await axios.post(`${ASAAS_API_URL}/customers`, {
-        name: property.clientName || user?.name || property.name,
-        email: property.adminEmail,
-        phone: (property.clientPhone || user?.whatsapp || '').replace(/\D/g, ''),
-        cpfCnpj: defaultCnpj
-      }, { headers: { 'access_token': ASAAS_API_KEY } });
-      
-      asaasCustomerId = customerRes.data.id;
-      property.asaasCustomerId = asaasCustomerId;
-      saveDb();
-    } else {
-      // Atualiza o cliente existente no Asaas para garantir que tem o CNPJ, evitando erro na cobrança
-      console.log(`[ASAAS] Atualizando cliente ${asaasCustomerId} com CNPJ padrão`);
-      try {
-        await axios.post(`${ASAAS_API_URL}/customers/${asaasCustomerId}`, {
-          cpfCnpj: defaultCnpj
-        }, { headers: { 'access_token': ASAAS_API_KEY } });
-      } catch(updateErr) {
-        console.warn('[ASAAS] Falha não crítica ao atualizar CNPJ do cliente.');
+    console.log(`[ABACATE] Gerando cobrança PIX para propriedade: ${propertyId}`);
+    
+    // Payload do Abacate Pay
+    const payload = {
+      method: "PIX",
+      data: {
+        amount: amountInCents,
+        description: `Assinatura ${platformConfig.planName || 'Anual'} - ${property.name}`,
+        externalId: propertyId,
+        customer: {
+          name: property.clientName || user?.name || property.name,
+          email: property.adminEmail,
+          cellphone: (property.clientPhone || user?.whatsapp || '').replace(/\D/g, '')
+        },
+        metadata: {
+          propertyId: propertyId
+        }
       }
+    };
+
+    const chargeRes = await axios.post(`https://api.abacatepay.com/v2/transparents/create`, payload, {
+      headers: { 
+        'Authorization': `Bearer ${ABACATE_API_KEY}`, 
+        'Content-Type': 'application/json' 
+      }
+    });
+
+    const abacateData = chargeRes.data;
+
+    if (!abacateData.success) {
+      throw new Error('Falha ao criar cobrança no Abacate Pay');
     }
 
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + pixDueDays);
-
-    console.log(`[ASAAS] Gerando cobrança PIX para cliente: ${asaasCustomerId}`);
-    const chargeRes = await axios.post(`${ASAAS_API_URL}/payments`, {
-      customer: asaasCustomerId,
-      billingType: 'PIX', // Agora podemos pedir PIX diretamente pois temos o CNPJ
-      value: servicePrice,
-      dueDate: dueDate.toISOString().split('T')[0],
-      description: `Assinatura ${platformConfig.planName || 'Anual'} - ${property.name}`,
-      externalReference: propertyId
-    }, { headers: { 'access_token': ASAAS_API_KEY } });
-
-    const paymentId = chargeRes.data.id;
-    let pixData = { encodedImage: null, payload: null };
-
-    try {
-      const pixRes = await axios.get(`${ASAAS_API_URL}/payments/${paymentId}/pixQrCode`, {
-        headers: { 'access_token': ASAAS_API_KEY }
-      });
-      pixData = pixRes.data;
-    } catch (err) {
-      console.warn('[ASAAS] Falha ao buscar QR Code, usando link de fatura como fallback.');
-    }
+    const { id, brCodeBase64, brCode } = abacateData.data;
 
     return res.json({
-      success:       true,
-      isSimulated:   false,
-      paymentId,
-      invoiceUrl:    chargeRes.data.invoiceUrl,
-      pixQrCode:     pixData.encodedImage  || null,
-      pixCopiaECola: pixData.payload       || null,
-      fallback:      !pixData.encodedImage,
-      value:         servicePrice
+      success: true,
+      paymentId: id,
+      pixQrCode: brCodeBase64.replace('data:image/png;base64,', ''), // Imagem Base64 sem o prefixo para manter compatibilidade com o frontend (embora o novo venha com prefixo, trataremos no frontend se precisar, ou já passamos limpo)
+      pixCopiaECola: brCode, // Código Copia e Cola
+      value: servicePrice
     });
 
   } catch (err) {
-    console.error('[ASAAS] Erro ao gerar cobrança:', err.response?.data || err.message);
-    return res.status(500).json({ error: 'Erro ao gerar cobrança no Asaas.', detail: err.response?.data?.errors?.[0]?.description || err.message });
+    console.error('[ABACATE] Erro ao gerar cobrança:', err.response?.data || err.message);
+    return res.status(500).json({ error: 'Erro ao gerar cobrança no Abacate Pay.', detail: err.message });
   }
+});
+
+// POST /api/webhook/abacate — Recebe notificações de pagamento do Abacate Pay
+app.post('/api/webhook/abacate', express.json(), (req, res) => {
+  const payload = req.body;
+  
+  // Segurança do Webhook:
+  // Como o usuário vai configurar o Webhook no painel do Abacate Pay e ele pede um "Secret", 
+  // recomendamos que a URL do webhook seja cadastrada lá da seguinte forma:
+  // https://seu-site.com/api/webhook/abacate?webhookSecret=SENHA_AQUI
+  const secretFromQuery = req.query.webhookSecret;
+  if (secretFromQuery && secretFromQuery !== ABACATE_WEBHOOK_SECRET) {
+     console.log('[ABACATE WEBHOOK] Bloqueado - Secret inválido na URL');
+     return res.status(401).send('Unauthorized');
+  }
+
+  console.log('[ABACATE WEBHOOK] Recebido evento:', payload.event);
+
+  // O Checkout Transparente do Abacate Pay dispara o evento 'transparent.completed' quando pago.
+  if (payload && payload.event === 'transparent.completed' && payload.data && payload.data.externalId) {
+    const propertyId = payload.data.externalId;
+    const property = properties.find(p => p.id === propertyId);
+    
+    if (property) {
+      property.plan = 'Anual';
+      
+      const nextPayment = new Date();
+      nextPayment.setFullYear(nextPayment.getFullYear() + 1);
+      property.nextPaymentDate = nextPayment.toISOString();
+      
+      // Como o pagamento já foi confirmado, aprova também o morador vinculado a esta placa
+      const user = users.find(u => u.email === property.adminEmail);
+      if (user) {
+        user.status = 'approved';
+      }
+
+      saveDb();
+      console.log(`[ABACATE WEBHOOK] Propriedade ${propertyId} e usuário ${property.adminEmail} liberados com sucesso.`);
+    }
+  }
+
+  res.status(200).send('OK');
 });
 
 

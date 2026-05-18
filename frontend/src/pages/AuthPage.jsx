@@ -251,29 +251,28 @@ export default function AuthPage() {
           setIsPaid(true);
           setStep(4);
         } else {
-          // Chamar Asaas para gerar o PIX
+          // Chamar Abacate Pay para gerar o PIX
           try {
-            const asaasRes = await fetch(`${API}/api/payment/asaas/create`, {
+            const abacateRes = await fetch(`${API}/api/payment/abacate/create`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ propertyId: scannedId })
             });
-            const asaasData = await asaasRes.json();
-            if (asaasRes.ok && asaasData.success) {
-              setPixData(asaasData);
+            const abacateData = await abacateRes.json();
+            if (abacateRes.ok && abacateData.success) {
+              setPixData(abacateData);
               setStep(4);
-              // Se não há QR Code mas tem invoiceUrl, abre o link de pagamento automaticamente
-              if (asaasData.fallback && asaasData.invoiceUrl) {
-                window.open(asaasData.invoiceUrl, '_blank');
+              // Se não há QR Code mas tem invoiceUrl (para legado/outros gateways), abre o link
+              if (abacateData.fallback && abacateData.invoiceUrl) {
+                window.open(abacateData.invoiceUrl, '_blank');
               }
             } else {
-              const errMsg = asaasData.detail || asaasData.error || 'Falha ao processar pagamento.';
-              alert(`Erro no Asaas: ${errMsg}`);
-              // Em caso de erro, não libera mais o trial. O usuário fica na tela atual para tentar novamente.
+              const errMsg = abacateData.detail || abacateData.error || 'Falha ao processar pagamento.';
+              alert(`Erro no Abacate Pay: ${errMsg}`);
+              // Em caso de erro, o usuário fica na tela atual para tentar novamente.
             }
           } catch(e) {
             alert('Erro de conexão ao processar pagamento.');
-            // Não libera mais o trial aqui também.
           }
         }
       } else {
