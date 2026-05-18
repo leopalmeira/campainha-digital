@@ -268,15 +268,12 @@ export default function AuthPage() {
               }
             } else {
               const errMsg = asaasData.detail || asaasData.error || 'Falha ao processar pagamento.';
-              alert(`Erro no Asaas: ${errMsg}\n\nVocê ainda pode acessar seu painel pelo período de trial.`);
-              // Mesmo com erro no pagamento, deixa o usuário acessar o painel no trial
-              setIsPaid(true);
-              setStep(4);
+              alert(`Erro no Asaas: ${errMsg}`);
+              // Em caso de erro, não libera mais o trial. O usuário fica na tela atual para tentar novamente.
             }
           } catch(e) {
-            alert('Erro de conexão ao processar pagamento. Você acessará o painel pelo período de trial.');
-            setIsPaid(true);
-            setStep(4);
+            alert('Erro de conexão ao processar pagamento.');
+            // Não libera mais o trial aqui também.
           }
         }
       } else {
