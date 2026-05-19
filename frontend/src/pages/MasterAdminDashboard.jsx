@@ -689,20 +689,10 @@ export default function MasterAdminDashboard() {
                           }} style={{ marginTop: '8px', background: 'none', border: 'none', color: '#3B82F6', fontSize: '11px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', display: 'block' }}>
                             Liberar +15 Dias Teste
                           </button>
-                          <button onClick={async () => {
-                            const isMonthly = client.billingModel === 'monthly';
-                            const periodText = isMonthly ? '1 mês (30 dias)' : '12 meses';
-                            if (!window.confirm(`Confirmar recebimento de pagamento e liberar ${periodText} de acesso?`)) return;
-                            try {
-                              const res = await fetch(`${API}/api/properties/${encodeURIComponent(client.id)}/activate-annual`, { method: 'POST' });
-                              if (res.ok) { 
-                                alert(isMonthly ? 'Acesso mensal liberado! ✅' : 'Acesso anual liberado! ✅'); 
-                                fetchClients(); 
-                              }
-                            } catch {}
-                          }} style={{ marginTop: '4px', background: '#10B981', color: '#FFF', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}>
-                            Confirmar Pagamento ({client.billingModel === 'monthly' ? 'Mensal' : 'Anual'})
-                          </button>
+                           <div style={{ marginTop: '8px', fontSize: '10px', color: '#475569', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', background: '#F1F5F9', padding: '4px 8px', borderRadius: '6px', width: 'fit-content' }} title="Toda confirmação de pagamento e liberação de licenças ocorre de forma 100% automatizada e segura pelo Webhook do Abacate Pay.">
+                             <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></span>
+                             Abacate Pay Automático
+                           </div>
                         </td>
                         <td style={{ padding: '20px 16px' }}>
                           <div style={{ display: 'flex', gap: '8px' }}>

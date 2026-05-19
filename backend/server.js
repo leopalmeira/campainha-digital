@@ -411,7 +411,7 @@ app.post('/api/payment/abacate/create', async (req, res) => {
       method: "PIX",
       data: {
         amount: amountInCents,
-        description: `Assinatura ${platformConfig.planName || 'Anual'} - ${property.name}`,
+        description: `Assinatura ${property.billingModel === 'monthly' ? 'Mensal' : (platformConfig.planName || 'Anual')} - ${property.name}`,
         externalId: propertyId,
         metadata: {
           propertyId: propertyId
@@ -522,10 +522,15 @@ app.post('/api/webhook/abacate', express.json(), (req, res) => {
     const property = properties.find(p => p.id && p.id.toLowerCase() === propertyId.toLowerCase());
     
     if (property) {
-      property.plan = 'Anual';
+      const isMonthly = property.billingModel === 'monthly';
+      property.plan = isMonthly ? 'Mensal' : 'Anual';
       
       const nextPayment = new Date();
-      nextPayment.setFullYear(nextPayment.getFullYear() + 1);
+      if (isMonthly) {
+        nextPayment.setMonth(nextPayment.getMonth() + 1);
+      } else {
+        nextPayment.setFullYear(nextPayment.getFullYear() + 1);
+      }
       property.nextPaymentDate = nextPayment.toISOString();
       
       saveDb();
@@ -560,9 +565,9 @@ app.post('/api/webhook/abacate', express.json(), (req, res) => {
           if (userObj.whatsapp) {
             const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
             
-            // Gerar o contrato em PDF do plano anual
+            // Gerar o contrato em PDF do plano
             console.log(`[ABACATE WEBHOOK] Gerando contrato PDF Premium para ${userObj.email}...`);
-            const contract = await PdfService.generateContract(userObj, 'annual');
+            const contract = await PdfService.generateContract(userObj, property.billingModel === 'monthly' ? 'monthly' : 'annual');
             const fullContractUrl = `${backendUrl}${contract.url}`;
 
             // Obter detalhes do pagamento da resposta do webhook
