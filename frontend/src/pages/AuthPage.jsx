@@ -22,11 +22,20 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [scanningActive, setScanningActive] = useState(false);
   const [scannedImage, setScannedImage] = useState(null);
-  const [propertyType, setPropertyType] = useState('individual'); // 'individual' ou 'collective'
+  const [propertyType, setPropertyType] = useState('house'); // 'house' | 'village' | 'condo'
+  const [billingModel, setBillingModel] = useState('annual'); // 'annual' | 'monthly'
   const [pixData, setPixData] = useState(null);
   const [showTerms, setShowTerms] = useState(false);
   const [clientUnitId, setClientUnitId] = useState('');
   const [clientAccessCode, setClientAccessCode] = useState('');
+  const [globalConfig, setGlobalConfig] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API}/api/config`)
+      .then(res => res.json())
+      .then(data => setGlobalConfig(data))
+      .catch(err => console.error("Erro ao carregar configuracoes globais:", err));
+  }, []);
   
   const [isPaid, setIsPaid] = useState(false);
   
@@ -224,13 +233,31 @@ export default function AuthPage() {
     requestAnimationFrame(doTick);
   };
 
+  const getDisplayPrice = () => {
+    if (!globalConfig) return 39.90;
+    
+    // Se for anual
+    if (billingModel === 'annual') {
+      if (propertyType === 'house') return globalConfig.servicePriceAnnualSimple !== undefined ? globalConfig.servicePriceAnnualSimple : 39.90;
+      if (propertyType === 'village') return globalConfig.servicePriceAnnualVilla !== undefined ? globalConfig.servicePriceAnnualVilla : 99.90;
+      if (propertyType === 'condo') return globalConfig.servicePriceAnnualCondo !== undefined ? globalConfig.servicePriceAnnualCondo : 159.90;
+      return globalConfig.servicePriceAnnual || 39.90;
+    }
+    
+    // Se for mensal
+    if (propertyType === 'village') return globalConfig.villaMonthlyBasePrice !== undefined ? globalConfig.villaMonthlyBasePrice : 99.90;
+    if (propertyType === 'condo') return globalConfig.condoMonthlyBasePrice !== undefined ? globalConfig.condoMonthlyBasePrice : 159.90;
+    
+    return 39.90;
+  };
+
   const submitPlan = async (paymentChoice) => {
     setLoading(true);
     try {
       const res = await fetch(`${API}/api/auth/link-qr`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, propertyId: scannedId, qrImage: scannedImage, paymentChoice, propertyType })
+        body: JSON.stringify({ userId, propertyId: scannedId, qrImage: scannedImage, paymentChoice, propertyType, billingModel })
       });
       if (res.ok) {
         const data = await res.json();
@@ -380,18 +407,101 @@ export default function AuthPage() {
                 <input type="password" placeholder="Crie uma senha" className="input-glass" style={{ paddingLeft: '48px', width: '100%' }} value={password} onChange={e => setPassword(e.target.value)} required />
               </div>
               <div style={{ marginTop: '16px', marginBottom: '8px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '8px' }}>Tipo de Imóvel</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <label style={{ padding: '12px', borderRadius: '12px', border: `2px solid ${propertyType === 'individual' ? '#3B82F6' : '#E2E8F0'}`, background: propertyType === 'individual' ? '#EFF6FF' : '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, transition: 'all 0.2s' }}>
-                    <input type="radio" name="propertyType" value="individual" checked={propertyType === 'individual'} onChange={() => setPropertyType('individual')} style={{ display: 'none' }} />
-                    <Home size={16} color={propertyType === 'individual' ? '#3B82F6' : '#94A3B8'} /> Casa Simples
-                  </label>
-                  <label style={{ padding: '12px', borderRadius: '12px', border: `2px solid ${propertyType === 'collective' ? '#3B82F6' : '#E2E8F0'}`, background: propertyType === 'collective' ? '#EFF6FF' : '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, transition: 'all 0.2s' }}>
-                    <input type="radio" name="propertyType" value="collective" checked={propertyType === 'collective'} onChange={() => setPropertyType('collective')} style={{ display: 'none' }} />
-                    <Building2 size={16} color={propertyType === 'collective' ? '#3B82F6' : '#94A3B8'} /> Condomínio/Vila
-                  </label>
+                <label style={{ fontSize: '13px', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🏢 Tipo de Imóvel
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[
+                    { value: 'house', label: 'Casa Simples', desc: 'Residência individual padrão', icon: Home },
+                    { value: 'village', label: 'Vila / Village', desc: 'Vilas fechadas e condomínios de casas', icon: Home },
+                    { value: 'condo', label: 'Condomínio Vertical', desc: 'Edifícios e prédios residenciais', icon: Building2 }
+                  ].map(item => {
+                    const Icon = item.icon;
+                    const isSelected = propertyType === item.value;
+                    return (
+                      <label 
+                        key={item.value} 
+                        style={{ 
+                          padding: '12px 16px', 
+                          borderRadius: '16px', 
+                          border: `2px solid ${isSelected ? '#3B82F6' : '#E2E8F0'}`, 
+                          background: isSelected ? '#EFF6FF' : '#FFF', 
+                          cursor: 'pointer', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '12px', 
+                          transition: 'all 0.2s ease',
+                          boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.08)' : 'none'
+                        }}
+                      >
+                        <input type="radio" name="propertyType" value={item.value} checked={isSelected} onChange={() => setPropertyType(item.value)} style={{ display: 'none' }} />
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: isSelected ? '#3B82F6' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
+                          <Icon size={20} color={isSelected ? '#FFF' : '#64748B'} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '14px', fontWeight: 800, color: isSelected ? '#1E3A8A' : '#334155' }}>{item.label}</div>
+                          <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>{item.desc}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
+
+              {(propertyType === 'village' || propertyType === 'condo') && (
+                <div style={{ marginTop: '16px', padding: '16px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    📆 Período de Cobrança
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {[
+                      { value: 'annual', label: 'Plano Anual', badge: 'Economize' },
+                      { value: 'monthly', label: 'Assinatura Mensal', badge: 'Flexível' }
+                    ].map(opt => {
+                      const isSel = billingModel === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setBillingModel(opt.value)}
+                          style={{
+                            padding: '12px 8px',
+                            borderRadius: '12px',
+                            border: `2px solid ${isSel ? '#3B82F6' : '#E2E8F0'}`,
+                            background: isSel ? '#3B82F6' : '#FFF',
+                            color: isSel ? '#FFF' : '#475569',
+                            fontWeight: 800,
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            position: 'relative'
+                          }}
+                        >
+                          {opt.label}
+                          <span style={{
+                            position: 'absolute',
+                            top: '-8px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            fontSize: '8px',
+                            fontWeight: 900,
+                            background: isSel ? '#10B981' : '#F1F5F9',
+                            color: isSel ? '#FFF' : '#64748B',
+                            padding: '2px 6px',
+                            borderRadius: '100px',
+                            border: `1px solid ${isSel ? '#10B981' : '#E2E8F0'}`
+                          }}>
+                            {opt.badge}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#1E3A8A', background: '#EFF6FF', padding: '10px 14px', borderRadius: '10px', marginTop: '12px', border: '1px solid #BFDBFE', lineHeight: '1.4' }}>
+                    💡 <strong>Faturamento Inteligente:</strong> Vilas e condomínios podem escolher o período de assinatura. O plano mensal permite gerenciar dinamicamente unidades adicionais, enquanto o anual fixa um desconto exclusivo para todo o período.
+                  </div>
+                </div>
+              )}
 
               <div style={{ marginTop: '16px', marginBottom: '8px' }}>
                 <label style={{ padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: '13px', transition: 'all 0.2s' }}>
@@ -440,14 +550,26 @@ export default function AuthPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '32px' }}>
               <button 
-                onClick={() => submitPlan('annual')}
+                onClick={() => submitPlan(billingModel)}
                 disabled={loading}
                 style={{ padding: '20px', borderRadius: '16px', background: '#FFF', border: '2px solid #3B82F6', cursor: 'pointer', textAlign: 'left', boxShadow: '0 8px 24px rgba(59, 130, 246, 0.15)', opacity: loading ? 0.7 : 1 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#3B82F6' }}>Assinatura Anual via PIX</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#3B82F6' }}>
+                    {billingModel === 'monthly' ? 'Assinatura Mensal via PIX' : 'Assinatura Anual via PIX'}
+                  </div>
+                  <div style={{ fontSize: '18px', fontWeight: 900, color: '#10B981', textAlign: 'right' }}>
+                    R$ {getDisplayPrice().toFixed(2).replace('.', ',')}
+                    <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600, display: 'block' }}>
+                      /{billingModel === 'monthly' ? 'mês' : 'ano'}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>Plano anual pago de forma segura e rápida.</div>
+                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>
+                  {billingModel === 'monthly' 
+                    ? 'Faturamento mensal baseado nas suas unidades ativas.' 
+                    : 'Acesso completo garantido por 12 meses com super desconto.'}
+                </div>
               </button>
 
               <button 
@@ -456,9 +578,12 @@ export default function AuthPage() {
                 style={{ padding: '20px', borderRadius: '16px', background: '#F8FAFC', border: '2px dashed #CBD5E1', cursor: 'pointer', textAlign: 'left', opacity: loading ? 0.7 : 1 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#475569' }}>Teste Grátis 15 Dias</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#475569' }}>
+                    Teste Grátis {propertyType === 'house' ? '15' : '30'} Dias
+                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#64748B' }}>Grátis</div>
                 </div>
-                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>Ativação imediata, pague depois.</div>
+                <div style={{ fontSize: '13px', color: '#64748B', marginTop: '8px' }}>Ativação imediata sem cobrança para testar todas as funções.</div>
               </button>
             </div>
           </div>

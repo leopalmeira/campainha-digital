@@ -81,13 +81,65 @@ let supportTickets = [];
 
 // Configurações Globais da Plataforma (preço, trial, etc.)
 let platformConfig = {
-  servicePriceAnnual: 39.90,       // Preço da assinatura anual (R$)
+  servicePriceAnnual: 39.90,       // Preço da assinatura anual (R$) (fallback)
+  servicePriceAnnualSimple: 39.90, // Preço anual Casa Simples
+  servicePriceAnnualCondo: 159.90, // Preço anual Condomínio
+  servicePriceAnnualVilla: 99.90,  // Preço anual Vila de Casas
+  condoMonthlyBasePrice: 159.90,   // Base mensal condomínio (0-100 un)
+  condoMonthlyAdditionalPrice: 1.55, // Adicional por unidade (>100) condomínio
+  villaMonthlyBasePrice: 99.90,    // Base mensal vila (0-100 un)
+  villaMonthlyAdditionalPrice: 1.20, // Adicional por unidade (>100) vila
   trialDays: 15,                   // Dias de trial grátis
   planName: 'Anual',               // Nome do plano
   pixDueDays: 3,                   // Dias para vencimento do Pix gerado
   companyName: 'Campainha Digital',
   supportWhatsApp: '5521995879170',
   updatedAt: new Date().toISOString()
+};
+
+// Função auxiliar para calcular o preço dinâmico de assinatura de uma propriedade
+const calculatePropertyPrice = (property) => {
+  if (property.customPrice !== undefined && property.customPrice !== null && property.customPrice > 0) {
+    return Number(property.customPrice);
+  }
+  
+  const type = property.type || 'house';
+  const numUnits = property.units ? property.units.length : 0;
+  
+  // Se for condomínio e estiver com assinatura mensal ativada
+  if (type === 'condo' && property.billingModel === 'monthly') {
+    const basePrice = platformConfig.condoMonthlyBasePrice !== undefined ? Number(platformConfig.condoMonthlyBasePrice) : 159.90;
+    const additionalPrice = platformConfig.condoMonthlyAdditionalPrice !== undefined ? Number(platformConfig.condoMonthlyAdditionalPrice) : 1.55;
+    
+    if (numUnits <= 100) {
+      return basePrice;
+    } else {
+      return basePrice + (numUnits - 100) * additionalPrice;
+    }
+  }
+  
+  // Se for vila e estiver com assinatura mensal ativada
+  if (type === 'village' && property.billingModel === 'monthly') {
+    const basePrice = platformConfig.villaMonthlyBasePrice !== undefined ? Number(platformConfig.villaMonthlyBasePrice) : 99.90;
+    const additionalPrice = platformConfig.villaMonthlyAdditionalPrice !== undefined ? Number(platformConfig.villaMonthlyAdditionalPrice) : 1.20;
+    
+    if (numUnits <= 100) {
+      return basePrice;
+    } else {
+      return basePrice + (numUnits - 100) * additionalPrice;
+    }
+  }
+  
+  // Caso contrário, usa planos anuais diferenciados
+  if (type === 'house' || type === 'individual') {
+    return platformConfig.servicePriceAnnualSimple !== undefined ? Number(platformConfig.servicePriceAnnualSimple) : (platformConfig.servicePriceAnnual || 39.90);
+  } else if (type === 'village') {
+    return platformConfig.servicePriceAnnualVilla !== undefined ? Number(platformConfig.servicePriceAnnualVilla) : 99.90;
+  } else if (type === 'condo') {
+    return platformConfig.servicePriceAnnualCondo !== undefined ? Number(platformConfig.servicePriceAnnualCondo) : 159.90;
+  }
+  
+  return platformConfig.servicePriceAnnual || 39.90;
 };
 
 // Função para carregar banco JSON local (Backup/Fallback)
@@ -245,7 +297,11 @@ const saveConfig = () => {
 app.get('/api/config', (_req, res) => res.json(platformConfig));
 
 app.put('/api/config', (req, res) => {
-  const allowed = ['servicePriceAnnual', 'trialDays', 'planName', 'pixDueDays', 'companyName', 'supportWhatsApp'];
+  const allowed = [
+    'servicePriceAnnual', 'trialDays', 'planName', 'pixDueDays', 'companyName', 'supportWhatsApp',
+    'servicePriceAnnualSimple', 'servicePriceAnnualCondo', 'servicePriceAnnualVilla',
+    'condoMonthlyBasePrice', 'condoMonthlyAdditionalPrice'
+  ];
   allowed.forEach(key => {
     if (req.body[key] !== undefined) platformConfig[key] = req.body[key];
   });
@@ -343,10 +399,8 @@ app.post('/api/payment/abacate/create', async (req, res) => {
 
   const user = users.find(u => u.email === property.adminEmail);
 
-  // Usa preço customizado da propriedade se houver, senão usa o preço global das configurações
-  const servicePrice = (property.customPrice !== undefined && property.customPrice !== null && property.customPrice > 0)
-    ? Number(property.customPrice)
-    : (platformConfig.servicePriceAnnual || 39.90);
+  // Usa preço calculado dinamicamente ou customizado da propriedade
+  const servicePrice = calculatePropertyPrice(property);
   const amountInCents = Math.round(servicePrice * 100);
 
   try {
@@ -514,7 +568,7 @@ app.post('/api/webhook/abacate', express.json(), (req, res) => {
             // Obter detalhes do pagamento da resposta do webhook
             const paymentDetails = {
               id: payload?.data?.id || payload?.id || 'AP-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-              amount: payload?.data?.amount || (property.customPrice ? property.customPrice * 100 : (platformConfig.servicePriceAnnual || 39.90) * 100),
+              amount: payload?.data?.amount || Math.round(calculatePropertyPrice(property) * 100),
               date: payload?.data?.updatedAt || payload?.data?.createdAt || new Date().toISOString()
             };
 
@@ -663,7 +717,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 app.post('/api/auth/link-qr', async (req, res) => {
-  const { userId, propertyId, qrImage, paymentChoice, propertyType } = req.body;
+  const { userId, propertyId, qrImage, paymentChoice, propertyType, billingModel } = req.body;
   const user = users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
@@ -691,12 +745,12 @@ app.post('/api/auth/link-qr', async (req, res) => {
     const nextPaymentDate = new Date();
     nextPaymentDate.setDate(nextPaymentDate.getDate() + trialDays);
 
-    const isCollective = propertyType === 'collective';
+    const isCollective = propertyType === 'collective' || propertyType === 'village' || propertyType === 'condo';
 
     const prop = {
       id: propertyId,
-      type: isCollective ? 'collective' : 'individual',
-      name: isCollective ? `Condomínio de ${user.name}` : `Propriedade de ${user.name}`,
+      type: propertyType || 'individual',
+      name: propertyType === 'condo' ? `Condomínio de ${user.name}` : propertyType === 'village' ? `Vila de ${user.name}` : `Propriedade de ${user.name}`,
       adminEmail: user.email,
       adminPassword: user.password,
       clientName: user.name,
@@ -709,6 +763,7 @@ app.post('/api/auth/link-qr', async (req, res) => {
       createdAt: new Date().toISOString(),
       nextPaymentDate: nextPaymentDate.toISOString(),
       plan: 'Trial', // Vai mudar para 'Anual' após confirmação do pagamento
+      billingModel: billingModel || 'annual',
       hasGateFeature: false, // Default: disabled
       featureNeighborChat: isCollective ? true : false
     };
@@ -720,6 +775,8 @@ app.post('/api/auth/link-qr', async (req, res) => {
     existingProp.adminPassword = user.password;
     existingProp.clientName = user.name;
     existingProp.clientPhone = user.whatsapp;
+    if (propertyType) existingProp.type = propertyType;
+    if (billingModel) existingProp.billingModel = billingModel;
     saveDb();
   }
 
@@ -886,7 +943,7 @@ app.post('/api/doorman/login', (req, res) => {
 
 // ─── Properties Routes ───────────────────────────────────────────────────────
 app.post('/api/properties', async (req, res) => {
-  const { type, name, units, adminEmail, adminPassword, id, clientName, clientPhone, clientDocument, clientAddress, doormanEmail, companyName, plan, customPrice } = req.body;
+  const { type, name, units, adminEmail, adminPassword, id, clientName, clientPhone, clientDocument, clientAddress, doormanEmail, companyName, plan, customPrice, billingModel } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Nenhum ID de QR Code foi fornecido. O cadastro exige um escaneamento prévio.' });
@@ -926,6 +983,7 @@ app.post('/api/properties', async (req, res) => {
     clientAddress: clientAddress || '',
     companyName: companyName || '',
     plan: plan || 'PRO',
+    billingModel: billingModel || 'annual',
     clientCode,
     doormanCode,
     doormanEmail: doormanEmail || null,
@@ -1032,7 +1090,7 @@ app.delete(/^\/api\/properties\/(.+)$/, async (req, res) => {
 
 // Editar dados do cliente/propriedade (Master Admin ou Admin)
 app.put('/api/properties/:id', (req, res) => {
-  const { adminEmail, clientName, clientPhone, clientDocument, clientAddress, companyName, plan, name, customPrice } = req.body;
+  const { adminEmail, clientName, clientPhone, clientDocument, clientAddress, companyName, plan, name, customPrice, billingModel, type } = req.body;
   const prop = properties.find(p => p.id === req.params.id);
   if (!prop) return res.status(404).json({ error: 'Property not found' });
 
@@ -1047,7 +1105,9 @@ app.put('/api/properties/:id', (req, res) => {
   if (companyName !== undefined) prop.companyName = companyName;
   if (plan !== undefined) prop.plan = plan;
   if (name !== undefined) prop.name = name;
+  if (type !== undefined) prop.type = type;
   if (customPrice !== undefined) prop.customPrice = customPrice === '' || customPrice === null ? null : Number(customPrice);
+  if (billingModel !== undefined) prop.billingModel = billingModel;
 
   saveDb();
   res.json(prop);

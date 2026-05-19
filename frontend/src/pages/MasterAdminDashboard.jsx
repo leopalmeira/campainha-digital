@@ -51,6 +51,7 @@ export default function MasterAdminDashboard() {
   const [newClient, setNewClient] = useState({
     name: '', // Property Name
     type: 'house',
+    billingModel: 'annual',
     numUnits: 1,
     clientName: '',
     email: '',
@@ -231,6 +232,7 @@ export default function MasterAdminDashboard() {
           adminEmail: newClient.email,
           name: propertyName,
           type: newClient.type,
+          billingModel: newClient.billingModel || 'annual',
           clientName: newClient.clientName,
           clientPhone: newClient.clientPhone,
           clientDocument: newClient.clientDocument,
@@ -249,7 +251,7 @@ export default function MasterAdminDashboard() {
         alert(`Cliente registrado com sucesso!\n\nACESSO ADMIN (Painel):\nE-mail: ${newClient.email}\nCódigo: ${savedData.clientCode}\n\nACESSO MORADORES (App):\n${unitsList}`);
         setScannedId('');
         setNewClient({
-          name: '', type: 'house', numUnits: 1, clientName: '', email: '', clientPhone: '', clientDocument: '', clientAddress: '', doormanEmail: '', companyName: '', plan: 'Basic', customPrice: ''
+          name: '', type: 'house', numUnits: 1, clientName: '', email: '', clientPhone: '', clientDocument: '', clientAddress: '', doormanEmail: '', companyName: '', plan: 'Basic', customPrice: '', billingModel: 'annual'
         });
         setActiveTab('clients');
         fetchClients();
@@ -877,6 +879,32 @@ export default function MasterAdminDashboard() {
                     )}
                   </div>
 
+                  {(newClient.type === 'condo' || newClient.type === 'village') && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+                      <div>
+                        <Label>Modelo de Cobrança ({newClient.type === 'condo' ? 'Condomínio' : 'Vila'})</Label>
+                        <select 
+                          style={inputStyle} 
+                          value={newClient.billingModel || 'annual'} 
+                          onChange={e => setNewClient({...newClient, billingModel: e.target.value})}
+                        >
+                          <option value="annual">Plano Anual Fixo</option>
+                          <option value="monthly">
+                            {newClient.type === 'condo' 
+                              ? 'Assinatura Mensal (Base R$ 159,90 + R$ 1,55/un adicional)' 
+                              : 'Assinatura Mensal (Base R$ 99,90 + R$ 1,20/un adicional)'}
+                          </option>
+                        </select>
+                      </div>
+                      
+                      {newClient.billingModel === 'monthly' && (
+                        <div style={{ fontSize: '11px', color: '#1E3A8A', background: '#EFF6FF', padding: '10px 14px', borderRadius: '8px', border: '1px solid #BFDBFE', marginTop: '-8px' }}>
+                          ℹ️ <strong>Assinatura Mensal Ativa:</strong> Cobrança base mensal de {newClient.type === 'condo' ? 'R$ 159,90 (até 100 unidades) + R$ 1,55 por cada unidade adicional' : 'R$ 99,90 (até 100 unidades) + R$ 1,20 por cada unidade adicional'}. O valor será calculado dinamicamente baseado na quantidade de unidades inserida.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {newClient.type !== 'house' && (
                     <div>
                       <Label>E-mail da Portaria (Acesso Tablet)</Label>
@@ -1076,8 +1104,23 @@ export default function MasterAdminDashboard() {
                   <DetailRow label="ENDEREÇO DE FATURAMENTO" value={selectedClient.clientAddress || "---"} isEdit={isEditing} onChange={v => setEditForm({...editForm, clientAddress: v})} />
                   
                   <DetailRow 
-                    label="PREÇO CUSTOMIZADO DA ASSINATURA ANUAL (R$)" 
-                    value={isEditing ? (editForm.customPrice !== undefined && editForm.customPrice !== null ? editForm.customPrice : '') : (selectedClient.customPrice !== undefined && selectedClient.customPrice !== null ? `R$ ${Number(selectedClient.customPrice).toFixed(2)}` : "Usando Padrão Global (R$ 39,90)")} 
+                    label="PREÇO CUSTOMIZADO DE ASSINATURA (R$ - Ignora Padrão Global)" 
+                    value={isEditing ? (editForm.customPrice !== undefined && editForm.customPrice !== null ? editForm.customPrice : '') : (selectedClient.customPrice !== undefined && selectedClient.customPrice !== null ? `R$ ${Number(selectedClient.customPrice).toFixed(2)} (${selectedClient.billingModel === 'monthly' ? 'por mês' : 'por ano'})` : (() => {
+                      const cType = selectedClient.type || 'house';
+                      const cModel = selectedClient.billingModel || 'annual';
+                      if (cType === 'house') return "Usando Padrão Global Anual (R$ 39,90 / ano)";
+                      if (cType === 'village') {
+                        return cModel === 'monthly' 
+                          ? `Usando Padrão Global Mensal (Base R$ 99,90/mês + R$ 1,20 por un. adic.)` 
+                          : "Usando Padrão Global Anual (R$ 99,90 / ano)";
+                      }
+                      if (cType === 'condo') {
+                        return cModel === 'monthly' 
+                          ? `Usando Padrão Global Mensal (Base R$ 159,90/mês + R$ 1,55 por un. adic.)` 
+                          : "Usando Padrão Global Anual (R$ 159,90 / ano)";
+                      }
+                      return "Usando Padrão Global";
+                    })())} 
                     isEdit={isEditing} 
                     onChange={v => setEditForm({...editForm, customPrice: v === '' ? null : Number(v)})} 
                   />
@@ -1128,6 +1171,33 @@ export default function MasterAdminDashboard() {
                       )}
                     </div>
                   </div>
+
+                  {((editForm.type !== undefined ? editForm.type : selectedClient.type) === 'condo' || 
+                    (editForm.type !== undefined ? editForm.type : selectedClient.type) === 'village') && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', marginBottom: '4px' }}>
+                        MODELO DE COBRANÇA ({(editForm.type !== undefined ? editForm.type : selectedClient.type) === 'condo' ? 'CONDOMÍNIO' : 'VILA'})
+                      </div>
+                      {isEditing ? (
+                        <select 
+                          value={editForm.billingModel !== undefined ? editForm.billingModel : selectedClient.billingModel || 'annual'} 
+                          onChange={e => setEditForm({...editForm, billingModel: e.target.value})} 
+                          style={{ ...inputStyle, padding: '8px 12px', fontSize: '14px', width: '100%' }}
+                        >
+                          <option value="annual">Plano Anual Fixo</option>
+                          <option value="monthly">
+                            {(editForm.type !== undefined ? editForm.type : selectedClient.type) === 'condo'
+                              ? 'Assinatura Mensal (Base R$ 159,90 + R$ 1,55/un adicional)'
+                              : 'Assinatura Mensal (Base R$ 99,90 + R$ 1,20/un adicional)'}
+                          </option>
+                        </select>
+                      ) : (
+                        <div style={{ fontSize: '15px', fontWeight: 600, color: '#1E293B', textTransform: 'uppercase' }}>
+                          {(selectedClient.billingModel === 'monthly') ? 'Assinatura Mensal (Base + Adicional)' : 'Plano Anual Fixo'}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <DetailRow label="UNIDADES DETECTADAS" value={`${selectedClient.units?.length || 0} Unidade(s)`} />
                   <DetailRow label="ACESSOS TÉCNICOS" value={`CÓDIGO ADMIN: ${selectedClient.clientCode} | PORTARIA: ${selectedClient.doormanCode || 'N/A'}`} />
@@ -2023,6 +2093,13 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
 function GlobalSettingsTab({ API }) {
   const [config, setConfig] = useState({
     servicePriceAnnual: 39.90,
+    servicePriceAnnualSimple: 39.90,
+    servicePriceAnnualCondo: 159.90,
+    servicePriceAnnualVilla: 99.90,
+    condoMonthlyBasePrice: 159.90,
+    condoMonthlyAdditionalPrice: 1.55,
+    villaMonthlyBasePrice: 99.90,
+    villaMonthlyAdditionalPrice: 1.20,
     trialDays: 15,
     planName: 'Anual',
     pixDueDays: 3,
@@ -2030,6 +2107,8 @@ function GlobalSettingsTab({ API }) {
     supportWhatsApp: '5521995879170'
   });
   const [loading, setLoading] = useState(false);
+  const [activeTooltip, setActiveTooltip] = useState(null); // ID do tooltip ativo para o tour explicativo
+  const [showTour, setShowTour] = useState(true); // Exibe o guia interativo no topo
 
   useEffect(() => {
     fetchConfig();
@@ -2040,7 +2119,7 @@ function GlobalSettingsTab({ API }) {
       const res = await fetch(`${API}/api/config`);
       if (res.ok) {
         const data = await res.json();
-        setConfig(data);
+        setConfig(prev => ({ ...prev, ...data }));
       }
     } catch (e) {
       console.error('Erro ao buscar config', e);
@@ -2060,7 +2139,7 @@ function GlobalSettingsTab({ API }) {
         body: JSON.stringify(config)
       });
       if (res.ok) {
-        alert('Configurações salvas com sucesso! ✅');
+        alert('Configurações globais salvas com sucesso! ✅');
       } else {
         alert('Erro ao salvar configurações.');
       }
@@ -2071,89 +2150,310 @@ function GlobalSettingsTab({ API }) {
     }
   };
 
+  const tooltipsData = {
+    servicePriceAnnualSimple: "Valor fixo cobrado por ano para o plano de Casa Simples (imóvel individual).",
+    servicePriceAnnualVilla: "Valor fixo cobrado por ano para o plano de Vila de Casas (Village).",
+    servicePriceAnnualCondo: "Valor fixo cobrado por ano para o plano de Condomínio Vertical.",
+    condoMonthlyBasePrice: "Preço mínimo mensal cobrado para Condomínios Verticais. Cobre até 100 unidades ativas.",
+    condoMonthlyAdditionalPrice: "Valor cobrado mensalmente por cada unidade adicional além das 100 primeiras no plano de Condomínio.",
+    villaMonthlyBasePrice: "Preço mínimo mensal cobrado para Vilas / Villages. Cobre até 100 unidades ativas.",
+    villaMonthlyAdditionalPrice: "Valor cobrado mensalmente por cada unidade adicional além das 100 primeiras no plano de Vila.",
+    planName: "Nome que será exibido aos clientes nas telas de pagamento (Ex: 'Anual Premium', 'Mensal Recorrente').",
+    pixDueDays: "Prazo de validade em dias para o QR Code Pix gerado para pagamento no onboarding do cliente.",
+    trialDays: "Quantidade de dias gratuitos oferecidos no cadastro inicial antes do bloqueio por falta de pagamento.",
+    companyName: "Nome da plataforma utilizado nos cabeçalhos, e-mails e telas públicas.",
+    supportWhatsApp: "WhatsApp oficial com DDI e DDD que será exibido nos botões de ajuda e suporte ao cliente."
+  };
+
   return (
     <div style={{ padding: '20px' }}>
-      <SectionTitle icon={Settings2} title="Configurações Globais do SaaS" />
-      <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        
-        <div style={{ padding: '24px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-          <h3 style={{ margin: '0 0 20px', fontSize: '16px', fontWeight: 800 }}>💰 Financeiro & Planos</h3>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <Label>Preço do Plano Anual (R$)</Label>
-            <input 
-              type="number" step="0.01"
-              value={config.servicePriceAnnual} 
-              onChange={e => handleChange('servicePriceAnnual', Number(e.target.value))}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
-            />
-          </div>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <Label>Nome do Plano (Ex: Anual, Mensal)</Label>
-            <input 
-              type="text" 
-              value={config.planName} 
-              onChange={e => handleChange('planName', e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <Label>Dias de Vencimento do Pix</Label>
-            <input 
-              type="number" 
-              value={config.pixDueDays} 
-              onChange={e => handleChange('pixDueDays', Number(e.target.value))}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
-            />
-          </div>
-        </div>
-
-        <div style={{ padding: '24px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-          <h3 style={{ margin: '0 0 20px', fontSize: '16px', fontWeight: 800 }}>⚙️ Sistema & Contato</h3>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <Label>Dias de Trial (Teste Grátis)</Label>
-            <input 
-              type="number" 
-              value={config.trialDays} 
-              onChange={e => handleChange('trialDays', Number(e.target.value))}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <Label>Nome da Empresa (SaaS)</Label>
-            <input 
-              type="text" 
-              value={config.companyName} 
-              onChange={e => handleChange('companyName', e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <Label>WhatsApp de Suporte (DDI + DDD + Núm)</Label>
-            <input 
-              type="text" 
-              value={config.supportWhatsApp} 
-              onChange={e => handleChange('supportWhatsApp', e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
-            />
-          </div>
-        </div>
-
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <SectionTitle icon={Settings2} title="Configurações Globais do SaaS" />
+        <button 
+          onClick={() => setShowTour(!showTour)} 
+          style={{ padding: '8px 16px', borderRadius: '20px', background: showTour ? '#EFF6FF' : '#F1F5F9', border: `1px solid ${showTour ? '#BFDBFE' : '#E2E8F0'}`, color: showTour ? '#2563EB' : '#475569', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s' }}
+        >
+          💡 {showTour ? 'Ocultar Tour Explicativo' : 'Ativar Tour das Funções'}
+        </button>
       </div>
 
-      <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-        <button 
-          onClick={handleSave}
-          disabled={loading}
-          style={{ padding: '14px 28px', borderRadius: '12px', background: '#3B82F6', color: '#FFF', border: 'none', fontWeight: 800, fontSize: '14px', cursor: 'pointer', opacity: loading ? 0.7 : 1 }}
-        >
-          {loading ? 'SALVANDO...' : 'SALVAR CONFIGURAÇÕES'}
-        </button>
+      {showTour && (
+        <div style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', borderRadius: '16px', border: '1px solid #BFDBFE', color: '#1E40AF', fontSize: '13px', lineHeight: '1.6', marginBottom: '24px', display: 'flex', gap: '12px', alignItems: 'flex-start', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.05)' }}>
+          <span style={{ fontSize: '20px' }}>💡</span>
+          <div>
+            <strong>Tour de Orquestração do SaaS:</strong> Colaboradores, este painel define a inteligência de cobrança e funcionamento do Campainha Digital. Passe o cursor sobre o ícone <strong>ℹ️</strong> ao lado de qualquer item para visualizar o seu respectivo balão explicativo em tempo real. Configure com atenção!
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        
+        {/* FINANCEIRO */}
+        <div style={{ padding: '24px', background: '#FFF', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 18px rgba(0,0,0,0.02)' }}>
+          <h3 style={{ margin: '0 0 20px', fontSize: '16px', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>💰</span> Cobrança & Planos SaaS
+          </h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            
+            <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📅 Assinaturas Anuais Fixas</h4>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                    <Label style={{ margin: 0, fontSize: '11px' }}>Casa Anual (R$)</Label>
+                    <span 
+                      onMouseEnter={() => setActiveTooltip('servicePriceAnnualSimple')} 
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                    >ℹ️</span>
+                  </div>
+                  <input 
+                    type="number" step="0.01"
+                    value={config.servicePriceAnnualSimple || 39.90} 
+                    onChange={e => handleChange('servicePriceAnnualSimple', Number(e.target.value))}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px', fontWeight: 700 }} 
+                  />
+                  {activeTooltip === 'servicePriceAnnualSimple' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '220px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.servicePriceAnnualSimple}</div>}
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                    <Label style={{ margin: 0, fontSize: '11px' }}>Vila Anual (R$)</Label>
+                    <span 
+                      onMouseEnter={() => setActiveTooltip('servicePriceAnnualVilla')} 
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                    >ℹ️</span>
+                  </div>
+                  <input 
+                    type="number" step="0.01"
+                    value={config.servicePriceAnnualVilla || 99.90} 
+                    onChange={e => handleChange('servicePriceAnnualVilla', Number(e.target.value))}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px', fontWeight: 700 }} 
+                  />
+                  {activeTooltip === 'servicePriceAnnualVilla' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '220px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.servicePriceAnnualVilla}</div>}
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                    <Label style={{ margin: 0, fontSize: '11px' }}>Prédio Anual (R$)</Label>
+                    <span 
+                      onMouseEnter={() => setActiveTooltip('servicePriceAnnualCondo')} 
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                    >ℹ️</span>
+                  </div>
+                  <input 
+                    type="number" step="0.01"
+                    value={config.servicePriceAnnualCondo || 159.90} 
+                    onChange={e => handleChange('servicePriceAnnualCondo', Number(e.target.value))}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px', fontWeight: 700 }} 
+                  />
+                  {activeTooltip === 'servicePriceAnnualCondo' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '220px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.servicePriceAnnualCondo}</div>}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>⚡ Assinaturas Mensais Recorrentes</h4>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                      <Label style={{ margin: 0, fontSize: '11px' }}>Condomínio - Base (R$)</Label>
+                      <span 
+                        onMouseEnter={() => setActiveTooltip('condoMonthlyBasePrice')} 
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                      >ℹ️</span>
+                    </div>
+                    <input 
+                      type="number" step="0.01"
+                      value={config.condoMonthlyBasePrice || 159.90} 
+                      onChange={e => handleChange('condoMonthlyBasePrice', Number(e.target.value))}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px', fontWeight: 700 }} 
+                    />
+                    {activeTooltip === 'condoMonthlyBasePrice' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '220px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.condoMonthlyBasePrice}</div>}
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                      <Label style={{ margin: 0, fontSize: '11px' }}>Condomínio - Unid. Adic. (R$)</Label>
+                      <span 
+                        onMouseEnter={() => setActiveTooltip('condoMonthlyAdditionalPrice')} 
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                      >ℹ️</span>
+                    </div>
+                    <input 
+                      type="number" step="0.01"
+                      value={config.condoMonthlyAdditionalPrice || 1.55} 
+                      onChange={e => handleChange('condoMonthlyAdditionalPrice', Number(e.target.value))}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px', fontWeight: 700 }} 
+                    />
+                    {activeTooltip === 'condoMonthlyAdditionalPrice' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '220px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.condoMonthlyAdditionalPrice}</div>}
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                      <Label style={{ margin: 0, fontSize: '11px' }}>Vila - Base (R$)</Label>
+                      <span 
+                        onMouseEnter={() => setActiveTooltip('villaMonthlyBasePrice')} 
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                      >ℹ️</span>
+                    </div>
+                    <input 
+                      type="number" step="0.01"
+                      value={config.villaMonthlyBasePrice || 99.90} 
+                      onChange={e => handleChange('villaMonthlyBasePrice', Number(e.target.value))}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px', fontWeight: 700 }} 
+                    />
+                    {activeTooltip === 'villaMonthlyBasePrice' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '220px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.villaMonthlyBasePrice}</div>}
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                      <Label style={{ margin: 0, fontSize: '11px' }}>Vila - Unid. Adic. (R$)</Label>
+                      <span 
+                        onMouseEnter={() => setActiveTooltip('villaMonthlyAdditionalPrice')} 
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                      >ℹ️</span>
+                    </div>
+                    <input 
+                      type="number" step="0.01"
+                      value={config.villaMonthlyAdditionalPrice || 1.20} 
+                      onChange={e => handleChange('villaMonthlyAdditionalPrice', Number(e.target.value))}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px', fontWeight: 700 }} 
+                    />
+                    {activeTooltip === 'villaMonthlyAdditionalPrice' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '220px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.villaMonthlyAdditionalPrice}</div>}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                  <Label style={{ margin: 0 }}>Nome do Plano</Label>
+                  <span 
+                    onMouseEnter={() => setActiveTooltip('planName')} 
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                  >ℹ️</span>
+                </div>
+                <input 
+                  type="text" 
+                  value={config.planName || 'Anual'} 
+                  onChange={e => handleChange('planName', e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px' }} 
+                />
+                {activeTooltip === 'planName' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '220px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.planName}</div>}
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                  <Label style={{ margin: 0 }}>Vencimento Pix (dias)</Label>
+                  <span 
+                    onMouseEnter={() => setActiveTooltip('pixDueDays')} 
+                    onMouseLeave={() => setActiveTooltip(null)}
+                    style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                  >ℹ️</span>
+                </div>
+                <input 
+                  type="number" 
+                  value={config.pixDueDays || 3} 
+                  onChange={e => handleChange('pixDueDays', Number(e.target.value))}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px' }} 
+                />
+                {activeTooltip === 'pixDueDays' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '220px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.pixDueDays}</div>}
+              </div>
+            </div>
+            
+          </div>
+        </div>
+
+        {/* SISTEMA & CONTATO */}
+        <div style={{ padding: '24px', background: '#FFF', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 18px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}>
+          <h3 style={{ margin: '0 0 20px', fontSize: '16px', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>⚙️</span> Configurações Gerais do SaaS
+          </h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', flex: 1 }}>
+            
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                <Label style={{ margin: 0 }}>Dias de Trial (Teste Grátis)</Label>
+                <span 
+                  onMouseEnter={() => setActiveTooltip('trialDays')} 
+                  onMouseLeave={() => setActiveTooltip(null)}
+                  style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                >ℹ️</span>
+              </div>
+              <input 
+                type="number" 
+                value={config.trialDays || 15} 
+                onChange={e => handleChange('trialDays', Number(e.target.value))}
+                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px' }} 
+              />
+              {activeTooltip === 'trialDays' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '320px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.trialDays}</div>}
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                <Label style={{ margin: 0 }}>Nome da Empresa / SaaS</Label>
+                <span 
+                  onMouseEnter={() => setActiveTooltip('companyName')} 
+                  onMouseLeave={() => setActiveTooltip(null)}
+                  style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                >ℹ️</span>
+              </div>
+              <input 
+                type="text" 
+                value={config.companyName || 'Campainha Digital'} 
+                onChange={e => handleChange('companyName', e.target.value)}
+                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px' }} 
+              />
+              {activeTooltip === 'companyName' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '320px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.companyName}</div>}
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                <Label style={{ margin: 0 }}>WhatsApp de Suporte</Label>
+                <span 
+                  onMouseEnter={() => setActiveTooltip('supportWhatsApp')} 
+                  onMouseLeave={() => setActiveTooltip(null)}
+                  style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+                >ℹ️</span>
+              </div>
+              <input 
+                type="text" 
+                value={config.supportWhatsApp || '5521995879170'} 
+                onChange={e => handleChange('supportWhatsApp', e.target.value)}
+                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px' }} 
+              />
+              {activeTooltip === 'supportWhatsApp' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '320px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.supportWhatsApp}</div>}
+            </div>
+            
+            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <button 
+                onClick={handleSave}
+                disabled={loading}
+                style={{ width: '100%', padding: '16px', borderRadius: '14px', background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', color: '#FFF', border: 'none', fontWeight: 800, fontSize: '14px', cursor: 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)' }}
+              >
+                {loading ? 'SALVANDO CONFIGURAÇÕES...' : '💾 SALVAR CONFIGURAÇÕES DO PLANO'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+
       </div>
 
     </div>
