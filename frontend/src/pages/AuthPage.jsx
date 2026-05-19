@@ -709,8 +709,12 @@ export default function AuthPage() {
 
                     {pixData.pixQrCode ? (
                       <>
-                        <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
-                          <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
+                        <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFF' }}>
+                          <img 
+                            src={pixData.pixQrCode && (pixData.pixQrCode.startsWith('http') || pixData.pixQrCode.startsWith('data:')) ? pixData.pixQrCode : `data:image/png;base64,${pixData.pixQrCode}`} 
+                            alt="QR Code PIX" 
+                            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                          />
                         </div>
                         {pixData.pixCopiaECola && (
                           <div style={{ marginTop: '24px' }}>
@@ -735,6 +739,35 @@ export default function AuthPage() {
                         )}
                       </div>
                     )}
+                    
+                    {/* Botão do WhatsApp para Comprovante */}
+                    <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
+                      <a 
+                        href={`https://wa.me/${globalConfig?.supportWhatsApp || '5521995879170'}?text=Olá!%20Realizei%20o%20pagamento%20Pix%20para%20a%20minha%20placa%20do%20Campainha%20Digital.%20ID%20da%20Placa:%20${encodeURIComponent(scannedId)}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        style={{ 
+                          width: '100%', 
+                          padding: '12px', 
+                          borderRadius: '10px', 
+                          fontSize: '13px', 
+                          fontWeight: 800,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          background: '#25D366',
+                          border: 'none',
+                          color: '#FFF',
+                          textDecoration: 'none',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 10px rgba(37, 211, 102, 0.2)'
+                        }}
+                      >
+                        💬 Já paguei! Enviar comprovante no WhatsApp
+                      </a>
+                    </div>
+                    
                     <p style={{ fontSize: '12px', color: '#64748B', marginTop: '16px', lineHeight: '1.4' }}>Após o pagamento, o acesso é liberado em instantes e o recibo enviado para o seu WhatsApp/E-mail.</p>
                   </div>
                 ) : (

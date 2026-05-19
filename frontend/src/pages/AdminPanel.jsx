@@ -168,7 +168,7 @@ export default function AdminPanel() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.pixQrCode) {
+        if (data.success && (data.pixQrCode || data.pixCopiaECola)) {
            setPixData(data);
         } else {
            alert('Falha ao gerar o pagamento. Verifique com o suporte.');
@@ -200,7 +200,7 @@ export default function AdminPanel() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.pixQrCode) {
+        if (data.success && (data.pixQrCode || data.pixCopiaECola)) {
            setPixData(data);
            setOnboardingStep('pay_qr');
         } else {
@@ -1079,18 +1079,52 @@ export default function AdminPanel() {
                 ) : pixData ? (
                   <>
                     <strong style={{ display: 'block', fontSize: '15px', color: '#0F172A', marginBottom: '16px' }}>Escaneie o QR Code PIX (R$ {Number(pixData.value || getPropertyDisplayPrice(properties.find(p => p.id === paymentPropertyId))).toFixed(2).replace('.', ',')})</strong>
-                    <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
-                      <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
+                    <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFF' }}>
+                      <img 
+                        src={pixData.pixQrCode && (pixData.pixQrCode.startsWith('http') || pixData.pixQrCode.startsWith('data:')) ? pixData.pixQrCode : `data:image/png;base64,${pixData.pixQrCode}`} 
+                        alt="QR Code PIX" 
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                      />
                     </div>
                     
-                    <div style={{ marginTop: '20px', textAlign: 'left' }}>
-                      <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', marginBottom: '6px' }}>PIX Copia e Cola</span>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <input type="text" value={pixData.pixCopiaECola} readOnly style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', background: '#F8FAFC', outline: 'none' }} />
-                        <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Pix copiado!'); }} style={{ padding: '0 12px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>
-                          Copiar
-                        </button>
+                    {pixData.pixCopiaECola && (
+                      <div style={{ marginTop: '20px', textAlign: 'left' }}>
+                        <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', marginBottom: '6px' }}>PIX Copia e Cola</span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input type="text" value={pixData.pixCopiaECola} readOnly style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', background: '#F8FAFC', outline: 'none' }} />
+                          <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Pix copiado!'); }} style={{ padding: '0 12px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>
+                            Copiar
+                          </button>
+                        </div>
                       </div>
+                    )}
+                    
+                    {/* Botão do WhatsApp para Comprovante */}
+                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #E2E8F0' }}>
+                      <a 
+                        href={`https://wa.me/${globalConfig?.supportWhatsApp || '5521995879170'}?text=Olá!%20Realizei%20o%20pagamento%20Pix%20para%20a%20minha%20placa%20do%20Campainha%20Digital.%20ID%20da%20Placa:%20${encodeURIComponent(paymentPropertyId)}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        style={{ 
+                          width: '100%', 
+                          padding: '10px', 
+                          borderRadius: '10px', 
+                          fontSize: '12px', 
+                          fontWeight: 800,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          background: '#25D366',
+                          border: 'none',
+                          color: '#FFF',
+                          textDecoration: 'none',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 10px rgba(37, 211, 102, 0.2)'
+                        }}
+                      >
+                        💬 Já paguei! Enviar comprovante no WhatsApp
+                      </a>
                     </div>
                     
                     <p style={{ fontSize: '11px', color: '#64748B', marginTop: '16px', lineHeight: 1.4 }}>

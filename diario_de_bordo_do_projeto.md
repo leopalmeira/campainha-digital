@@ -754,3 +754,26 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
   - Criado o card destacado de **Aplicativo Móvel** com gradiente translúcido verde-ciano e botão de instalação do PWA integrada. Caso o navegador dê suporte à API `beforeinstallprompt`, o morador pode baixar e instalar o app com um único toque.
 - **Validação:** A compilação da build de produção do frontend (`npm run build`) foi concluída com sucesso total em 550ms.
 
+---
+
+## 💳 v3.9.8 — Gateway Pix Customizado pelo Admin & Auto-Aprovação de Placas Ativadas Manualmente (19/05/2026)
+
+### 💳 Configuração de Gateway Pix Estático/Customizado
+- **Dashboard Master Admin (`MasterAdminDashboard.jsx`):**
+  - Adicionados 3 novos campos na aba de **Configurações Globais do SaaS** (`GlobalSettingsTab`): *Chave Pix Customizada*, *Pix Copia e Cola Customizado* e *QR Code (URL da Imagem ou Base64)*.
+  - Implementados tooltips explicativos completos na interface guiada do Master Admin para detalhar o funcionamento desse gateway customizado.
+- **Bypass do Abacate Pay no Backend (`backend/server.js`):**
+  - Inicializados os novos campos no `platformConfig` global da plataforma e adicionados ao array de chaves permitidas na rota de atualização do painel (`PUT /api/config`).
+  - Atualizada a rota `POST /api/payment/abacate/create` para verificar se existe um Pix customizado configurado pelo Admin. Se configurado, o backend desvia do gateway automático (Abacate Pay) e responde imediatamente com os dados do Pix estático configurado (gerando um ID com prefixo `CUSTOM_` para fins de auditoria), garantindo conformidade total e zero dependência de gateways.
+
+### 📱 Experiência de Checkout Dinâmica e WhatsApp de Suporte
+- **Validação de QR Codes e Links (`AuthPage.jsx` & `AdminPanel.jsx`):**
+  - Atualizados os componentes de imagem do QR Code Pix nas telas de onboarding/login do morador (`AuthPage.jsx`) e no modal de checkout do gestor (`AdminPanel.jsx`) para analisar dinamicamente se a string é uma URL ou dados Base64 (`http` ou `data:`), exibindo-a de forma limpa e com ajuste de proporção responsivo (`objectFit: contain`).
+- **Botão de WhatsApp Integrado:**
+  - Adicionado um botão verde esmeralda com sombra brilhante ("💬 Já paguei! Enviar comprovante no WhatsApp") nos modais de checkout de onboarding do morador e do gestor, direcionando automaticamente para o WhatsApp oficial de suporte do SaaS (`globalConfig.supportWhatsApp`) já pré-preenchido com o ID da placa correspondente para facilitação de auditoria.
+
+### 🛡️ Ativação Manual de Contas e Auto-Aprovação de Usuários
+- **Correção Crítica de Fluxo no Backend (`backend/server.js`):**
+  - Atualizada a rota `POST /api/properties/:id/activate-annual` (liberação manual de placa pelo Master Admin) para não apenas estender o prazo de vigência e criar o registro financeiro de auditoria (`MANUAL_`), mas também aprovar automaticamente o status do usuário administrador/morador (`user.status = 'approved'`) vinculado a essa placa. Isso elimina a necessidade de intervenção extra, garantindo acesso instantâneo ao painel.
+- **Validação de Produção:**
+  - Executada a build de produção local (`npm run build`) com sucesso absoluto em 573ms.

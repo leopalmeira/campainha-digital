@@ -94,6 +94,9 @@ let platformConfig = {
   pixDueDays: 3,                   // Dias para vencimento do Pix gerado
   companyName: 'Campainha Digital',
   supportWhatsApp: '5521995879170',
+  customPixKey: '',
+  customPixCopiaECola: '',
+  customPixQrCode: '',
   updatedAt: new Date().toISOString()
 };
 
@@ -300,7 +303,8 @@ app.put('/api/config', (req, res) => {
   const allowed = [
     'servicePriceAnnual', 'trialDays', 'planName', 'pixDueDays', 'companyName', 'supportWhatsApp',
     'servicePriceAnnualSimple', 'servicePriceAnnualCondo', 'servicePriceAnnualVilla',
-    'condoMonthlyBasePrice', 'condoMonthlyAdditionalPrice', 'villaMonthlyBasePrice', 'villaMonthlyAdditionalPrice'
+    'condoMonthlyBasePrice', 'condoMonthlyAdditionalPrice', 'villaMonthlyBasePrice', 'villaMonthlyAdditionalPrice',
+    'customPixKey', 'customPixCopiaECola', 'customPixQrCode'
   ];
   allowed.forEach(key => {
     if (req.body[key] !== undefined) platformConfig[key] = req.body[key];
@@ -404,6 +408,18 @@ app.post('/api/payment/abacate/create', async (req, res) => {
   const amountInCents = Math.round(servicePrice * 100);
 
   try {
+    // Se o master admin configurou Pix Copia e Cola ou QR Code customizado, retorna imediatamente
+    if (platformConfig.customPixCopiaECola || platformConfig.customPixQrCode || platformConfig.customPixKey) {
+      console.log(`[PAYMENT] Usando PIX/QR Code customizado configurado pelo Admin.`);
+      return res.json({
+        success: true,
+        paymentId: 'CUSTOM_' + Date.now(),
+        pixQrCode: platformConfig.customPixQrCode ? platformConfig.customPixQrCode.replace('data:image/png;base64,', '').replace('data:image/jpeg;base64,', '') : '',
+        pixCopiaECola: platformConfig.customPixCopiaECola || platformConfig.customPixKey || '',
+        value: servicePrice
+      });
+    }
+
     console.log(`[ABACATE] Gerando cobrança PIX para propriedade: ${propertyId}`);
     
     // Payload do Abacate Pay
@@ -1197,6 +1213,21 @@ app.post('/api/properties/:id/activate-annual', (req, res) => {
   };
 
   saveDb();
+
+  // Como foi ativado manualmente, aprova também o morador/administrador vinculado a esta placa
+  let user = null;
+  if (prop.adminEmail) {
+    user = users.find(u => u.email && u.email.toLowerCase() === prop.adminEmail.toLowerCase());
+  }
+  if (!user && prop.id) {
+    user = users.find(u => u.scannedPropertyId && u.scannedPropertyId.toLowerCase() === prop.id.toLowerCase());
+  }
+  if (user) {
+    user.status = 'approved';
+    saveUsers();
+    console.log(`[MANUAL ACTIVATION] Usuário associado ${user.email} foi aprovado e ativado.`);
+  }
+
   res.json({ success: true, nextPaymentDate: prop.nextPaymentDate, plan: prop.plan });
 });
 

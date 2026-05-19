@@ -2184,7 +2184,10 @@ function GlobalSettingsTab({ API }) {
     planName: 'Anual',
     pixDueDays: 3,
     companyName: 'Campainha Digital',
-    supportWhatsApp: '5521995879170'
+    supportWhatsApp: '5521995879170',
+    customPixKey: '',
+    customPixCopiaECola: '',
+    customPixQrCode: ''
   });
   const [loading, setLoading] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState(null); // ID do tooltip ativo para o tour explicativo
@@ -2242,7 +2245,10 @@ function GlobalSettingsTab({ API }) {
     pixDueDays: "Prazo de validade em dias para o QR Code Pix gerado para pagamento no onboarding do cliente.",
     trialDays: "Quantidade de dias gratuitos oferecidos no cadastro inicial antes do bloqueio por falta de pagamento.",
     companyName: "Nome da plataforma utilizado nos cabeçalhos, e-mails e telas públicas.",
-    supportWhatsApp: "WhatsApp oficial com DDI e DDD que será exibido nos botões de ajuda e suporte ao cliente."
+    supportWhatsApp: "WhatsApp oficial com DDI e DDD que será exibido nos botões de ajuda e suporte ao cliente.",
+    customPixKey: "Chave Pix para onde o dinheiro deve ir (CNPJ, Celular, etc) caso queira receber direto na sua conta.",
+    customPixCopiaECola: "Código completo de 'Copia e Cola' do Pix estático gerado no seu banco.",
+    customPixQrCode: "Link público de imagem ou dados brutos em Base64 do QR Code para exibição na tela de onboarding."
   };
 
   return (
@@ -2534,6 +2540,74 @@ function GlobalSettingsTab({ API }) {
           </div>
         </div>
 
+      </div>
+
+      {/* METODO DE PAGAMENTO PIX CUSTOMIZADO */}
+      <div style={{ marginTop: '24px', padding: '24px', background: '#FFF', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 4px 18px rgba(0,0,0,0.02)' }}>
+        <h3 style={{ margin: '0 0 8px', fontSize: '15px', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>💳</span> Método de Pagamento Pix Customizado (Opcional)
+        </h3>
+        <p style={{ fontSize: '12px', color: '#64748B', margin: '0 0 20px 0', lineHeight: '1.5' }}>
+          💡 <strong>Nota dos Engenheiros:</strong> Se configurado, a plataforma ignorará a API automática do Abacate Pay durante o onboarding e apresentará o Pix estático configurado abaixo para o cliente pagar diretamente para você.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+              <Label style={{ margin: 0, fontSize: '12px' }}>Chave Pix Customizada</Label>
+              <span 
+                onMouseEnter={() => setActiveTooltip('customPixKey')} 
+                onMouseLeave={() => setActiveTooltip(null)}
+                style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+              >ℹ️</span>
+            </div>
+            <input 
+              type="text" 
+              placeholder="Ex: CNPJ, E-mail ou Telefone"
+              value={config.customPixKey || ''} 
+              onChange={e => handleChange('customPixKey', e.target.value)}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px' }} 
+            />
+            {activeTooltip === 'customPixKey' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '320px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.customPixKey}</div>}
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+              <Label style={{ margin: 0, fontSize: '12px' }}>Pix Copia e Cola Customizado</Label>
+              <span 
+                onMouseEnter={() => setActiveTooltip('customPixCopiaECola')} 
+                onMouseLeave={() => setActiveTooltip(null)}
+                style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+              >ℹ️</span>
+            </div>
+            <input 
+              type="text" 
+              placeholder="Código Copia e Cola Pix Completo"
+              value={config.customPixCopiaECola || ''} 
+              onChange={e => handleChange('customPixCopiaECola', e.target.value)}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px' }} 
+            />
+            {activeTooltip === 'customPixCopiaECola' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '320px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.customPixCopiaECola}</div>}
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+              <Label style={{ margin: 0, fontSize: '12px' }}>QR Code (URL da Imagem ou Base64)</Label>
+              <span 
+                onMouseEnter={() => setActiveTooltip('customPixQrCode')} 
+                onMouseLeave={() => setActiveTooltip(null)}
+                style={{ cursor: 'help', fontSize: '12px', color: '#3B82F6' }}
+              >ℹ️</span>
+            </div>
+            <input 
+              type="text" 
+              placeholder="https://... ou base64..."
+              value={config.customPixQrCode || ''} 
+              onChange={e => handleChange('customPixQrCode', e.target.value)}
+              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '13px' }} 
+            />
+            {activeTooltip === 'customPixQrCode' && <div style={{ position: 'absolute', background: '#1E293B', color: '#FFF', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', maxWidth: '320px', zIndex: 10, marginTop: '4px', lineHeight: '1.4', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>{tooltipsData.customPixQrCode}</div>}
+          </div>
+        </div>
       </div>
 
     </div>
