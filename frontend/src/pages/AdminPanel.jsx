@@ -76,6 +76,7 @@ export default function AdminPanel() {
   const [isPaid, setIsPaid] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentPropertyId, setPaymentPropertyId] = useState('');
+  const [globalConfig, setGlobalConfig] = useState(null);
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -83,6 +84,50 @@ export default function AdminPanel() {
     const interval = setInterval(() => { fetchProperties(true); }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    fetch(`${API}/api/config`)
+      .then(res => res.json())
+      .then(data => setGlobalConfig(data))
+      .catch(err => console.error("Erro ao carregar configuracoes globais:", err));
+  }, []);
+
+  const getPropertyDisplayPrice = (property) => {
+    if (!property) return 39.90;
+    if (property.customPrice !== undefined && property.customPrice !== null && property.customPrice > 0) {
+      return Number(property.customPrice);
+    }
+    if (!globalConfig) return 39.90;
+    
+    const type = property.type || 'house';
+    const numUnits = property.units ? property.units.length : 0;
+    
+    // Faturamento Mensal
+    if (property.billingModel === 'monthly') {
+      if (type === 'condo') {
+        const base = globalConfig.condoMonthlyBasePrice !== undefined ? Number(globalConfig.condoMonthlyBasePrice) : 159.90;
+        const add = globalConfig.condoMonthlyAdditionalPrice !== undefined ? Number(globalConfig.condoMonthlyAdditionalPrice) : 1.55;
+        return numUnits <= 100 ? base : base + (numUnits - 100) * add;
+      }
+      if (type === 'village') {
+        const base = globalConfig.villaMonthlyBasePrice !== undefined ? Number(globalConfig.villaMonthlyBasePrice) : 99.90;
+        const add = globalConfig.villaMonthlyAdditionalPrice !== undefined ? Number(globalConfig.villaMonthlyAdditionalPrice) : 1.20;
+        return numUnits <= 100 ? base : base + (numUnits - 100) * add;
+      }
+    }
+    
+    // Faturamento Anual (ou fallback)
+    if (type === 'house' || type === 'individual') {
+      return globalConfig.servicePriceAnnualSimple !== undefined ? Number(globalConfig.servicePriceAnnualSimple) : (globalConfig.servicePriceAnnual || 39.90);
+    }
+    if (type === 'village') {
+      return globalConfig.servicePriceAnnualVilla !== undefined ? Number(globalConfig.servicePriceAnnualVilla) : 99.90;
+    }
+    if (type === 'condo') {
+      return globalConfig.servicePriceAnnualCondo !== undefined ? Number(globalConfig.servicePriceAnnualCondo) : 159.90;
+    }
+    return globalConfig.servicePriceAnnual || 39.90;
+  };
 
   // Polling para checar se o Pix foi pago enquanto o modal de pagamento está aberto
   useEffect(() => {
@@ -604,12 +649,43 @@ export default function AdminPanel() {
     <div style={{ minHeight: '100vh', background: '#F8FAFC', color: 'var(--text-main)', display: 'flex' }}>
 
       {/* Modern Professional Sidebar */}
-      <aside style={{ width: '260px', background: '#FFFFFF', borderRight: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', padding: '24px 0', zIndex: 50, flexShrink: 0 }}>
-        <div style={{ padding: '0 24px', marginBottom: '32px' }}>
-          <Logo size={28} />
-          <div style={{ marginTop: '16px', padding: '12px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '12px', color: '#64748B', wordBreak: 'break-all' }}>
-            <strong style={{ color: '#0F172A', display: 'block', marginBottom: '4px', fontSize: '13px' }}>Painel do Gestor</strong>
-            {sessionStorage.getItem('cd_admin_email')}
+      <aside style={{ width: '280px', background: '#070B14', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', padding: '28px 0 20px', zIndex: 100, flexShrink: 0 }}>
+        <div style={{ padding: '0 24px', marginBottom: '24px' }}>
+          <Logo size={32} />
+          
+          <div style={{ marginTop: '20px', padding: '14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.06)', fontSize: '12px', color: '#94A3B8', wordBreak: 'break-all', boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.02)' }}>
+            <strong style={{ color: '#F8FAFC', display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 800 }}>Gestão de Acesso</strong>
+            <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginBottom: '8px' }}>{sessionStorage.getItem('cd_admin_email')}</span>
+            
+            {(() => {
+              const selectedPropObj = properties.find(p => p.id === selectedProperty) || properties[0];
+              if (selectedPropObj) {
+                const isTrial = selectedPropObj.plan !== 'Anual';
+                const price = getPropertyDisplayPrice(selectedPropObj);
+                const periodLabel = selectedPropObj.billingModel === 'monthly' ? '/mês' : '/ano';
+                return (
+                  <div style={{
+                    marginTop: '10px',
+                    padding: '10px 12px',
+                    background: isTrial ? 'rgba(245, 158, 11, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+                    border: `1px solid ${isTrial ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`,
+                    borderRadius: '12px',
+                    color: isTrial ? '#F59E0B' : '#10B981'
+                  }}>
+                    <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '9px', display: 'block', marginBottom: '2px', letterSpacing: '0.5px', color: isTrial ? '#FBBF24' : '#34D399' }}>
+                      💳 {isTrial ? 'Período Trial' : 'Assinatura Ativa'}
+                    </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 900, fontSize: '13px', color: '#F8FAFC' }}>
+                      <span>R$ {price.toFixed(2).replace('.', ',')}</span>
+                      <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 700 }}>
+                        {periodLabel}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 
@@ -627,27 +703,49 @@ export default function AdminPanel() {
             const isIndividual = selectedPropObj?.type === 'individual' || selectedPropObj?.type === 'house';
             if (isIndividual && ['units', 'people', 'broadcast', 'settings'].includes(tab.key)) return false;
             return true;
-          }).map(tab => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', border: 'none', background: activeTab === tab.key ? '#EFF6FF' : 'transparent', color: activeTab === tab.key ? '#3B82F6' : '#64748B', fontWeight: activeTab === tab.key ? 700 : 600, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}>
-              <tab.icon size={20} color={activeTab === tab.key ? '#3B82F6' : '#94A3B8'} /> {tab.label}
-            </button>
-          ))}
+          }).map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button 
+                key={tab.key} 
+                onClick={() => setActiveTab(tab.key)} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  padding: '14px 18px', 
+                  borderRadius: '14px', 
+                  border: 'none', 
+                  background: isActive ? 'linear-gradient(135deg, #3B82F6, #06B6D4)' : 'transparent', 
+                  color: isActive ? '#FFFFFF' : '#94A3B8', 
+                  fontWeight: isActive ? 700 : 600, 
+                  fontSize: '14px', 
+                  cursor: 'pointer', 
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+                  textAlign: 'left',
+                  boxShadow: isActive ? '0 4px 14px rgba(59, 130, 246, 0.3)' : 'none'
+                }}
+              >
+                <tab.icon size={20} color={isActive ? '#FFFFFF' : '#64748B'} /> {tab.label}
+              </button>
+            );
+          })}
           
-          <div style={{ height: '1px', background: '#E2E8F0', margin: '16px 0' }} />
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '16px 0' }} />
           
-          <a href="/contrato.pdf" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', color: '#64748B', fontWeight: 600, fontSize: '14px', textDecoration: 'none', transition: 'all 0.2s' }}>
-            <FileText size={20} color="#94A3B8" /> Ver Contrato
+          <a href="/contrato.pdf" target="_blank" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', borderRadius: '14px', color: '#94A3B8', fontWeight: 600, fontSize: '14px', textDecoration: 'none', transition: 'all 0.2s' }}>
+            <FileText size={20} color="#64748B" /> Ver Contrato
           </a>
 
           <div style={{ flex: 1 }}></div>
 
-          <button onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', border: 'none', background: 'transparent', color: '#EF4444', fontWeight: 600, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', marginTop: '16px' }}>
+          <button onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', borderRadius: '14px', border: 'none', background: 'transparent', color: '#EF4444', fontWeight: 600, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', marginTop: '16px' }}>
             <LogOut size={20} /> Sair do Sistema
           </button>
         </nav>
 
-        <div style={{ padding: '0 24px', marginTop: '24px', textAlign: 'center' }}>
-          <span style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px' }}>v1.2.0</span>
+        <div style={{ padding: '0 24px', marginTop: '16px', textAlign: 'center' }}>
+          <span style={{ fontSize: '12px', color: '#475569', fontWeight: 700, letterSpacing: '0.5px' }}>v1.2.0</span>
         </div>
       </aside>
 
@@ -657,13 +755,15 @@ export default function AdminPanel() {
           const prop = properties.find(p => p.id === selectedProperty);
           if (prop && prop.plan !== 'Anual') {
             const daysLeft = Math.ceil((new Date(prop.nextPaymentDate) - new Date()) / (1000 * 60 * 60 * 24));
+            const activePrice = getPropertyDisplayPrice(prop);
+            const periodLabel = prop.billingModel === 'monthly' ? 'mês' : 'ano';
             if (daysLeft <= 0) {
               return (
                 <div style={{ background: '#EF4444', color: '#FFF', padding: '16px', textAlign: 'center', fontWeight: 'bold', zIndex: 10 }}>
                   <AlertCircle size={20} style={{ verticalAlign: 'middle', marginRight: '8px', marginBottom: '2px' }} />
-                  Seu período de teste grátis expirou! Para continuar usando a Campainha Digital, faça sua assinatura anual (apenas R$ 39,90).
+                  Seu período de teste grátis expirou! Para continuar usando a Campainha Digital, ative sua assinatura (R$ {activePrice.toFixed(2).replace('.', ',')}/{periodLabel}).
                   <button onClick={() => handleOpenPayment(prop.id)} style={{ marginLeft: '16px', background: '#FFF', color: '#EF4444', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                    ASSINAR AGORA
+                    ATIVAR ASSINATURA
                   </button>
                 </div>
               );
@@ -671,9 +771,9 @@ export default function AdminPanel() {
               return (
                 <div style={{ background: '#F59E0B', color: '#FFF', padding: '16px', textAlign: 'center', fontWeight: 'bold', zIndex: 10 }}>
                   <AlertCircle size={20} style={{ verticalAlign: 'middle', marginRight: '8px', marginBottom: '2px' }} />
-                  Você está no período de teste grátis. Restam {daysLeft} dias. Assine o plano Anual por R$ 39,90 para evitar bloqueios!
+                  Você está no período de teste grátis. Restam {daysLeft} dias. Ative sua assinatura por R$ {activePrice.toFixed(2).replace('.', ',')}/{periodLabel} para evitar bloqueios!
                   <button onClick={() => handleOpenPayment(prop.id)} style={{ marginLeft: '16px', background: '#FFF', color: '#F59E0B', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                    ASSINAR AGORA
+                    ATIVAR ASSINATURA
                   </button>
                 </div>
               );
@@ -741,7 +841,7 @@ export default function AdminPanel() {
                         className="btn-primary"
                         style={{ width: '100%', padding: '12px', fontSize: '13px', marginBottom: '12px', background: '#10B981' }}
                       >
-                        <CreditCard size={16} /> Ativar Plano Anual PIX (R$ {Number(p.customPrice !== undefined && p.customPrice !== null ? p.customPrice : 39.90).toFixed(2)}/ano)
+                        <CreditCard size={16} /> Ativar Assinatura PIX (R$ {getPropertyDisplayPrice(p).toFixed(2).replace('.', ',')}/{p.billingModel === 'monthly' ? 'mês' : 'ano'})
                       </button>
                     )}
 
@@ -963,7 +1063,7 @@ export default function AdminPanel() {
                 </div>
                 <h3 style={{ fontSize: '22px', fontWeight: 900, color: '#10B981' }}>Pagamento Confirmado!</h3>
                 <p style={{ color: '#64748B', fontSize: '14px', marginTop: '12px', lineHeight: 1.5 }}>
-                  Sua assinatura anual foi ativada com sucesso para a placa <strong>{paymentPropertyId}</strong>!
+                  Sua assinatura foi ativada com sucesso para a placa <strong>{paymentPropertyId}</strong>!
                 </p>
                 <button onClick={() => setShowPaymentModal(false)} className="btn-primary w-full" style={{ marginTop: '24px', background: '#10B981', color: '#FFF' }}>
                   Fechar
@@ -978,7 +1078,7 @@ export default function AdminPanel() {
                   <p style={{ color: '#64748B', padding: '40px' }}>Gerando cobrança PIX...</p>
                 ) : pixData ? (
                   <>
-                    <strong style={{ display: 'block', fontSize: '15px', color: '#0F172A', marginBottom: '16px' }}>Escaneie o QR Code PIX (R$ {Number(pixData.value || 39.90).toFixed(2)})</strong>
+                    <strong style={{ display: 'block', fontSize: '15px', color: '#0F172A', marginBottom: '16px' }}>Escaneie o QR Code PIX (R$ {Number(pixData.value || getPropertyDisplayPrice(properties.find(p => p.id === paymentPropertyId))).toFixed(2).replace('.', ',')})</strong>
                     <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
                       <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code PIX" style={{ width: '100%', height: '100%' }} />
                     </div>

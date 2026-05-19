@@ -732,3 +732,25 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - **Exibição de Aparelhos Vinculados:**
   - **Tabela de Clientes Principal:** Mostra a contagem de aparelhos logados da unidade (`📱 Aparelhos: X / 5`) para Casas Simples, ou o total acumulado para Condomínios na coluna "QR Code & Códigos".
   - **Dossiê do Cliente (Aba Técnica):** Exibe o contador de logs (`📱 X/5 logs`) ao lado do nome de cada morador/unidade.
+
+---
+
+## ⚡ v3.9.7 — Faturamento Dinâmico no Gestor, Sidebar Elegante e Menu Hamburger Premium (19/05/2026)
+
+### 💰 Faturamento Dinâmico no Painel do Gestor (`AdminPanel.jsx`)
+- **Carregamento Dinâmico de Preços SaaS:** Modificado o `AdminPanel.jsx` para buscar a configuração global do servidor `/api/config` via requisição HTTP (`globalConfig`).
+- **Função Utilitária de Cálculo Dinâmico:** Implementada a função `getPropertyDisplayPrice(property)` que calcula e retorna o valor exato cobrado do cliente em tempo real, baseando-se no modelo de assinatura (`monthly` ou `annual`), número de unidades e tipo do imóvel (`house`, `condo`, `village`).
+- **Substituição de Valores Estáticos:** Atualizados os banners de aviso de teste grátis (trial), os botões de ativamento via Pix de cada card de propriedade e a confirmação de valor do modal de checkout Pix para utilizarem os preços e modelos de faturamento exatos gerados dinamicamente, eliminando valores fixados em R$ 39,90.
+
+### 🎨 Sidebar do Gestor Premium & Modernizada
+- **Estética Dark de Alta Definição:** Redesenhado o componente de barra lateral (`<aside>`) no `AdminPanel.jsx` para utilizar um tom azul-marinho profundo futurista (`#070B14`), bordas sutis translúcidas (`rgba(255,255,255,0.06)`) e espaçamentos confortáveis para interface móvel e desktop.
+- **Badge de Faturamento Ativo:** Exibe de forma visível e estilosa o status do faturamento da placa ativa (Assinatura Ativa em verde ou Período Trial em amber) acompanhado do valor dinâmico exato calculado por mês/ano.
+- **Botões com Transição Micro-Interativa:** Os botões de abas contam com transições suaves e, ao ficarem ativos, exibem um gradiente azul-ciano vibrante (`linear-gradient(135deg, #3B82F6, #06B6D4)`) com efeito de sombra iluminada (`boxShadow`), oferecendo um feedback tátil-visual de primeira linha.
+
+### 📱 Menu Hamburger do Morador Otimizado (`ResidentDashboard.jsx`)
+- **Layout Aurora Touch-Friendly:** Refatorado o `HamburgerMenu` no `ResidentDashboard.jsx` utilizando o mesmo tema dark futurista de alta tecnologia. O menu lateral conta com largura otimizada, transições em curvas Bézier suaves e botões com alvos de toque maiores (mínimo de 48px).
+- **Atalhos e Destaques Neon:**
+  - O código de acesso único é renderizado dentro de um card com fundo translúcido e bordas ciano neon brilhantes, acompanhado de botão de cópia rápida.
+  - Criado o card destacado de **Aplicativo Móvel** com gradiente translúcido verde-ciano e botão de instalação do PWA integrada. Caso o navegador dê suporte à API `beforeinstallprompt`, o morador pode baixar e instalar o app com um único toque.
+- **Validação:** A compilação da build de produção do frontend (`npm run build`) foi concluída com sucesso total em 550ms.
+

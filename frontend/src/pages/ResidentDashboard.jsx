@@ -436,42 +436,42 @@ export default function ResidentDashboard() {
     <>
       <div 
         onClick={() => setShowMenu(false)}
-        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', zIndex: 1000, opacity: showMenu ? 1 : 0, visibility: showMenu ? 'visible' : 'hidden', transition: 'all 0.3s' }} 
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 1000, opacity: showMenu ? 1 : 0, visibility: showMenu ? 'visible' : 'hidden', transition: 'all 0.3s' }} 
       />
-      <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '280px', background: '#FFF', zIndex: 1001, transform: showMenu ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)', padding: '32px 24px', display: 'flex', flexDirection: 'column', boxShadow: '8px 0 32px rgba(0,0,0,0.1)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+      <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '290px', background: '#070B14', borderRight: '1px solid rgba(255,255,255,0.06)', zIndex: 1001, transform: showMenu ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)', padding: '28px 20px 20px', display: 'flex', flexDirection: 'column', boxShadow: '12px 0 40px rgba(0,0,0,0.5)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', padding: '0 8px' }}>
           <Logo size={32} />
-          <button onClick={() => setShowMenu(false)} style={{ background: '#F1F5F9', border: 'none', padding: '8px', borderRadius: '12px', cursor: 'pointer' }}><Settings size={20} color="#64748B" /></button>
+          <button onClick={() => setShowMenu(false)} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', padding: '10px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} color="#94A3B8" /></button>
         </div>
         
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <p style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', letterSpacing: '1px', marginBottom: '8px' }}>FUNCIONALIDADES</p>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', paddingRight: '4px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 800, color: '#475569', letterSpacing: '1px', marginBottom: '6px', textTransform: 'uppercase', paddingLeft: '8px' }}>FUNCIONALIDADES</p>
           
           {(featureNeighborChat || propertyType !== 'individual') && (
-            <button onClick={() => { setTab('intercom'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: tab === 'intercom' ? '#F0F9FF' : 'transparent', color: tab === 'intercom' ? '#0369A1' : '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
-              <Building2 size={20} color={tab === 'intercom' ? '#0369A1' : '#64748B'} /> Interfone Digital
+            <button onClick={() => { setTab('intercom'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', border: 'none', background: tab === 'intercom' ? 'linear-gradient(135deg, #3B82F6, #06B6D4)' : 'transparent', color: tab === 'intercom' ? '#FFFFFF' : '#94A3B8', fontWeight: 600, fontSize: '14px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}>
+              <Building2 size={18} color={tab === 'intercom' ? '#FFFFFF' : '#64748B'} /> Interfone Digital
             </button>
           )}
 
-          <button onClick={() => { setTab('services'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: tab === 'services' ? '#F0F9FF' : 'transparent', color: tab === 'services' ? '#0369A1' : '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
-            <ShoppingBag size={20} color={tab === 'services' ? '#0369A1' : '#64748B'} /> Parceiros da Região
+          <button onClick={() => { setTab('services'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', border: 'none', background: tab === 'services' ? 'linear-gradient(135deg, #3B82F6, #06B6D4)' : 'transparent', color: tab === 'services' ? '#FFFFFF' : '#94A3B8', fontWeight: 600, fontSize: '14px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}>
+            <ShoppingBag size={18} color={tab === 'services' ? '#FFFFFF' : '#64748B'} /> Parceiros da Região
           </button>
 
-          <div style={{ height: '1px', background: '#F1F5F9', margin: '8px 0' }} />
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '12px 0' }} />
           
-          <p style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', letterSpacing: '1px', marginBottom: '8px' }}>COMPARTILHAR ACESSO</p>
+          <p style={{ fontSize: '10px', fontWeight: 800, color: '#475569', letterSpacing: '1px', marginBottom: '6px', textTransform: 'uppercase', paddingLeft: '8px' }}>COMPARTILHAR ACESSO</p>
           <div style={{
-            background: '#F8FAFC',
-            border: '1px solid #E2E8F0',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.05)',
             borderRadius: '16px',
-            padding: '12px 14px',
-            marginBottom: '12px',
+            padding: '14px',
+            marginBottom: '6px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px'
+            gap: '10px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', fontFamily: 'monospace', letterSpacing: '1px' }}>
+              <span style={{ fontSize: '16px', fontWeight: 900, color: '#06B6D4', fontFamily: 'monospace', letterSpacing: '2px' }}>
                 {accessCode || '---'}
               </span>
               <button 
@@ -480,61 +480,113 @@ export default function ResidentDashboard() {
                   alert('Código copiado com sucesso!');
                 }}
                 style={{
-                  background: 'none',
+                  background: 'rgba(6,182,212,0.1)',
                   border: 'none',
-                  color: '#3B82F6',
+                  color: '#06B6D4',
                   fontSize: '11px',
                   fontWeight: 800,
                   cursor: 'pointer',
-                  padding: 0
+                  padding: '4px 10px',
+                  borderRadius: '6px'
                 }}
               >
                 Copiar
               </button>
             </div>
-            <p style={{ fontSize: '10px', color: '#64748B', margin: 0, lineHeight: 1.3 }}>
+            <p style={{ fontSize: '11px', color: '#64748B', margin: 0, lineHeight: 1.3 }}>
               Compartilhe com até 4 familiares para atenderem esta campainha.
             </p>
             <button 
               onClick={handleShareCode}
               style={{
                 width: '100%',
-                padding: '10px 12px',
-                background: '#3B82F6',
+                padding: '12px',
+                background: 'linear-gradient(135deg, #3B82F6, #06B6D4)',
                 border: 'none',
-                borderRadius: '10px',
+                borderRadius: '12px',
                 color: '#FFF',
-                fontSize: '11px',
+                fontSize: '12px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
-                transition: 'background 0.2s'
+                gap: '8px',
+                transition: 'transform 0.2s',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
               }}
-              onMouseEnter={e => e.currentTarget.style.background = '#2563EB'}
-              onMouseLeave={e => e.currentTarget.style.background = '#3B82F6'}
             >
-              <Share2 size={12} /> Enviar para Familiar
+              <Share2 size={13} /> Enviar para Familiar
             </button>
           </div>
 
-          <div style={{ height: '1px', background: '#F1F5F9', margin: '8px 0' }} />
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '12px 0' }} />
           
-          <p style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', letterSpacing: '1px', marginBottom: '8px' }}>CONTA</p>
+          <p style={{ fontSize: '10px', fontWeight: 800, color: '#475569', letterSpacing: '1px', marginBottom: '6px', textTransform: 'uppercase', paddingLeft: '8px' }}>APLICATIVO MÓVEL</p>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(6, 182, 212, 0.06))',
+            border: '1px solid rgba(16, 185, 129, 0.15)',
+            borderRadius: '16px',
+            padding: '14px',
+            marginBottom: '6px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#10B981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              📲 Campainha no Celular
+            </span>
+            <p style={{ fontSize: '11px', color: '#64748B', margin: 0, lineHeight: 1.3 }}>
+              Instale o App na tela inicial para receber chamadas de vídeo em segundo plano.
+            </p>
+            {installPrompt ? (
+              <button 
+                onClick={async () => { 
+                  installPrompt.prompt(); 
+                  const r = await installPrompt.userChoice; 
+                  if (r.outcome === 'accepted') setInstallPrompt(null); 
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: '#10B981',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#FFF',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)'
+                }}
+              >
+                <Download size={12} /> Instalar Agora
+              </button>
+            ) : (
+              <div style={{ fontSize: '10px', color: '#475569', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '6px' }}>
+                Toque no botão de compartilhar (Safari) ou menu (Chrome) e selecione <strong>Adicionar à Tela de Início</strong>.
+              </div>
+            )}
+          </div>
+
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '12px 0' }} />
           
-          <button onClick={() => { setTab('settings'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: tab === 'settings' ? '#F8FAFC' : 'transparent', color: '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
-            <Settings size={20} color="#64748B" /> Configurações
+          <p style={{ fontSize: '10px', fontWeight: 800, color: '#475569', letterSpacing: '1px', marginBottom: '6px', textTransform: 'uppercase', paddingLeft: '8px' }}>CONTA</p>
+          
+          <button onClick={() => { setTab('settings'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', border: 'none', background: tab === 'settings' ? 'rgba(255,255,255,0.03)' : 'transparent', color: '#94A3B8', fontWeight: 600, fontSize: '14px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}>
+            <Settings size={18} color="#64748B" /> Configurações
           </button>
           
-          <button onClick={() => { setTab('support'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: tab === 'support' ? '#F8FAFC' : 'transparent', color: '#1E293B', fontWeight: 600, fontSize: '15px', cursor: 'pointer', textAlign: 'left' }}>
-            <MessageCircle size={20} color={tab === 'support' ? '#10B981' : '#64748B'} /> Suporte
+          <button onClick={() => { setTab('support'); setShowMenu(false); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', border: 'none', background: tab === 'support' ? 'rgba(255,255,255,0.03)' : 'transparent', color: '#94A3B8', fontWeight: 600, fontSize: '14px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}>
+            <MessageCircle size={18} color={tab === 'support' ? '#06B6D4' : '#64748B'} /> Suporte
           </button>
         </div>
 
-        <button onClick={() => navigate('/')} style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderRadius: '16px', border: 'none', background: '#FFF1F2', color: '#E11D48', fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
-          <LogOut size={20} /> Sair do App
+        <button onClick={() => { localStorage.clear(); navigate('/'); }} style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', border: 'none', background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', fontWeight: 700, fontSize: '14px', cursor: 'pointer', width: '100%', justifyContent: 'center', transition: 'background 0.2s' }}>
+          <LogOut size={18} /> Sair do App
         </button>
       </div>
     </>
