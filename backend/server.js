@@ -1130,7 +1130,7 @@ app.post('/api/properties/:id/extend-trial', (req, res) => {
   res.json({ success: true, nextPaymentDate: prop.nextPaymentDate });
 });
 
-// Ativar acesso anual (12 meses) após pagamento
+// Ativar acesso (mensal ou anual) após pagamento
 app.post('/api/properties/:id/activate-annual', (req, res) => {
   const prop = properties.find(p => p.id === req.params.id);
   if (!prop) return res.status(404).json({ error: 'Property not found' });
@@ -1140,12 +1140,19 @@ app.post('/api/properties/:id/activate-annual', (req, res) => {
   
   // Se já venceu, começa a contar de hoje. Se não venceu, adiciona ao final.
   const baseDate = currentPaymentDate > now ? currentPaymentDate : now;
-  baseDate.setFullYear(baseDate.getFullYear() + 1);
+  
+  const isMonthly = prop.billingModel === 'monthly';
+  if (isMonthly) {
+    baseDate.setMonth(baseDate.getMonth() + 1);
+    prop.plan = 'Mensal';
+  } else {
+    baseDate.setFullYear(baseDate.getFullYear() + 1);
+    prop.plan = 'Anual';
+  }
   
   prop.nextPaymentDate = baseDate.toISOString();
-  prop.plan = 'Anual';
   saveDb();
-  res.json({ success: true, nextPaymentDate: prop.nextPaymentDate });
+  res.json({ success: true, nextPaymentDate: prop.nextPaymentDate, plan: prop.plan });
 });
 
 // Atualizar Configuração de WhatsApp do Condomínio

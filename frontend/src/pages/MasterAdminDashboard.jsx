@@ -690,13 +690,18 @@ export default function MasterAdminDashboard() {
                             Liberar +15 Dias Teste
                           </button>
                           <button onClick={async () => {
-                            if (!window.confirm('Confirmar recebimento de pagamento e liberar 12 meses de acesso?')) return;
+                            const isMonthly = client.billingModel === 'monthly';
+                            const periodText = isMonthly ? '1 mês (30 dias)' : '12 meses';
+                            if (!window.confirm(`Confirmar recebimento de pagamento e liberar ${periodText} de acesso?`)) return;
                             try {
                               const res = await fetch(`${API}/api/properties/${encodeURIComponent(client.id)}/activate-annual`, { method: 'POST' });
-                              if (res.ok) { alert('Acesso anual liberado!'); fetchClients(); }
+                              if (res.ok) { 
+                                alert(isMonthly ? 'Acesso mensal liberado! ✅' : 'Acesso anual liberado! ✅'); 
+                                fetchClients(); 
+                              }
                             } catch {}
                           }} style={{ marginTop: '4px', background: '#10B981', color: '#FFF', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}>
-                            Confirmar Pagamento (12 Meses)
+                            Confirmar Pagamento ({client.billingModel === 'monthly' ? 'Mensal' : 'Anual'})
                           </button>
                         </td>
                         <td style={{ padding: '20px 16px' }}>
