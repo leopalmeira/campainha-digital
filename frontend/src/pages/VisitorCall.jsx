@@ -298,7 +298,122 @@ export default function VisitorCall() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+    <div style={{ 
+      minHeight: '100vh', 
+      background: 'radial-gradient(circle at top, #1e293b 0%, #0f172a 100%)', 
+      color: '#F8FAFC', 
+      padding: '48px 24px', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      position: 'relative',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif'
+    }}>
+      <style>{`
+        @keyframes pulse-ring {
+          0% { transform: scale(0.95); opacity: 0.6; }
+          50% { transform: scale(1.15); opacity: 0.3; }
+          100% { transform: scale(1.3); opacity: 0; }
+        }
+        @keyframes wiggle {
+          0%, 100% { transform: rotate(0deg); }
+          15%, 45% { transform: rotate(-12deg); }
+          30%, 60% { transform: rotate(12deg); }
+        }
+        @keyframes subtle-pulse {
+          0%, 100% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.05); opacity: 1; }
+        }
+        .pulse-button-wrapper {
+          position: relative;
+          width: 170px;
+          height: 170px;
+          margin: 0 auto;
+          display: flex;
+          alignItems: center;
+          justifyContent: center;
+        }
+        .pulse-button-wrapper::before {
+          content: '';
+          position: absolute;
+          inset: -8px;
+          border-radius: 50%;
+          border: 4px solid rgba(59, 130, 246, 0.4);
+          animation: pulse-ring 2.2s infinite ease-in-out;
+        }
+        .pulse-button-wrapper::after {
+          content: '';
+          position: absolute;
+          inset: -18px;
+          border-radius: 50%;
+          border: 2px dashed rgba(59, 130, 246, 0.2);
+          animation: pulse-ring 2.2s infinite ease-in-out;
+          animation-delay: 0.7s;
+        }
+        .pulse-button {
+          width: 150px;
+          height: 150px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+          border: none;
+          color: #FFF;
+          font-size: 15px;
+          font-weight: 800;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justifyContent: center;
+          gap: 12px;
+          cursor: pointer;
+          box-shadow: 0 12px 35px rgba(29, 78, 216, 0.5), inset 0 2px 4px rgba(255,255,255,0.3);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          z-index: 2;
+        }
+        .pulse-button:hover {
+          transform: scale(1.04);
+          box-shadow: 0 16px 45px rgba(29, 78, 216, 0.7), inset 0 2px 4px rgba(255,255,255,0.4);
+        }
+        .pulse-button:active {
+          transform: scale(0.96);
+        }
+        .visitor-card {
+          background: rgba(15, 23, 42, 0.45);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 28px;
+          padding: 32px 24px;
+          box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+          width: 100%;
+          max-width: 400px;
+          transition: all 0.3s ease;
+        }
+        .btn-unit-select {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          color: #FFF;
+          padding: 18px 20px;
+          border-radius: 18px;
+          font-weight: 700;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          width: 100%;
+          text-align: left;
+        }
+        .btn-unit-select:hover {
+          background: rgba(255, 255, 255, 0.07);
+          border-color: rgba(59, 130, 246, 0.5);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+        }
+        .btn-unit-select:active {
+          transform: translateY(0);
+        }
+      `}</style>
+
       {/* Elementos ocultos para captura de mídia */}
       <video ref={localVideoRef} style={{ display: 'none' }} playsInline muted />
       <canvas ref={canvasRef}    style={{ display: 'none' }} />
@@ -306,62 +421,115 @@ export default function VisitorCall() {
 
       {/* Banner de mensagem rápida do morador */}
       {quickMessage && (
-        <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.92)', border: '1px solid var(--primary)', borderRadius: '16px', padding: '14px 24px', zIndex: 999, maxWidth: '320px', width: '90%', textAlign: 'center', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,229,255,0.2)' }}>
-          <p style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 700, marginBottom: '4px', letterSpacing: '1px' }}>💬 MENSAGEM</p>
-          <p style={{ fontSize: '17px', fontWeight: 700, margin: 0 }}>"{quickMessage}"</p>
+        <div style={{ 
+          position: 'fixed', 
+          top: '24px', 
+          left: '50%', 
+          transform: 'translateX(-50%)', 
+          background: 'rgba(15, 23, 42, 0.95)', 
+          border: '2px solid #3B82F6', 
+          borderRadius: '20px', 
+          padding: '16px 28px', 
+          zIndex: 999, 
+          maxWidth: '340px', 
+          width: '90%', 
+          textAlign: 'center', 
+          backdropFilter: 'blur(16px)', 
+          boxShadow: '0 12px 40px rgba(59, 130, 246, 0.25)' 
+        }}>
+          <p style={{ fontSize: '11px', color: '#3B82F6', fontWeight: 800, marginBottom: '6px', letterSpacing: '1.5px', textTransform: 'uppercase' }}>💬 Resposta do Morador</p>
+          <p style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: '#FFF', lineHeight: '1.4' }}>"{quickMessage}"</p>
         </div>
       )}
 
       {/* Header */}
-      <header style={{ textAlign: 'center', marginBottom: '40px' }}>
-        <div style={{ marginBottom: '16px' }}>
-          <Logo size={42} showText={false} />
+      <header style={{ textAlign: 'center', marginBottom: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ 
+          width: '64px', 
+          height: '64px', 
+          borderRadius: '20px', 
+          background: 'rgba(59, 130, 246, 0.1)', 
+          border: '1px solid rgba(59, 130, 246, 0.2)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          marginBottom: '16px',
+          boxShadow: '0 8px 24px rgba(59, 130, 246, 0.05)'
+        }}>
+          <Logo size={36} showText={false} />
         </div>
-        <h1 style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '8px' }}>Campainha Digital</h1>
+        <h1 style={{ fontSize: '26px', fontWeight: 900, letterSpacing: '-0.5px', marginBottom: '6px', color: '#FFF' }}>Campainha Digital</h1>
         {property && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', justifyContent: 'center', fontSize: '14px' }}>
-            <MapPin size={14} /> {property.name}
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            color: '#94A3B8', 
+            fontSize: '13px',
+            background: 'rgba(255,255,255,0.03)',
+            padding: '6px 14px',
+            borderRadius: '100px',
+            border: '1px solid rgba(255,255,255,0.05)'
+          }}>
+            <MapPin size={13} color="#3B82F6" /> {property.name}
           </div>
         )}
       </header>
 
       {/* ── Erro ──────────────────────────────────────────────────────────── */}
       {status === 'error' && (
-        <div className="glass-panel fade-in" style={{ padding: '40px 24px', maxWidth: '400px', textAlign: 'center' }}>
-          <WifiOff size={48} color="#EF4444" style={{ marginBottom: '16px' }} />
-          <h2 style={{ fontSize: '20px', marginBottom: '12px' }}>Erro de Conexão</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>{errorMsg}</p>
-          <button className="btn-primary" onClick={() => { setStatus('idle'); fetchProperty(); }}>Tentar Novamente</button>
+        <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
+          <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid rgba(239,68,68,0.2)' }}>
+            <WifiOff size={32} color="#EF4444" />
+          </div>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px', color: '#FFF' }}>Instabilidade de Rede</h2>
+          <p style={{ color: '#94A3B8', marginBottom: '24px', fontSize: '14px', lineHeight: '1.5' }}>{errorMsg}</p>
+          <button className="btn-primary" style={{ width: '100%' }} onClick={() => { setStatus('idle'); fetchProperty(); }}>Tentar Novamente</button>
         </div>
       )}
 
       {/* ── Idle: escolher unidade ─────────────────────────────────────────── */}
       {status === 'idle' && property && (
-        <div className="fade-in" style={{ width: '100%', maxWidth: '400px' }}>
-          {property.type === 'individual' ? (
-            <button
-              id="btn-tocar-campainha"
-              className="btn-primary"
-              style={{ width: '100%', padding: '32px 24px', fontSize: '20px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 12px 40px rgba(0, 229, 255, 0.3)' }}
-              onClick={() => handleCall(property.units[0])}
-            >
-              <Bell size={48} />
-              TOCAR CAMPAINHA
-            </button>
+        <div className="fade-in" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+          {property.type === 'individual' || property.type === 'house' ? (
+            <div className="visitor-card" style={{ textAlign: 'center', padding: '36px 24px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '2px', display: 'block', marginBottom: '6px' }}>
+                Residência
+              </span>
+              <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFF', marginBottom: '40px', letterSpacing: '-0.3px' }}>
+                Principal
+              </h2>
+              
+              <div className="pulse-button-wrapper" style={{ marginBottom: '40px' }}>
+                <button
+                  id="btn-tocar-campainha"
+                  className="pulse-button"
+                  onClick={() => handleCall(property.units[0])}
+                >
+                  <Bell size={38} style={{ animation: 'wiggle 2.5s infinite ease-in-out' }} />
+                  <span style={{ letterSpacing: '1px' }}>TOCAR</span>
+                </button>
+              </div>
+              
+              <p style={{ fontSize: '12px', color: '#64748B', lineHeight: '1.5' }}>
+                Toque no botão para chamar o morador e iniciar o atendimento.
+              </p>
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <p style={{ fontWeight: 700, fontSize: '16px', textAlign: 'center', color: 'var(--text-muted)' }}>Para quem é a visita?</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', maxHeight: '50vh', overflowY: 'auto' }}>
+            <div className="visitor-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <p style={{ fontWeight: 800, fontSize: '15px', textAlign: 'center', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                Para quem é a visita?
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '42vh', overflowY: 'auto', paddingRight: '4px' }}>
                 {property.units.map(unit => (
                   <button
                     key={unit.id}
                     id={`btn-unit-${unit.id}`}
-                    className="btn-secondary"
-                    style={{ width: '100%', padding: '20px 24px', borderRadius: '16px', justifyContent: 'space-between' }}
+                    className="btn-unit-select"
                     onClick={() => handleCall(unit)}
                   >
-                    <span style={{ fontSize: '18px', fontWeight: 700 }}>{unit.name}</span>
-                    <ChevronRight size={20} color="var(--primary)" />
+                    <span style={{ fontSize: '17px', fontWeight: 700 }}>{unit.name}</span>
+                    <ChevronRight size={18} color="#3B82F6" />
                   </button>
                 ))}
               </div>
@@ -372,116 +540,198 @@ export default function VisitorCall() {
 
       {/* ── Chamando ──────────────────────────────────────────────────────── */}
       {status === 'calling' && (
-        <div className="glass-panel fade-in" style={{ padding: '48px 24px', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-          <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 32px' }}>
-            <div style={{ position: 'absolute', inset: 0, border: '4px solid var(--primary)', borderRadius: '50%', animation: 'mesh-pulse 2s infinite ease-in-out', opacity: 0.2 }} />
-            <div style={{ position: 'absolute', inset: '10px', background: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 30px var(--primary-glow)' }}>
-              <Bell size={40} color="#000" />
+        <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
+          <div style={{ position: 'relative', width: '90px', height: '90px', margin: '0 auto 28px' }}>
+            <div style={{ position: 'absolute', inset: 0, border: '4px solid #3B82F6', borderRadius: '50%', animation: 'pulse-ring 2s infinite ease-in-out', opacity: 0.2 }} />
+            <div style={{ position: 'absolute', inset: '8px', background: '#3B82F6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 30px rgba(59, 130, 246, 0.4)' }}>
+              <Bell size={34} color="#FFF" style={{ animation: 'wiggle 1.5s infinite ease-in-out' }} />
             </div>
           </div>
 
-          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>Chamando...</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
-            Unidade: <span style={{ color: 'var(--text-main)', fontWeight: 700 }}>{callingUnit?.name}</span>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '6px', color: '#FFF' }}>Chamando...</h2>
+          <p style={{ color: '#94A3B8', marginBottom: '28px', fontSize: '14px' }}>
+            Unidade: <span style={{ color: '#FFF', fontWeight: 700 }}>{callingUnit?.name}</span>
           </p>
 
-          <div style={{ display: 'inline-block', padding: '12px 24px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid var(--border-subtle)', marginBottom: '32px' }}>
-            <span style={{ fontSize: '32px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'monospace' }}>
+          <div style={{ display: 'inline-block', padding: '10px 24px', background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '28px' }}>
+            <span style={{ fontSize: '28px', fontWeight: 800, color: '#3B82F6', fontFamily: 'monospace' }}>
               00:{countdown.toString().padStart(2, '0')}
             </span>
           </div>
 
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-            📷 Sua câmera está ativa para identificação.
+          <p style={{ fontSize: '12px', color: '#64748B', marginBottom: '28px', lineHeight: '1.5' }}>
+            📷 Sua câmera e áudio estão ativos para identificação.
           </p>
 
           <button
             className="btn-secondary"
-            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', padding: '12px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}
+            style={{ 
+              background: 'rgba(239,68,68,0.08)', 
+              border: '1px solid rgba(239,68,68,0.2)', 
+              color: '#F87171', 
+              padding: '12px 24px', 
+              borderRadius: '14px', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              margin: '0 auto',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
             onClick={handleHangup}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
           >
-            <PhoneOff size={18} /> Cancelar
+            <PhoneOff size={16} /> Cancelar Chamada
           </button>
         </div>
       )}
 
       {/* ── Chamada ativa (áudio bidirecional + vídeo do morador) ──────── */}
       {status === 'answered' && (
-        <div className="glass-panel fade-in" style={{ padding: '32px 24px', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+        <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '28px 20px' }}>
           {/* Vídeo do morador (aparece quando ele ativa a câmera) */}
-          <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#000', marginBottom: '20px', minHeight: '200px', position: 'relative' }}>
+          <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#090d16', marginBottom: '20px', minHeight: '200px', position: 'relative', border: '1px solid rgba(255,255,255,0.05)' }}>
             <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', objectFit: 'cover', minHeight: '200px' }} />
-            <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(16,185,129,0.9)', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 800, color: '#000', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#000', animation: 'pulse 1s infinite' }} /> AO VIVO
+            <div style={{ 
+              position: 'absolute', 
+              top: '12px', 
+              left: '12px', 
+              background: '#10B981', 
+              padding: '4px 10px', 
+              borderRadius: '100px', 
+              fontSize: '10px', 
+              fontWeight: 900, 
+              color: '#FFF', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+              animation: 'subtle-pulse 1.5s infinite'
+            }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FFF' }} /> AO VIVO
             </div>
           </div>
 
           <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: '#10B981' }}>
-            Comunicação Ativa
+            Chamada Atendida
           </h2>
-          <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '24px', fontSize: '14px' }}>
-            O morador está na linha. Vocês já podem conversar!
+          <p style={{ color: '#94A3B8', lineHeight: 1.5, marginBottom: '24px', fontSize: '13px' }}>
+            O morador está online. Vocês já podem conversar por voz e vídeo!
           </p>
 
           <button
             className="btn-secondary"
-            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', padding: '12px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}
+            style={{ 
+              background: 'rgba(239,68,68,0.08)', 
+              border: '1px solid rgba(239,68,68,0.2)', 
+              color: '#F87171', 
+              padding: '12px 24px', 
+              borderRadius: '14px', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              margin: '0 auto',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
             onClick={handleHangup}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
           >
-            <PhoneOff size={18} /> Encerrar
+            <PhoneOff size={16} /> Encerrar Conversa
           </button>
         </div>
       )}
 
-      {/* ── Morado monitorando (furtivo) ──────────────────────────────────── */}
+      {/* ── Morador monitorando (furtivo) ──────────────────────────────────── */}
       {status === 'monitored' && (
-        <div className="glass-panel fade-in" style={{ padding: '48px 24px', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-          <div style={{ width: '100px', height: '100px', background: 'rgba(245,158,11,0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px', border: '2px solid rgba(245,158,11,0.4)' }}>
-            <Video size={48} color="#F59E0B" />
+        <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
+          <div style={{ width: '80px', height: '80px', background: 'rgba(245,158,11,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <Video size={36} color="#F59E0B" />
           </div>
 
-          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px', color: '#F59E0B' }}>
-            Morador Monitorando
+          <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: '#F59E0B' }}>
+            Transmitindo...
           </h2>
-          <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '24px' }}>
-            Sua câmera e áudio estão sendo transmitidos. Aguarde uma resposta.
+          <p style={{ color: '#94A3B8', lineHeight: 1.5, marginBottom: '28px', fontSize: '13px' }}>
+            Aguarde um momento enquanto o morador responde ao chamado.
           </p>
 
           <button
             className="btn-secondary"
-            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', padding: '12px 24px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}
+            style={{ 
+              background: 'rgba(239,68,68,0.08)', 
+              border: '1px solid rgba(239,68,68,0.2)', 
+              color: '#F87171', 
+              padding: '12px 24px', 
+              borderRadius: '14px', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              margin: '0 auto',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
             onClick={handleHangup}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
           >
-            <PhoneOff size={18} /> Encerrar
+            <PhoneOff size={16} /> Cancelar Chamada
           </button>
         </div>
       )}
 
       {/* ── Portão Liberado ─────────────────────────────────────────────── */}
       {status === 'authorized' && (
-        <div className="glass-panel fade-in" style={{ padding: '48px 24px', width: '100%', maxWidth: '400px', textAlign: 'center', border: '2px solid #10B981', background: 'rgba(16,185,129,0.05)' }}>
-          <div style={{ width: '100px', height: '100px', background: '#10B981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px', boxShadow: '0 0 40px rgba(16,185,129,0.5)', animation: 'mesh-pulse 1.5s infinite' }}>
-            <KeyRound size={48} color="#000" />
+        <div className="visitor-card fade-in" style={{ 
+          textAlign: 'center', 
+          padding: '40px 24px', 
+          border: '2px solid #10B981', 
+          background: 'rgba(16,185,129,0.06)',
+          boxShadow: '0 15px 40px rgba(16, 185, 129, 0.15)'
+        }}>
+          <div style={{ 
+            width: '90px', 
+            height: '90px', 
+            background: '#10B981', 
+            borderRadius: '50%', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            margin: '0 auto 28px', 
+            boxShadow: '0 0 35px rgba(16,185,129,0.4)', 
+            animation: 'subtle-pulse 1.8s infinite' 
+          }}>
+            <KeyRound size={40} color="#000" />
           </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 900, color: '#10B981', marginBottom: '12px', textTransform: 'uppercase' }}>Portão Liberado!</h2>
-          <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>Seja bem-vindo!</p>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>O morador autorizou sua entrada. A portaria já foi notificada.</p>
+          <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#10B981', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portão Liberado!</h2>
+          <p style={{ fontSize: '18px', fontWeight: 800, color: '#FFF', marginBottom: '6px' }}>Seja bem-vindo!</p>
+          <p style={{ color: '#94A3B8', fontSize: '13px', lineHeight: '1.5' }}>O morador autorizou sua entrada na residência.</p>
         </div>
       )}
 
       {/* ── Chamada encerrada ─────────────────────────────────────────────── */}
       {status === 'ended' && (
-        <div className="glass-panel fade-in" style={{ padding: '48px 24px', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-          <PhoneOff size={48} color="var(--text-muted)" style={{ margin: '0 auto 24px', display: 'block' }} />
-          <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>Chamada Encerrada</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>O morador encerrou a chamada.</p>
-          <button className="btn-primary" onClick={() => { setStatus('idle'); setCallingUnit(null); }}>Tocar Novamente</button>
+        <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
+          <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <PhoneOff size={30} color="#94A3B8" />
+          </div>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '10px', color: '#FFF' }}>Chamada Finalizada</h2>
+          <p style={{ color: '#94A3B8', marginBottom: '24px', fontSize: '13px' }}>A chamada foi encerrada pelo morador.</p>
+          <button className="btn-primary" style={{ width: '100%' }} onClick={() => { setStatus('idle'); setCallingUnit(null); }}>Chamar Novamente</button>
         </div>
       )}
 
-      <footer style={{ marginTop: 'auto', paddingTop: '40px' }}>
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
-          Tecnologia Campainha Digital® • Conexão P2P Segura
+      <footer style={{ marginTop: 'auto', paddingTop: '48px' }}>
+        <p style={{ fontSize: '11px', color: '#475569', textAlign: 'center', letterSpacing: '0.5px' }}>
+          Tecnologia Campainha Digital® • Conexão P2P Criptografada
         </p>
       </footer>
     </div>

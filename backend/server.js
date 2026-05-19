@@ -300,7 +300,7 @@ app.put('/api/config', (req, res) => {
   const allowed = [
     'servicePriceAnnual', 'trialDays', 'planName', 'pixDueDays', 'companyName', 'supportWhatsApp',
     'servicePriceAnnualSimple', 'servicePriceAnnualCondo', 'servicePriceAnnualVilla',
-    'condoMonthlyBasePrice', 'condoMonthlyAdditionalPrice'
+    'condoMonthlyBasePrice', 'condoMonthlyAdditionalPrice', 'villaMonthlyBasePrice', 'villaMonthlyAdditionalPrice'
   ];
   allowed.forEach(key => {
     if (req.body[key] !== undefined) platformConfig[key] = req.body[key];
@@ -801,7 +801,7 @@ app.post('/api/auth/link-qr', async (req, res) => {
   const targetProp = existingProp || properties.find(p => p.id === propertyId);
   let unitId = null;
   let accessCode = null;
-  if (targetProp && targetProp.type === 'individual' && targetProp.units && targetProp.units.length > 0) {
+  if (targetProp && (targetProp.type === 'individual' || targetProp.type === 'house') && targetProp.units && targetProp.units.length > 0) {
     unitId = targetProp.units[0].id;
     accessCode = targetProp.units[0].accessCode;
   }
