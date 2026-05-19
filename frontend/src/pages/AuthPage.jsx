@@ -102,10 +102,19 @@ export default function AuthPage() {
 
     try {
       if (loginType === 'code') {
+        let deviceId = localStorage.getItem('cd_device_id');
+        if (!deviceId) {
+          deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+          localStorage.setItem('cd_device_id', deviceId);
+        }
+
         const res = await fetch(`${API}/api/resident/login-by-code`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessCode: accessCode.trim().toUpperCase() })
+          body: JSON.stringify({ 
+            accessCode: accessCode.trim().toUpperCase(),
+            deviceId
+          })
         });
         const data = await res.json();
         if (res.ok) {

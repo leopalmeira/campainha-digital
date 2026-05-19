@@ -711,3 +711,24 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
   - A sub-aba **Contas de Usuários** renderiza a listagem completa de usuários do sistema, filtros em pílulas e cartões de gerenciamento.
 - **Título Dinâmico no Cabeçalho:** O título da página se altera dinamicamente entre "Visão Geral de Clientes" e "Gestão de Usuários" de acordo com a sub-aba ativa, mantendo o visual profissional e limpo.
 - **Validação de Produção:** O projeto foi compilado (`npm run build`) com sucesso total, sem nenhum aviso de sintaxe ou inconsistências de código.
+---
+
+## ⚡ v3.9.6 — Auditoria de Pagamentos Pix e Limite de Aparelhos Logados (19/05/2026)
+
+### 💳 Auditoria e Registro de Comprovante de Pagamento (Webhook & Manual)
+- **Persistência do Comprovante Pix no Webhook:** Modificado o processamento do webhook do Abacate Pay (`POST /api/webhook/abacate`) para que, ao confirmar o pagamento, salve de forma permanente no registro da propriedade um objeto `paymentProof` contendo o ID da transação (`id`), o valor da transação (`value`), a data do evento (`date`) e a forma de pagamento (`method: 'PIX (Abacate Pay)'`).
+- **Persistência de Liberação Manual:** Atualizado o endpoint de ativação manual do Master Admin (`POST /api/properties/:id/activate-annual`) para gerar e guardar um comprovante de liberação manual (`id` prefixed com `MANUAL_`, `value`, `date`, `method: 'Liberação Manual (Master Admin)'`), garantindo auditoria de 100% dos clientes.
+- **Exibição do Comprovante no Frontend:**
+  - **Tabela de Clientes:** Exibe um badge verde de "Autenticação Pagamento" contendo o ID do comprovante Pix/manual diretamente na coluna "Status / Pagamento" para clientes que possuem plano Anual.
+  - **Tabela Financeira (`BillingTab`):** Exibe um box de comprovante com detalhes de ID, Valor pago e Data/Hora na coluna "Status", logo abaixo do badge do plano ativo.
+
+### 🚫 Remoção do Botão "Liberar +15 Dias Teste" para Clientes Anuais
+- **Omissão Lógica:** Ocultamos totalmente o botão de estender o período de teste ("Liberar +15 Dias Teste") tanto na tabela principal de clientes quanto na tabela financeira de faturamento (`BillingTab`) caso o plano do cliente já seja `"Anual"`. Isso elimina confusão de interface para clientes que já pagaram.
+
+### 📱 Limite de 5 Dispositivos Logados por Código Único
+- **Validação no Login por Código:** O endpoint `/api/resident/login-by-code` foi atualizado para aceitar e monitorar um `deviceId` único de aparelho enviado pelo frontend.
+- **Bloqueio de Excesso de Dispositivos:** Se o `deviceId` fornecido não estiver na lista de dispositivos vinculados da unidade e a lista já tiver 5 ou mais logins salvos, o backend retorna um erro `403 Forbidden` bloqueando o login.
+- **Identificação Persistente de Aparelhos:** A página de login do morador (`AuthPage.jsx`) agora gera um UUID único persistente (`cd_device_id`) no `localStorage` do dispositivo se este não existir e o envia na requisição.
+- **Exibição de Aparelhos Vinculados:**
+  - **Tabela de Clientes Principal:** Mostra a contagem de aparelhos logados da unidade (`📱 Aparelhos: X / 5`) para Casas Simples, ou o total acumulado para Condomínios na coluna "QR Code & Códigos".
+  - **Dossiê do Cliente (Aba Técnica):** Exibe o contador de logs (`📱 X/5 logs`) ao lado do nome de cada morador/unidade.

@@ -712,6 +712,22 @@ export default function MasterAdminDashboard() {
                                 <Copy size={14} />
                               </button>
                             </div>
+                            
+                            {client.type === 'individual' || client.type === 'house' ? (
+                              <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                                <span>📱 Aparelhos:</span>
+                                <strong style={{ color: (client.units?.[0]?.devices?.length || 0) >= 5 ? '#EF4444' : '#1E293B' }}>
+                                  {client.units?.[0]?.devices?.length || 0} / 5
+                                </strong>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                                <span>📱 Total Logins:</span>
+                                <strong>
+                                  {client.units?.reduce((acc, u) => acc + (u.devices?.length || 0), 0) || 0}
+                                </strong>
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td style={{ padding: '20px 16px' }}>
@@ -723,19 +739,28 @@ export default function MasterAdminDashboard() {
                           ) : (
                             <div style={{ fontSize: '11px', color: '#EF4444', fontWeight: 700 }}>STATUS: VENCIDO</div>
                           )}
-                          <button onClick={async () => {
-                            if (!window.confirm('Liberar mais 15 dias de teste para este cliente?')) return;
-                            try {
-                              const res = await fetch(`${API}/api/properties/${encodeURIComponent(client.id)}/extend-trial`, { method: 'POST' });
-                              if (res.ok) { alert('Teste liberado com sucesso!'); fetchClients(); }
-                            } catch {}
-                          }} style={{ marginTop: '8px', background: 'none', border: 'none', color: '#3B82F6', fontSize: '11px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', display: 'block' }}>
-                            Liberar +15 Dias Teste
-                          </button>
+                          {client.plan !== 'Anual' && (
+                            <button onClick={async () => {
+                              if (!window.confirm('Liberar mais 15 dias de teste para este cliente?')) return;
+                              try {
+                                const res = await fetch(`${API}/api/properties/${encodeURIComponent(client.id)}/extend-trial`, { method: 'POST' });
+                                if (res.ok) { alert('Teste liberado com sucesso!'); fetchClients(); }
+                              } catch {}
+                            }} style={{ marginTop: '8px', background: 'none', border: 'none', color: '#3B82F6', fontSize: '11px', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', display: 'block' }}>
+                              Liberar +15 Dias Teste
+                            </button>
+                          )}
                            <div style={{ marginTop: '8px', fontSize: '10px', color: '#475569', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', background: '#F1F5F9', padding: '4px 8px', borderRadius: '6px', width: 'fit-content' }} title="Toda confirmação de pagamento e liberação de licenças ocorre de forma 100% automatizada e segura pelo Webhook do Abacate Pay.">
                              <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></span>
                              Abacate Pay Automático
                            </div>
+                           
+                           {client.paymentProof && (
+                             <div style={{ marginTop: '8px', fontSize: '10px', color: '#475569', fontWeight: 700, display: 'flex', flexDirection: 'column', gap: '2px', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '6px 10px', borderRadius: '8px', width: 'fit-content' }}>
+                               <div style={{ fontSize: '8px', color: '#059669', textTransform: 'uppercase', fontWeight: 800 }}>Autenticação Pagamento</div>
+                               <code style={{ fontSize: '9px', fontWeight: 800, color: '#065F46', display: 'block', wordBreak: 'break-all' }}>{client.paymentProof.id}</code>
+                             </div>
+                           )}
                         </td>
                         <td style={{ padding: '20px 16px' }}>
                           <div style={{ display: 'flex', gap: '8px' }}>
@@ -1264,7 +1289,12 @@ export default function MasterAdminDashboard() {
                     <div style={{ maxHeight: '150px', overflowY: 'auto', background: '#F8FAFC', padding: '16px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
                       {selectedClient.units?.map(u => (
                         <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #E2E8F0' }}>
-                          <span style={{ fontWeight: 600, color: '#334155' }}>{u.name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: 600, color: '#334155' }}>{u.name}</span>
+                            <span style={{ fontSize: '10px', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '2px', fontWeight: 700 }}>
+                              📱 {u.devices?.length || 0}/5 logs
+                            </span>
+                          </div>
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                             <code style={{ color: '#10B981', fontWeight: 800, fontSize: '13px' }}>{u.accessCode}</code>
                             <button 
@@ -1959,6 +1989,16 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
                     <span style={{ background: badge.bg, color: badge.color, padding: '6px 12px', borderRadius: '100px', fontWeight: 800, fontSize: '11px', whiteSpace: 'nowrap', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
                       {badge.label}
                     </span>
+                    {client.paymentProof && (
+                      <div style={{ marginTop: '8px', padding: '8px 10px', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '8px', fontSize: '10px', color: '#065F46', fontFamily: 'monospace', maxWidth: '200px' }}>
+                        <strong>Comprovante Pix:</strong>
+                        <div style={{ wordBreak: 'break-all', fontWeight: 700, marginTop: '2px', fontSize: '9px' }}>{client.paymentProof.id}</div>
+                        <div style={{ marginTop: '4px', fontSize: '9px' }}>
+                          <strong>Valor:</strong> R$ {Number(client.paymentProof.value).toFixed(2)}<br/>
+                          <strong>Data:</strong> {new Date(client.paymentProof.date).toLocaleDateString('pt-BR')} {new Date(client.paymentProof.date).toLocaleTimeString('pt-BR')}
+                        </div>
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: '20px' }}>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -2009,27 +2049,29 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
                         </button>
                       )}
                       {/* Liberar Teste */}
-                      <button
-                        onClick={() => handleExtendTrial(client.id)}
-                        disabled={loading}
-                        title="Liberar mais 15 dias de teste"
-                        style={{ 
-                          padding: '8px 14px', 
-                          borderRadius: '10px', 
-                          background: '#F59E0B', 
-                          color: '#FFF', 
-                          border: 'none', 
-                          fontWeight: 700, 
-                          fontSize: '12px', 
-                          cursor: 'pointer', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '6px',
-                          boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)',
-                          transition: 'all 0.2s'
-                        }}>
-                        <Clock size={14} /> +15 dias
-                      </button>
+                      {client.plan !== 'Anual' && (
+                        <button
+                          onClick={() => handleExtendTrial(client.id)}
+                          disabled={loading}
+                          title="Liberar mais 15 dias de teste"
+                          style={{ 
+                            padding: '8px 14px', 
+                            borderRadius: '10px', 
+                            background: '#F59E0B', 
+                            color: '#FFF', 
+                            border: 'none', 
+                            fontWeight: 700, 
+                            fontSize: '12px', 
+                            cursor: 'pointer', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '6px',
+                            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)',
+                            transition: 'all 0.2s'
+                          }}>
+                          <Clock size={14} /> +15 dias
+                        </button>
+                      )}
                       {/* Excluir Cliente */}
                       {onDeleteClient && (
                         <button

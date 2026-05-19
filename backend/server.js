@@ -533,6 +533,14 @@ app.post('/api/webhook/abacate', express.json(), (req, res) => {
       }
       property.nextPaymentDate = nextPayment.toISOString();
       
+      // Save payment proof details for auditing
+      property.paymentProof = {
+        id: payload?.data?.id || payload?.id || ('pay_' + Math.random().toString(36).substr(2, 9).toUpperCase()),
+        value: payload?.data?.amount || payload?.data?.value || 39.90,
+        date: new Date().toISOString(),
+        method: 'PIX (Abacate Pay)'
+      };
+      
       saveDb();
 
       // Como o pagamento já foi confirmado, aprova também o morador/administrador vinculado a esta placa
@@ -1179,6 +1187,15 @@ app.post('/api/properties/:id/activate-annual', (req, res) => {
   }
   
   prop.nextPaymentDate = baseDate.toISOString();
+  
+  // Save manual payment proof for auditing
+  prop.paymentProof = {
+    id: 'MANUAL_' + Math.random().toString(36).substr(2, 9).toUpperCase() + '_' + Date.now().toString().slice(-4),
+    value: isMonthly ? (prop.customPrice !== null ? prop.customPrice : 1.00) : (prop.customPrice !== null ? prop.customPrice : 39.90),
+    date: new Date().toISOString(),
+    method: 'Liberação Manual (Master Admin)'
+  };
+
   saveDb();
   res.json({ success: true, nextPaymentDate: prop.nextPaymentDate, plan: prop.plan });
 });
@@ -1611,7 +1628,7 @@ app.post('/api/resident/login', (req, res) => {
 });
 
 app.post('/api/resident/login-by-code', (req, res) => {
-  const { accessCode } = req.body;
+  const { accessCode, deviceId } = req.body;
   if (!accessCode) return res.status(400).json({ error: 'Código de acesso é obrigatório.' });
 
   const code = accessCode.trim().toUpperCase();
@@ -1634,6 +1651,19 @@ app.post('/api/resident/login-by-code', (req, res) => {
   }
 
   if (!foundUnit) return res.status(401).json({ error: 'Código de acesso inválido. Verifique com o síndico/proprietário.' });
+
+  // Limit devices to 5 logins
+  if (!foundUnit.devices) foundUnit.devices = [];
+  if (deviceId) {
+    const isAlreadyLinked = foundUnit.devices.includes(deviceId);
+    if (!isAlreadyLinked) {
+      if (foundUnit.devices.length >= 5) {
+        return res.status(403).json({ error: 'Limite de 5 dispositivos logados atingido para este código único.' });
+      }
+      foundUnit.devices.push(deviceId);
+      saveDb();
+    }
+  }
 
   res.json({
     role: 'resident',
