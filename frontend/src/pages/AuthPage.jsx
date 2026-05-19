@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle2, Phone, Building2 } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle2, Phone, Building2, Download } from 'lucide-react';
 import Logo from '../components/Logo';
 import jsQR from 'jsqr';
 
@@ -17,6 +17,7 @@ export default function AuthPage() {
   const [scannedId, setScannedId] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
   const [accessCode, setAccessCode] = useState('');
   const [loginType, setLoginType] = useState('password'); // 'password' | 'code'
   const [error, setError] = useState('');
@@ -35,6 +36,30 @@ export default function AuthPage() {
       .then(res => res.json())
       .then(data => setGlobalConfig(data))
       .catch(err => console.error("Erro ao carregar configuracoes globais:", err));
+  }, []);
+
+  // Captura parâmetros da URL para preenchimento automático do código único e ativação do tab
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('code');
+    const tabParam = params.get('tab');
+    
+    if (codeParam) {
+      setAccessCode(codeParam.toUpperCase());
+    }
+    if (tabParam === 'code' || codeParam) {
+      setLoginType('code');
+    }
+  }, []);
+
+  // Gerencia o prompt de instalação PWA na tela de login
+  useEffect(() => {
+    const handlePrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handlePrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handlePrompt);
   }, []);
   
   const [isPaid, setIsPaid] = useState(false);
@@ -385,6 +410,68 @@ export default function AuthPage() {
                   Criar conta grátis
                 </button>
               </p>
+            </div>
+
+            {/* Download/Instalar App PWA */}
+            <div style={{ 
+              marginTop: '24px', 
+              paddingTop: '20px', 
+              borderTop: '1px solid #E2E8F0', 
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShieldCheck size={14} color="#10B981" /> Aplicativo PWA Oficial
+              </span>
+              <p style={{ fontSize: '11px', color: '#64748B', margin: 0, lineHeight: 1.4 }}>
+                Instale nosso aplicativo para receber chamadas de vídeo e áudio instantaneamente em segundo plano no celular.
+              </p>
+              
+              {installPrompt ? (
+                <button 
+                  onClick={async () => { 
+                    installPrompt.prompt(); 
+                    const r = await installPrompt.userChoice; 
+                    if (r.outcome === 'accepted') setInstallPrompt(null); 
+                  }}
+                  className="btn-secondary"
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px', 
+                    borderRadius: '12px', 
+                    fontSize: '13px', 
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: 'rgba(16,185,129,0.06)',
+                    border: '1px solid rgba(16,185,129,0.15)',
+                    color: '#10B981',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Download size={14} /> Instalar Aplicativo no Celular
+                </button>
+              ) : (
+                <div style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  fontSize: '11px',
+                  color: '#64748B',
+                  textAlign: 'left'
+                }}>
+                  <strong style={{ display: 'block', color: '#334155', marginBottom: '4px' }}>Como instalar o App no Celular:</strong>
+                  • No <strong>iPhone (Safari)</strong>: Toque no ícone de compartilhar <span style={{fontSize:'12px'}}>📤</span> e escolha <strong>Adicionar à Tela de Início</strong>.<br/>
+                  • No <strong>Android (Chrome)</strong>: Toque no menu superior de três pontos e escolha <strong>Adicionar à tela inicial</strong> ou <strong>Instalar aplicativo</strong>.
+                </div>
+              )}
             </div>
           </>
         )}
