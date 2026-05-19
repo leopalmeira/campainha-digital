@@ -690,3 +690,24 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - **Melhoria de Contraste:** O rodapé e as descrições de texto receberam cores otimizadas e pesos tipográficos mais fortes para perfeito contraste e legibilidade, mesmo sob incidência de luz solar direta nos tablets de portaria ou celulares dos visitantes.
 
 
+---
+
+## ⚡ v3.9.5 — Upgrade de Gestão para Casa Simples e Consolidação das Abas do Master Admin (19/05/2026)
+
+### 🏢 Solicitação de Upgrade de Gestão (Casa Simples)
+- **Desvio de Aprovação de Gestor na Criação:** Ao criar propriedades do tipo Casa Simples (`individual` ou `house`), as contas de usuários associadas (e-mail do gestor administrativo) são criadas com o status `'approved'` por padrão e seu papel `'role'` permanece `'user'`. Elas não entram mais na fila de aprovação de promoção de administradores no Master Admin na criação inicial.
+- **Endpoint de Status do Morador:** Implementada a rota `GET /api/resident/status/:unitId` para verificar se o proprietário associado àquela unidade solicitou upgrade de gestão (`requestedManagement`) e qual seu cargo/status atual.
+- **Endpoint de Solicitação de Gestão:** Adicionada a rota `POST /api/resident/request-management` para que moradores de Casa Simples iniciem a transição de seu plano individual para um plano condominial/vila (setando `requestedManagement = true` no usuário correspondente).
+- **Interface de Solicitação no Morador (`ResidentPanels.jsx`):**
+  - Adicionado um card elegante e explicativo "Solicitar Gestão de Condomínio" na aba de Configurações (`SettingsPanel`) exclusivo para propriedades do tipo Casa Simples (`individual` ou `house`).
+  - O card se atualiza em tempo real de acordo com a resposta do servidor: exibe status pendente ("Solicitação de Gestão pendente de aprovação") ou sucesso ("Sua conta já foi promovida a Gestor de Condomínio") caso já esteja promovida, ou o botão de ação rápida para disparar o upgrade.
+- **Desmarcação de Solicitação Negada:** Se o Master Admin rejeitar a solicitação, o backend limpa o flag `requestedManagement = false` além de atualizar o status do usuário, permitindo que o usuário solicite novamente caso precise.
+
+### 👥 Unificação de Abas do Master Admin (`MasterAdminDashboard.jsx`)
+- **Consolidação em "Gestão de Clientes":** Conforme solicitado pelo usuário, os botões "Base de Usuários" e "Gestão de Clientes" no menu lateral foram unificados em uma única opção: "Gestão de Clientes".
+- **Interface Premium de Sub-Abas:** 
+  - Ao entrar em Gestão de Clientes, o Master Admin conta com um moderno seletor de sub-abas: **Placas e Clientes** e **Contas de Usuários**.
+  - A sub-aba **Placas e Clientes** exibe a tabela principal de clientes cadastrados, com busca rápida e backups.
+  - A sub-aba **Contas de Usuários** renderiza a listagem completa de usuários do sistema, filtros em pílulas e cartões de gerenciamento.
+- **Título Dinâmico no Cabeçalho:** O título da página se altera dinamicamente entre "Visão Geral de Clientes" e "Gestão de Usuários" de acordo com a sub-aba ativa, mantendo o visual profissional e limpo.
+- **Validação de Produção:** O projeto foi compilado (`npm run build`) com sucesso total, sem nenhum aviso de sintaxe ou inconsistências de código.
