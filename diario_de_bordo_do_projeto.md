@@ -651,3 +651,24 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 ### 🧹 Deleção em Cascata Absoluta do Cliente & Usuário
 - **Limpeza de Dados Orfãos:** Modificada a rota de exclusão de propriedades com RegExp para apagar cirurgicamente moradores (`residents`), visitantes (`visitors`), mensagens (`messages`) e contas administrativas de usuários (`users`) associadas ao ID da propriedade deletada.
 - **Awaiting Local Saves:** Atualizados os endpoints administrativos de deleção no backend para serem 100% assíncronos e explicitamente aguardarem (`await`) os métodos de persistência locais e na nuvem antes de responderem de volta ao frontend.
+
+---
+
+## ⚡ v3.9.3 — Modal de Boas-Vindas PWA, Código Único no Painel e Redirecionamento Pós-Pagamento (19/05/2026)
+
+### 🚪 Redirecionamento Pós-Pagamento & Trial
+- **Parâmetro de Nova Ativação (`?new=true`):** Ajustados todos os fluxos de conclusão de pagamento e ativação de teste grátis (trial) na página de cadastro e onboarding (`AuthPage.jsx`). Ao concluir, moradores de Casa Simples (`house` ou `individual`) são direcionados para o painel de morador com a query param `?new=true` acoplada à URL.
+
+### 📲 Modal de Boas-Vindas PWA (Boas Práticas de Instalação)
+- **Instruções Detalhadas de Instalação:** Criado um Modal de Boas-Vindas (`WelcomePwaModal`) de alta performance visual, estilo dark translúcido e efeito blur (`backdropFilter`). O modal é exibido de forma automática no primeiro acesso ao painel caso a URL contenha `?new=true`.
+- **Passo a Passo de Navegadores:** O modal instrui detalhadamente o morador sobre como instalar o aplicativo no celular:
+  - **Android (Chrome):** Toque no menu e selecione "Instalar aplicativo" ou "Adicionar à tela inicial".
+  - **iOS/iPhone (Safari):** Toque no botão de compartilhar e selecione "Adicionar à Tela de Início".
+- **Controle de Sessão:** O descarte do modal é gravado em `sessionStorage` para evitar exibições indesejadas a cada recarregamento de tela, limpando a URL por meio de substituição de estado do histórico (`window.history.replaceState`).
+
+### 🔑 Código de Acesso Único & Atalho PWA no Painel Principal
+- **Card Informativo no Topo da Home:** Inserido um card moderno e intuitivo no dashboard do morador (`ResidentDashboard.jsx`) logo abaixo do cabeçalho de chamadas.
+- **Compartilhamento Descomplicado:** O card exibe o código de acesso único (`accessCode`) de forma legível com fonte monospace, acompanhado de um botão para copiar com um clique para a área de transferência.
+- **Manual Rápido do PWA:** Inclui também um botão rápido "Ver Instruções de Instalação" que reabre o modal explicativo do PWA caso o usuário precise instalar em outro dispositivo posteriormente.
+- **Compilação Validada:** Executada build de produção no frontend (`npm run build`) com sucesso em 567ms.
+

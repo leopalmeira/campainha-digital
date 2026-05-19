@@ -56,7 +56,7 @@ export default function AuthPage() {
             setIsPaid(true);
             clearInterval(interval);
             if ((propertyType === 'house' || propertyType === 'individual') && clientUnitId) {
-              navigate(`/morador/${clientUnitId}`);
+              navigate(`/morador/${clientUnitId}?new=true`);
             }
           }
         }
@@ -280,7 +280,7 @@ export default function AuthPage() {
         if (paymentChoice === 'trial') {
           setIsPaid(true);
           if ((propertyType === 'house' || propertyType === 'individual') && data.unitId) {
-            navigate(`/morador/${data.unitId}`);
+            navigate(`/morador/${data.unitId}?new=true`);
           } else {
             setStep(4);
           }
@@ -610,7 +610,7 @@ export default function AuthPage() {
                 <div style={{ marginTop: '32px', padding: '20px', background: 'rgba(16,185,129,0.05)', borderRadius: '16px', border: '1px dashed #10B981', fontSize: '13px', color: '#0F172A', fontWeight: 600 }}>
                    Plano Ativado com Sucesso! 🛡️
                 </div>
-                <button onClick={() => { if ((propertyType === 'individual' || propertyType === 'house') && clientUnitId) { navigate(`/morador/${clientUnitId}`); } else { navigate('/admin'); } }} className="btn-primary w-full" style={{ marginTop: '32px', background: '#10B981', color: '#FFF' }}>
+                <button onClick={() => { if ((propertyType === 'individual' || propertyType === 'house') && clientUnitId) { navigate(`/morador/${clientUnitId}?new=true`); } else { navigate('/admin'); } }} className="btn-primary w-full" style={{ marginTop: '32px', background: '#10B981', color: '#FFF' }}>
                   Acessar Meu Painel <ArrowRight size={20} />
                 </button>
               </div>
@@ -672,7 +672,7 @@ export default function AuthPage() {
                       <CheckCircle2 size={24} style={{ color: '#15803D' }} />
                       <span>✓ Pagamento Confirmado com Sucesso! Seu acesso foi liberado.</span>
                     </div>
-                    <button onClick={() => { if (propertyType === 'individual' && clientUnitId) { navigate(`/morador/${clientUnitId}`); } else { navigate('/admin'); } }} className="btn-primary w-full">
+                    <button onClick={() => { if ((propertyType === 'individual' || propertyType === 'house') && clientUnitId) { navigate(`/morador/${clientUnitId}?new=true`); } else { navigate('/admin'); } }} className="btn-primary w-full">
                       Acessar Meu Painel <ArrowRight size={20} />
                     </button>
                   </div>

@@ -302,12 +302,14 @@ export default function VisitorCall() {
       minHeight: '100vh', 
       background: 'radial-gradient(circle at top, #1e293b 0%, #0f172a 100%)', 
       color: '#F8FAFC', 
-      padding: '48px 24px', 
+      padding: '40px 20px', 
       display: 'flex', 
       flexDirection: 'column', 
       alignItems: 'center', 
+      justifyContent: 'center',
       position: 'relative',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif'
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif',
+      boxSizing: 'border-box'
     }}>
       <style>{`
         @keyframes pulse-ring {
@@ -324,13 +326,23 @@ export default function VisitorCall() {
           0%, 100% { transform: scale(1); opacity: 0.9; }
           50% { transform: scale(1.05); opacity: 1; }
         }
+        .visitor-container {
+          width: 100%;
+          max-width: 420px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 28px;
+          margin: auto 0;
+          box-sizing: border-box;
+        }
         .pulse-button-wrapper {
           position: relative;
           width: 170px;
           height: 170px;
           margin: 0 auto;
           display: flex;
-          alignItems: center;
+          align-items: center;
           justifyContent: center;
         }
         .pulse-button-wrapper::before {
@@ -382,10 +394,10 @@ export default function VisitorCall() {
           -webkit-backdrop-filter: blur(24px);
           border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 28px;
-          padding: 32px 24px;
+          padding: 36px 28px;
           box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
           width: 100%;
-          max-width: 400px;
+          box-sizing: border-box;
           transition: all 0.3s ease;
         }
         .btn-unit-select {
@@ -401,6 +413,7 @@ export default function VisitorCall() {
           cursor: pointer;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           width: 100%;
+          box-sizing: border-box;
           text-align: left;
         }
         .btn-unit-select:hover {
@@ -442,298 +455,302 @@ export default function VisitorCall() {
         </div>
       )}
 
-      {/* Header */}
-      <header style={{ textAlign: 'center', marginBottom: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ 
-          width: '64px', 
-          height: '64px', 
-          borderRadius: '20px', 
-          background: 'rgba(59, 130, 246, 0.1)', 
-          border: '1px solid rgba(59, 130, 246, 0.2)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          marginBottom: '16px',
-          boxShadow: '0 8px 24px rgba(59, 130, 246, 0.05)'
-        }}>
-          <Logo size={36} showText={false} />
-        </div>
-        <h1 style={{ fontSize: '26px', fontWeight: 900, letterSpacing: '-0.5px', marginBottom: '6px', color: '#FFF' }}>Campainha Digital</h1>
-        {property && (
+      {/* Container principal de alinhamento estrutural */}
+      <div className="visitor-container">
+        {/* Header */}
+        <header style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
           <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            color: '#94A3B8', 
-            fontSize: '13px',
-            background: 'rgba(255,255,255,0.03)',
-            padding: '6px 14px',
-            borderRadius: '100px',
-            border: '1px solid rgba(255,255,255,0.05)'
-          }}>
-            <MapPin size={13} color="#3B82F6" /> {property.name}
-          </div>
-        )}
-      </header>
-
-      {/* ── Erro ──────────────────────────────────────────────────────────── */}
-      {status === 'error' && (
-        <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
-          <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <WifiOff size={32} color="#EF4444" />
-          </div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px', color: '#FFF' }}>Instabilidade de Rede</h2>
-          <p style={{ color: '#94A3B8', marginBottom: '24px', fontSize: '14px', lineHeight: '1.5' }}>{errorMsg}</p>
-          <button className="btn-primary" style={{ width: '100%' }} onClick={() => { setStatus('idle'); fetchProperty(); }}>Tentar Novamente</button>
-        </div>
-      )}
-
-      {/* ── Idle: escolher unidade ─────────────────────────────────────────── */}
-      {status === 'idle' && property && (
-        <div className="fade-in" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-          {property.type === 'individual' || property.type === 'house' ? (
-            <div className="visitor-card" style={{ textAlign: 'center', padding: '36px 24px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 800, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '2px', display: 'block', marginBottom: '6px' }}>
-                Residência
-              </span>
-              <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFF', marginBottom: '40px', letterSpacing: '-0.3px' }}>
-                Principal
-              </h2>
-              
-              <div className="pulse-button-wrapper" style={{ marginBottom: '40px' }}>
-                <button
-                  id="btn-tocar-campainha"
-                  className="pulse-button"
-                  onClick={() => handleCall(property.units[0])}
-                >
-                  <Bell size={38} style={{ animation: 'wiggle 2.5s infinite ease-in-out' }} />
-                  <span style={{ letterSpacing: '1px' }}>TOCAR</span>
-                </button>
-              </div>
-              
-              <p style={{ fontSize: '12px', color: '#64748B', lineHeight: '1.5' }}>
-                Toque no botão para chamar o morador e iniciar o atendimento.
-              </p>
-            </div>
-          ) : (
-            <div className="visitor-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <p style={{ fontWeight: 800, fontSize: '15px', textAlign: 'center', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                Para quem é a visita?
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '42vh', overflowY: 'auto', paddingRight: '4px' }}>
-                {property.units.map(unit => (
-                  <button
-                    key={unit.id}
-                    id={`btn-unit-${unit.id}`}
-                    className="btn-unit-select"
-                    onClick={() => handleCall(unit)}
-                  >
-                    <span style={{ fontSize: '17px', fontWeight: 700 }}>{unit.name}</span>
-                    <ChevronRight size={18} color="#3B82F6" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Chamando ──────────────────────────────────────────────────────── */}
-      {status === 'calling' && (
-        <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
-          <div style={{ position: 'relative', width: '90px', height: '90px', margin: '0 auto 28px' }}>
-            <div style={{ position: 'absolute', inset: 0, border: '4px solid #3B82F6', borderRadius: '50%', animation: 'pulse-ring 2s infinite ease-in-out', opacity: 0.2 }} />
-            <div style={{ position: 'absolute', inset: '8px', background: '#3B82F6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 30px rgba(59, 130, 246, 0.4)' }}>
-              <Bell size={34} color="#FFF" style={{ animation: 'wiggle 1.5s infinite ease-in-out' }} />
-            </div>
-          </div>
-
-          <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '6px', color: '#FFF' }}>Chamando...</h2>
-          <p style={{ color: '#94A3B8', marginBottom: '28px', fontSize: '14px' }}>
-            Unidade: <span style={{ color: '#FFF', fontWeight: 700 }}>{callingUnit?.name}</span>
-          </p>
-
-          <div style={{ display: 'inline-block', padding: '10px 24px', background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '28px' }}>
-            <span style={{ fontSize: '28px', fontWeight: 800, color: '#3B82F6', fontFamily: 'monospace' }}>
-              00:{countdown.toString().padStart(2, '0')}
-            </span>
-          </div>
-
-          <p style={{ fontSize: '12px', color: '#64748B', marginBottom: '28px', lineHeight: '1.5' }}>
-            📷 Sua câmera e áudio estão ativos para identificação.
-          </p>
-
-          <button
-            className="btn-secondary"
-            style={{ 
-              background: 'rgba(239,68,68,0.08)', 
-              border: '1px solid rgba(239,68,68,0.2)', 
-              color: '#F87171', 
-              padding: '12px 24px', 
-              borderRadius: '14px', 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              margin: '0 auto',
-              fontWeight: 700,
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onClick={handleHangup}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
-          >
-            <PhoneOff size={16} /> Cancelar Chamada
-          </button>
-        </div>
-      )}
-
-      {/* ── Chamada ativa (áudio bidirecional + vídeo do morador) ──────── */}
-      {status === 'answered' && (
-        <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '28px 20px' }}>
-          {/* Vídeo do morador (aparece quando ele ativa a câmera) */}
-          <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#090d16', marginBottom: '20px', minHeight: '200px', position: 'relative', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', objectFit: 'cover', minHeight: '200px' }} />
-            <div style={{ 
-              position: 'absolute', 
-              top: '12px', 
-              left: '12px', 
-              background: '#10B981', 
-              padding: '4px 10px', 
-              borderRadius: '100px', 
-              fontSize: '10px', 
-              fontWeight: 900, 
-              color: '#FFF', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
-              animation: 'subtle-pulse 1.5s infinite'
-            }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FFF' }} /> AO VIVO
-            </div>
-          </div>
-
-          <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: '#10B981' }}>
-            Chamada Atendida
-          </h2>
-          <p style={{ color: '#94A3B8', lineHeight: 1.5, marginBottom: '24px', fontSize: '13px' }}>
-            O morador está online. Vocês já podem conversar por voz e vídeo!
-          </p>
-
-          <button
-            className="btn-secondary"
-            style={{ 
-              background: 'rgba(239,68,68,0.08)', 
-              border: '1px solid rgba(239,68,68,0.2)', 
-              color: '#F87171', 
-              padding: '12px 24px', 
-              borderRadius: '14px', 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              margin: '0 auto',
-              fontWeight: 700,
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onClick={handleHangup}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
-          >
-            <PhoneOff size={16} /> Encerrar Conversa
-          </button>
-        </div>
-      )}
-
-      {/* ── Morador monitorando (furtivo) ──────────────────────────────────── */}
-      {status === 'monitored' && (
-        <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
-          <div style={{ width: '80px', height: '80px', background: 'rgba(245,158,11,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', border: '1px solid rgba(245,158,11,0.2)' }}>
-            <Video size={36} color="#F59E0B" />
-          </div>
-
-          <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: '#F59E0B' }}>
-            Transmitindo...
-          </h2>
-          <p style={{ color: '#94A3B8', lineHeight: 1.5, marginBottom: '28px', fontSize: '13px' }}>
-            Aguarde um momento enquanto o morador responde ao chamado.
-          </p>
-
-          <button
-            className="btn-secondary"
-            style={{ 
-              background: 'rgba(239,68,68,0.08)', 
-              border: '1px solid rgba(239,68,68,0.2)', 
-              color: '#F87171', 
-              padding: '12px 24px', 
-              borderRadius: '14px', 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              margin: '0 auto',
-              fontWeight: 700,
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onClick={handleHangup}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
-          >
-            <PhoneOff size={16} /> Cancelar Chamada
-          </button>
-        </div>
-      )}
-
-      {/* ── Portão Liberado ─────────────────────────────────────────────── */}
-      {status === 'authorized' && (
-        <div className="visitor-card fade-in" style={{ 
-          textAlign: 'center', 
-          padding: '40px 24px', 
-          border: '2px solid #10B981', 
-          background: 'rgba(16,185,129,0.06)',
-          boxShadow: '0 15px 40px rgba(16, 185, 129, 0.15)'
-        }}>
-          <div style={{ 
-            width: '90px', 
-            height: '90px', 
-            background: '#10B981', 
-            borderRadius: '50%', 
+            width: '64px', 
+            height: '64px', 
+            borderRadius: '20px', 
+            background: 'rgba(59, 130, 246, 0.1)', 
+            border: '1px solid rgba(59, 130, 246, 0.2)', 
             display: 'flex', 
             alignItems: 'center', 
-            justifyContent: 'center', 
-            margin: '0 auto 28px', 
-            boxShadow: '0 0 35px rgba(16,185,129,0.4)', 
-            animation: 'subtle-pulse 1.8s infinite' 
+            justifyContent: 'center',
+            marginBottom: '16px',
+            boxShadow: '0 8px 24px rgba(59, 130, 246, 0.05)'
           }}>
-            <KeyRound size={40} color="#000" />
+            <Logo size={36} showText={false} />
           </div>
-          <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#10B981', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portão Liberado!</h2>
-          <p style={{ fontSize: '18px', fontWeight: 800, color: '#FFF', marginBottom: '6px' }}>Seja bem-vindo!</p>
-          <p style={{ color: '#94A3B8', fontSize: '13px', lineHeight: '1.5' }}>O morador autorizou sua entrada na residência.</p>
-        </div>
-      )}
+          <h1 style={{ fontSize: '26px', fontWeight: 900, letterSpacing: '-0.5px', marginBottom: '6px', color: '#FFF' }}>Campainha Digital</h1>
+          {property && (
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              color: '#94A3B8', 
+              fontSize: '13px',
+              background: 'rgba(255,255,255,0.03)',
+              padding: '6px 14px',
+              borderRadius: '100px',
+              border: '1px solid rgba(255,255,255,0.05)'
+            }}>
+              <MapPin size={13} color="#3B82F6" /> {property.name}
+            </div>
+          )}
+        </header>
 
-      {/* ── Chamada encerrada ─────────────────────────────────────────────── */}
-      {status === 'ended' && (
-        <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
-          <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <PhoneOff size={30} color="#94A3B8" />
+        {/* ── Erro ──────────────────────────────────────────────────────────── */}
+        {status === 'error' && (
+          <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
+            <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <WifiOff size={32} color="#EF4444" />
+            </div>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px', color: '#FFF' }}>Instabilidade de Rede</h2>
+            <p style={{ color: '#94A3B8', marginBottom: '24px', fontSize: '14px', lineHeight: '1.5' }}>{errorMsg}</p>
+            <button className="btn-primary" style={{ width: '100%' }} onClick={() => { setStatus('idle'); fetchProperty(); }}>Tentar Novamente</button>
           </div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '10px', color: '#FFF' }}>Chamada Finalizada</h2>
-          <p style={{ color: '#94A3B8', marginBottom: '24px', fontSize: '13px' }}>A chamada foi encerrada pelo morador.</p>
-          <button className="btn-primary" style={{ width: '100%' }} onClick={() => { setStatus('idle'); setCallingUnit(null); }}>Chamar Novamente</button>
-        </div>
-      )}
+        )}
 
-      <footer style={{ marginTop: 'auto', paddingTop: '48px' }}>
-        <p style={{ fontSize: '11px', color: '#475569', textAlign: 'center', letterSpacing: '0.5px' }}>
-          Tecnologia Campainha Digital® • Conexão P2P Criptografada
-        </p>
-      </footer>
+        {/* ── Idle: escolher unidade ─────────────────────────────────────────── */}
+        {status === 'idle' && property && (
+          <div className="fade-in" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+            {property.type === 'individual' || property.type === 'house' ? (
+              <div className="visitor-card" style={{ textAlign: 'center', padding: '36px 24px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '2px', display: 'block', marginBottom: '6px' }}>
+                  Residência
+                </span>
+                <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFF', marginBottom: '40px', letterSpacing: '-0.3px' }}>
+                  Principal
+                </h2>
+                
+                <div className="pulse-button-wrapper" style={{ marginBottom: '40px' }}>
+                  <button
+                    id="btn-tocar-campainha"
+                    className="pulse-button"
+                    onClick={() => handleCall(property.units[0])}
+                  >
+                    <Bell size={38} style={{ animation: 'wiggle 2.5s infinite ease-in-out' }} />
+                    <span style={{ letterSpacing: '1px' }}>TOCAR</span>
+                  </button>
+                </div>
+                
+                <p style={{ fontSize: '12px', color: '#64748B', lineHeight: '1.5' }}>
+                  Toque no botão para chamar o morador e iniciar o atendimento.
+                </p>
+              </div>
+            ) : (
+              <div className="visitor-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <p style={{ fontWeight: 800, fontSize: '15px', textAlign: 'center', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                  Para quem é a visita?
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '42vh', overflowY: 'auto', paddingRight: '4px' }}>
+                  {property.units.map(unit => (
+                    <button
+                      key={unit.id}
+                      id={`btn-unit-${unit.id}`}
+                      className="btn-unit-select"
+                      onClick={() => handleCall(unit)}
+                    >
+                      <span style={{ fontSize: '17px', fontWeight: 700 }}>{unit.name}</span>
+                      <ChevronRight size={18} color="#3B82F6" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Chamando ──────────────────────────────────────────────────────── */}
+        {status === 'calling' && (
+          <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
+            <div style={{ position: 'relative', width: '90px', height: '90px', margin: '0 auto 28px' }}>
+              <div style={{ position: 'absolute', inset: 0, border: '4px solid #3B82F6', borderRadius: '50%', animation: 'pulse-ring 2s infinite ease-in-out', opacity: 0.2 }} />
+              <div style={{ position: 'absolute', inset: '8px', background: '#3B82F6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 30px rgba(59, 130, 246, 0.4)' }}>
+                <Bell size={34} color="#FFF" style={{ animation: 'wiggle 1.5s infinite ease-in-out' }} />
+              </div>
+            </div>
+
+            <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '6px', color: '#FFF' }}>Chamando...</h2>
+            <p style={{ color: '#94A3B8', marginBottom: '28px', fontSize: '14px' }}>
+              Unidade: <span style={{ color: '#FFF', fontWeight: 700 }}>{callingUnit?.name}</span>
+            </p>
+
+            <div style={{ display: 'inline-block', padding: '10px 24px', background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '28px' }}>
+              <span style={{ fontSize: '28px', fontWeight: 800, color: '#3B82F6', fontFamily: 'monospace' }}>
+                00:{countdown.toString().padStart(2, '0')}
+              </span>
+            </div>
+
+            <p style={{ fontSize: '12px', color: '#64748B', marginBottom: '28px', lineHeight: '1.5' }}>
+              📷 Sua câmera e áudio estão ativos para identificação.
+            </p>
+
+            <button
+              className="btn-secondary"
+              style={{ 
+                background: 'rgba(239,68,68,0.08)', 
+                border: '1px solid rgba(239,68,68,0.2)', 
+                color: '#F87171', 
+                padding: '12px 24px', 
+                borderRadius: '14px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                margin: '0 auto',
+                fontWeight: 700,
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onClick={handleHangup}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+            >
+              <PhoneOff size={16} /> Cancelar Chamada
+            </button>
+          </div>
+        )}
+
+        {/* ── Chamada ativa (áudio bidirecional + vídeo do morador) ──────── */}
+        {status === 'answered' && (
+          <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '28px 20px' }}>
+            {/* Vídeo do morador (aparece quando ele ativa a câmera) */}
+            <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#090d16', marginBottom: '20px', minHeight: '200px', position: 'relative', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', objectFit: 'cover', minHeight: '200px' }} />
+              <div style={{ 
+                position: 'absolute', 
+                top: '12px', 
+                left: '12px', 
+                background: '#10B981', 
+                padding: '4px 10px', 
+                borderRadius: '100px', 
+                fontSize: '10px', 
+                fontWeight: 900, 
+                color: '#FFF', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+                animation: 'subtle-pulse 1.5s infinite'
+              }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FFF' }} /> AO VIVO
+              </div>
+            </div>
+
+            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: '#10B981' }}>
+              Chamada Atendida
+            </h2>
+            <p style={{ color: '#94A3B8', lineHeight: 1.5, marginBottom: '24px', fontSize: '13px' }}>
+              O morador está online. Vocês já podem conversar por voz e vídeo!
+            </p>
+
+            <button
+              className="btn-secondary"
+              style={{ 
+                background: 'rgba(239,68,68,0.08)', 
+                border: '1px solid rgba(239,68,68,0.2)', 
+                color: '#F87171', 
+                padding: '12px 24px', 
+                borderRadius: '14px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                margin: '0 auto',
+                fontWeight: 700,
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onClick={handleHangup}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+            >
+              <PhoneOff size={16} /> Encerrar Conversa
+            </button>
+          </div>
+        )}
+
+        {/* ── Morador monitorando (furtivo) ──────────────────────────────────── */}
+        {status === 'monitored' && (
+          <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
+            <div style={{ width: '80px', height: '80px', background: 'rgba(245,158,11,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', border: '1px solid rgba(245,158,11,0.2)' }}>
+              <Video size={36} color="#F59E0B" />
+            </div>
+
+            <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: '#F59E0B' }}>
+              Transmitindo...
+            </h2>
+            <p style={{ color: '#94A3B8', lineHeight: 1.5, marginBottom: '28px', fontSize: '13px' }}>
+              Aguarde um momento enquanto o morador responde ao chamado.
+            </p>
+
+            <button
+              className="btn-secondary"
+              style={{ 
+                background: 'rgba(239,68,68,0.08)', 
+                border: '1px solid rgba(239,68,68,0.2)', 
+                color: '#F87171', 
+                padding: '12px 24px', 
+                borderRadius: '14px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                margin: '0 auto',
+                fontWeight: 700,
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onClick={handleHangup}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+            >
+              <PhoneOff size={16} /> Cancelar Chamada
+            </button>
+          </div>
+        )}
+
+        {/* ── Portão Liberado ─────────────────────────────────────────────── */}
+        {status === 'authorized' && (
+          <div className="visitor-card fade-in" style={{ 
+            textAlign: 'center', 
+            padding: '40px 24px', 
+            border: '2px solid #10B981', 
+            background: 'rgba(16,185,129,0.06)',
+            boxShadow: '0 15px 40px rgba(16, 185, 129, 0.15)'
+          }}>
+            <div style={{ 
+              width: '90px', 
+              height: '90px', 
+              background: '#10B981', 
+              borderRadius: '50%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              margin: '0 auto 28px', 
+              boxShadow: '0 0 35px rgba(16,185,129,0.4)', 
+              animation: 'subtle-pulse 1.8s infinite' 
+            }}>
+              <KeyRound size={40} color="#000" />
+            </div>
+            <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#10B981', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portão Liberado!</h2>
+            <p style={{ fontSize: '18px', fontWeight: 800, color: '#FFF', marginBottom: '6px' }}>Seja bem-vindo!</p>
+            <p style={{ color: '#94A3B8', fontSize: '13px', lineHeight: '1.5' }}>O morador autorizou sua entrada na residência.</p>
+          </div>
+        )}
+
+        {/* ── Chamada encerrada ─────────────────────────────────────────────── */}
+        {status === 'ended' && (
+          <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
+            <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <PhoneOff size={30} color="#94A3B8" />
+            </div>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '10px', color: '#FFF' }}>Chamada Finalizada</h2>
+            <p style={{ color: '#94A3B8', marginBottom: '24px', fontSize: '13px' }}>A chamada foi encerrada pelo morador.</p>
+            <button className="btn-primary" style={{ width: '100%' }} onClick={() => { setStatus('idle'); setCallingUnit(null); }}>Chamar Novamente</button>
+          </div>
+        )}
+
+        {/* Footer */}
+        <footer style={{ width: '100%', marginTop: '8px' }}>
+          <p style={{ fontSize: '11px', color: '#475569', textAlign: 'center', letterSpacing: '0.5px' }}>
+            Tecnologia Campainha Digital® • Conexão P2P Criptografada
+          </p>
+        </footer>
+      </div>
     </div>
   );
 }

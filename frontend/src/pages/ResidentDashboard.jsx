@@ -77,7 +77,15 @@ export default function ResidentDashboard() {
   const [propertyType, setPropertyType] = useState(() => localStorage.getItem('residentPropertyType') || 'individual');
   const [hasGateFeature, setHasGateFeature] = useState(() => localStorage.getItem('residentHasGateFeature') === 'true');
   const [featureNeighborChat, setFeatureNeighborChat] = useState(() => localStorage.getItem('residentFeatureNeighborChat') === 'true');
-  const [supportPhone, setSupportPhone] = useState('5521999999999');
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
+  useEffect(() => {
+    const isNew = new URLSearchParams(window.location.search).get('new') === 'true';
+    const dismissed = sessionStorage.getItem('cd_welcome_dismissed');
+    if (isNew && !dismissed) {
+      setShowWelcomeModal(true);
+    }
+  }, []);
 
   const remoteVideoRef = useRef(null);
   const localVideoRef = useRef(null);
@@ -516,6 +524,103 @@ export default function ResidentDashboard() {
                 </div>
               </div>
 
+              {/* Código Único do Morador & Instalação do App */}
+              <div style={{
+                background: '#FFF',
+                border: '1px solid #E2E8F0',
+                borderRadius: '24px',
+                padding: '24px 20px',
+                width: '100%',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                boxSizing: 'border-box'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: 'rgba(59,130,246,0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <KeyRound size={18} color="#3B82F6" />
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A', margin: 0 }}>Código de Acesso Único</h4>
+                    <p style={{ fontSize: '11px', color: '#64748B', margin: 0 }}>Repasse para outros moradores da casa</p>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '14px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '16px'
+                }}>
+                  <span style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', fontFamily: 'monospace', letterSpacing: '1px' }}>
+                    {accessCode || '---'}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(accessCode);
+                      alert('Código copiado com sucesso!');
+                    }}
+                    style={{
+                      background: '#3B82F6',
+                      color: '#FFF',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#2563EB'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#3B82F6'}
+                  >
+                    Copiar
+                  </button>
+                </div>
+
+                <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '16px', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <Download size={14} color="#10B981" />
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>Aplicativo no Celular (PWA)</span>
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#64748B', margin: '0 0 12px', lineHeight: 1.4 }}>
+                    Para receber chamadas sem abrir o navegador, instale o atalho na tela inicial do seu celular.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowWelcomeModal(true);
+                    }}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(16,185,129,0.06)',
+                      border: '1px solid rgba(16,185,129,0.15)',
+                      color: '#10B981',
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Download size={14} /> Ver Instruções de Instalação
+                  </button>
+                </div>
+              </div>
+
 
 
               {/* Mensagens do condomínio - colapssável */}
@@ -712,6 +817,134 @@ export default function ResidentDashboard() {
       {tab === 'history' && <HistoryPanel unitId={id} propertyId={localStorage.getItem('residentPropertyId')} />}
       {tab === 'settings' && <SettingsPanel unitName={unitName} setUnitName={setUnitName} onSave={saveSettings} unitId={id} propertyId={localStorage.getItem('residentPropertyId')} />}
       {tab === 'support' && <ResidentSupportPanel unitId={id} propertyId={localStorage.getItem('residentPropertyId')} propertyType={propertyType} />}
+
+      {showWelcomeModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(16px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          boxSizing: 'border-box'
+        }}>
+          <div className="fade-in" style={{
+            background: '#1E293B',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '28px',
+            width: '100%',
+            maxWidth: '420px',
+            padding: '32px 24px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            color: '#F8FAFC',
+            textAlign: 'center',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{
+              width: '72px',
+              height: '72px',
+              background: 'rgba(16,185,129,0.1)',
+              border: '1px solid rgba(16,185,129,0.2)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
+              boxShadow: '0 0 20px rgba(16,185,129,0.1)'
+            }}>
+              <ShieldCheck size={36} color="#10B981" />
+            </div>
+
+            <h2 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '8px', color: '#10B981' }}>
+              Ativação Concluída! 🎉
+            </h2>
+            <p style={{ color: '#94A3B8', fontSize: '13px', lineHeight: 1.5, marginBottom: '24px' }}>
+              Sua campainha digital está ativa. Para receber chamadas de vídeo e voz em tempo real, instale o aplicativo.
+            </p>
+
+            {/* Código de acesso único destacado */}
+            <div style={{
+              background: 'rgba(15,23,42,0.4)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '20px',
+              padding: '16px',
+              marginBottom: '24px'
+            }}>
+              <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>
+                Código de Acesso dos Moradores
+              </span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: '24px', fontWeight: 900, color: '#FFF', fontFamily: 'monospace', letterSpacing: '2px' }}>
+                  {accessCode || '---'}
+                </span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(accessCode);
+                    alert('Código de acesso copiado!');
+                  }}
+                  style={{
+                    background: 'rgba(59,130,246,0.1)',
+                    border: '1px solid rgba(59,130,246,0.2)',
+                    color: '#60A5FA',
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Copiar
+                </button>
+              </div>
+              <p style={{ fontSize: '11px', color: '#64748B', marginTop: '10px', lineHeight: 1.4, margin: '8px 0 0' }}>
+                Envie este código aos outros moradores da casa. Ao baixar o app, eles entrarão direto usando este código.
+              </p>
+            </div>
+
+            {/* Instruções PWA */}
+            <div style={{ textAlign: 'left', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '20px', padding: '16px', marginBottom: '24px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#FFF', display: 'block', marginBottom: '12px' }}>
+                📲 Como instalar o aplicativo:
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px', color: '#94A3B8', lineHeight: 1.4 }}>
+                <div>
+                  <strong style={{ color: '#E2E8F0' }}>Android (Chrome):</strong> Toque no menu <span style={{ color: '#FFF' }}>⋮</span> e selecione <span style={{ color: '#3B82F6', fontWeight: 700 }}>"Instalar aplicativo"</span> ou <span style={{ color: '#3B82F6', fontWeight: 700 }}>"Adicionar à tela inicial"</span>.
+                </div>
+                <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+                <div>
+                  <strong style={{ color: '#E2E8F0' }}>iOS / iPhone (Safari):</strong> Toque no botão de compartilhar (ícone de seta pra cima <span style={{ color: '#FFF' }}>⎋</span>) e selecione <span style={{ color: '#3B82F6', fontWeight: 700 }}>"Adicionar à Tela de Início"</span>.
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowWelcomeModal(false);
+                sessionStorage.setItem('cd_welcome_dismissed', 'true');
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+              }}
+              style={{
+                width: '100%',
+                background: '#10B981',
+                boxShadow: '0 8px 24px rgba(16,185,129,0.25)',
+                color: '#FFF',
+                padding: '14px',
+                borderRadius: '16px',
+                fontWeight: 800,
+                fontSize: '14px',
+                cursor: 'pointer',
+                border: 'none'
+              }}
+            >
+              Começar a Usar o Painel
+            </button>
+          </div>
+        </div>
+      )}
 
       <HamburgerMenu />
       <NavBar />
