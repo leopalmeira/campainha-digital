@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { Phone, MicOff, PhoneOff, Bell, ShieldCheck, EyeOff, Download, AlertCircle, Video, VideoOff, LogOut, History, Settings, Home, KeyRound, MessageCircle, Building2, Mail, ShoppingBag, Share2 } from 'lucide-react';
+import { Phone, MicOff, PhoneOff, Bell, ShieldCheck, EyeOff, Download, AlertCircle, Video, VideoOff, LogOut, History, Settings, Home, KeyRound, MessageCircle, Building2, Mail, ShoppingBag, Share2, X } from 'lucide-react';
 import { HistoryPanel, SettingsPanel, ResidentSupportPanel, DEFAULT_CATEGORIES } from './ResidentPanels';
 import Logo from '../components/Logo';
 import MessagesPanel from '../components/resident/MessagesPanel';
@@ -73,6 +73,7 @@ export default function ResidentDashboard() {
   const [propertyId, setPropertyId] = useState(() => localStorage.getItem('residentPropertyId'));
   const [broadcastMessages, setBroadcastMessages] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [supportPhone, setSupportPhone] = useState('');
 
   const [propertyType, setPropertyType] = useState(() => localStorage.getItem('residentPropertyType') || 'individual');
   const [hasGateFeature, setHasGateFeature] = useState(() => localStorage.getItem('residentHasGateFeature') === 'true');
