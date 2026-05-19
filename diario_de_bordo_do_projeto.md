@@ -672,3 +672,21 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - **Manual Rápido do PWA:** Inclui também um botão rápido "Ver Instruções de Instalação" que reabre o modal explicativo do PWA caso o usuário precise instalar em outro dispositivo posteriormente.
 - **Compilação Validada:** Executada build de produção no frontend (`npm run build`) com sucesso em 567ms.
 
+---
+
+## ⚡ v3.9.4 — Redesign Estético Premium da Página do Visitante (19/05/2026)
+
+### 🎨 Visual Aurora Glassmorphism (`VisitorCall.jsx`)
+- **Efeito Aurora de Fundo:** Introduzidos dois orbes translúcidos e brilhantes em posições opostas com desfoque de filtro (`filter: blur(70px/80px)`), criando um efeito luminoso dinâmico no fundo.
+- **Glassmorphism Aprimorado:** Ajustado o container principal `.visitor-card` para utilizar `rgba(13, 20, 38, 0.60)`, oferecendo um desfoque de tela (`backdrop-filter`) muito mais suave e sombras volumosas de alta definição.
+- **Identidade Neon Ciano/Azul:** A paleta de cores mudou do azul clássico e estático para um gradiente luminoso de alta tecnologia (`#00F5D4` para `#00BBF9`).
+
+### 🔔 Botão de Toque Dinâmico & Controles
+- **Botão Tocar Campainha:** O botão redondo foi inteiramente reformulado com gradiente neon radial brilhante, anéis concêntricos que pulsam gradualmente e efeito de tremor (wiggle) no ícone do sino, convidando ativamente o toque.
+- **Feedback de Status Modernizado:**
+  - O estado **Chamando** agora exibe a contagem regressiva em um badge com brilho suave e borda neon ciano.
+  - O estado **Liberado** ganhou uma chave rotatória brilhante com gradiente neon ciano/azul e sombra verde esmeralda.
+  - O estado **Atendida** destaca o status da chamada em verde cintilante com efeito de transmissão "morador online".
+- **Melhoria de Contraste:** O rodapé e as descrições de texto receberam cores otimizadas e pesos tipográficos mais fortes para perfeito contraste e legibilidade, mesmo sob incidência de luz solar direta nos tablets de portaria ou celulares dos visitantes.
+
+
