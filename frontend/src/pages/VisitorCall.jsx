@@ -300,7 +300,7 @@ export default function VisitorCall() {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: 'radial-gradient(circle at top, #1e293b 0%, #0f172a 100%)', 
+      background: '#070A13', 
       color: '#F8FAFC', 
       padding: '40px 20px', 
       display: 'flex', 
@@ -309,118 +309,150 @@ export default function VisitorCall() {
       justifyContent: 'center',
       position: 'relative',
       fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      overflow: 'hidden'
     }}>
+      
+      {/* Esferas de Efeito Aurora de Fundo */}
+      <div style={{
+        position: 'absolute',
+        top: '-10%',
+        left: '-10%',
+        width: '320px',
+        height: '320px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(0, 245, 212, 0.12) 0%, rgba(0, 187, 249, 0.04) 70%, transparent 100%)',
+        filter: 'blur(70px)',
+        pointerEvents: 'none',
+        zIndex: 0
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '-10%',
+        right: '-10%',
+        width: '380px',
+        height: '380px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.04) 75%, transparent 100%)',
+        filter: 'blur(80px)',
+        pointerEvents: 'none',
+        zIndex: 0
+      }} />
+
       <style>{`
         @keyframes pulse-ring {
-          0% { transform: scale(0.95); opacity: 0.6; }
-          50% { transform: scale(1.15); opacity: 0.3; }
-          100% { transform: scale(1.3); opacity: 0; }
+          0% { transform: scale(0.92); opacity: 0.8; }
+          50% { transform: scale(1.18); opacity: 0.35; }
+          100% { transform: scale(1.35); opacity: 0; }
         }
         @keyframes wiggle {
           0%, 100% { transform: rotate(0deg); }
-          15%, 45% { transform: rotate(-12deg); }
-          30%, 60% { transform: rotate(12deg); }
+          12%, 48% { transform: rotate(-14deg); }
+          24%, 60% { transform: rotate(14deg); }
+          36% { transform: rotate(-8deg); }
+          72% { transform: rotate(0deg); }
         }
         @keyframes subtle-pulse {
-          0%, 100% { transform: scale(1); opacity: 0.9; }
-          50% { transform: scale(1.05); opacity: 1; }
+          0%, 100% { transform: scale(1); filter: brightness(1); }
+          50% { transform: scale(1.04); filter: brightness(1.15); }
         }
         .visitor-container {
           width: 100%;
-          max-width: 420px;
+          max-width: 400px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 28px;
+          gap: 32px;
           margin: auto 0;
           box-sizing: border-box;
+          z-index: 1;
         }
         .pulse-button-wrapper {
           position: relative;
-          width: 170px;
-          height: 170px;
+          width: 180px;
+          height: 180px;
           margin: 0 auto;
           display: flex;
           align-items: center;
-          justifyContent: center;
+          justify-content: center;
         }
         .pulse-button-wrapper::before {
           content: '';
           position: absolute;
-          inset: -8px;
+          inset: -6px;
           border-radius: 50%;
-          border: 4px solid rgba(59, 130, 246, 0.4);
-          animation: pulse-ring 2.2s infinite ease-in-out;
+          border: 4px solid rgba(0, 245, 212, 0.3);
+          animation: pulse-ring 2.5s infinite cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
         .pulse-button-wrapper::after {
           content: '';
           position: absolute;
-          inset: -18px;
+          inset: -20px;
           border-radius: 50%;
-          border: 2px dashed rgba(59, 130, 246, 0.2);
-          animation: pulse-ring 2.2s infinite ease-in-out;
-          animation-delay: 0.7s;
+          border: 2px dashed rgba(0, 187, 249, 0.2);
+          animation: pulse-ring 2.5s infinite cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          animation-delay: 0.8s;
         }
         .pulse-button {
-          width: 150px;
-          height: 150px;
+          width: 156px;
+          height: 156px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+          background: linear-gradient(135deg, #00F5D4 0%, #00BBF9 100%);
           border: none;
-          color: #FFF;
-          font-size: 15px;
-          font-weight: 800;
+          color: #070A13;
+          font-size: 16px;
+          font-weight: 900;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justifyContent: center;
-          gap: 12px;
+          justify-content: center;
+          gap: 10px;
           cursor: pointer;
-          box-shadow: 0 12px 35px rgba(29, 78, 216, 0.5), inset 0 2px 4px rgba(255,255,255,0.3);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 16px 40px rgba(0, 245, 212, 0.4), inset 0 2px 4px rgba(255,255,255,0.5), inset 0 -4px 10px rgba(0,0,0,0.15);
+          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
           z-index: 2;
         }
         .pulse-button:hover {
-          transform: scale(1.04);
-          box-shadow: 0 16px 45px rgba(29, 78, 216, 0.7), inset 0 2px 4px rgba(255,255,255,0.4);
+          transform: scale(1.06);
+          box-shadow: 0 20px 50px rgba(0, 245, 212, 0.6), inset 0 3px 6px rgba(255,255,255,0.6), inset 0 -4px 10px rgba(0,0,0,0.15);
         }
         .pulse-button:active {
-          transform: scale(0.96);
+          transform: scale(0.94);
         }
         .visitor-card {
-          background: rgba(15, 23, 42, 0.45);
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
+          background: rgba(13, 20, 38, 0.60);
+          backdrop-filter: blur(30px);
+          -webkit-backdrop-filter: blur(30px);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 28px;
-          padding: 36px 28px;
-          box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+          border-radius: 32px;
+          padding: 40px 28px;
+          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255,255,255,0.06);
           width: 100%;
           box-sizing: border-box;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
         .btn-unit-select {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          color: #FFF;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          color: #E2E8F0;
           padding: 18px 20px;
-          border-radius: 18px;
+          border-radius: 20px;
           font-weight: 700;
           display: flex;
           justify-content: space-between;
           align-items: center;
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           width: 100%;
           box-sizing: border-box;
           text-align: left;
         }
         .btn-unit-select:hover {
-          background: rgba(255, 255, 255, 0.07);
-          border-color: rgba(59, 130, 246, 0.5);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba(0, 245, 212, 0.4);
+          color: #FFF;
+          transform: translateY(-3px);
+          box-shadow: 0 10px 25px rgba(0, 245, 212, 0.1);
         }
         .btn-unit-select:active {
           transform: translateY(0);
@@ -460,33 +492,55 @@ export default function VisitorCall() {
         {/* Header */}
         <header style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
           <div style={{ 
-            width: '64px', 
-            height: '64px', 
-            borderRadius: '20px', 
-            background: 'rgba(59, 130, 246, 0.1)', 
-            border: '1px solid rgba(59, 130, 246, 0.2)', 
+            width: '72px', 
+            height: '72px', 
+            borderRadius: '24px', 
+            background: 'rgba(0, 245, 212, 0.08)', 
+            border: '1px solid rgba(0, 245, 212, 0.25)', 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
-            marginBottom: '16px',
-            boxShadow: '0 8px 24px rgba(59, 130, 246, 0.05)'
+            marginBottom: '18px',
+            boxShadow: '0 12px 30px rgba(0, 245, 212, 0.15)',
+            position: 'relative',
+            overflow: 'hidden'
           }}>
-            <Logo size={36} showText={false} />
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 100%)',
+              pointerEvents: 'none'
+            }} />
+            <Logo size={42} showText={false} />
           </div>
-          <h1 style={{ fontSize: '26px', fontWeight: 900, letterSpacing: '-0.5px', marginBottom: '6px', color: '#FFF' }}>Campainha Digital</h1>
+          <h1 style={{ 
+            fontSize: '28px', 
+            fontWeight: 900, 
+            letterSpacing: '-0.5px', 
+            marginBottom: '8px', 
+            background: 'linear-gradient(135deg, #FFFFFF 0%, #A5B4FC 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            textShadow: '0 4px 20px rgba(165, 180, 252, 0.15)',
+            margin: '0 0 6px 0'
+          }}>
+            Campainha Digital
+          </h1>
           {property && (
             <div style={{ 
               display: 'inline-flex', 
               alignItems: 'center', 
               gap: '8px', 
-              color: '#94A3B8', 
+              color: '#00F5D4', 
               fontSize: '13px',
-              background: 'rgba(255,255,255,0.03)',
-              padding: '6px 14px',
+              fontWeight: 700,
+              background: 'rgba(0, 245, 212, 0.06)',
+              padding: '8px 18px',
               borderRadius: '100px',
-              border: '1px solid rgba(255,255,255,0.05)'
+              border: '1px solid rgba(0, 245, 212, 0.15)',
+              boxShadow: '0 4px 15px rgba(0, 245, 212, 0.05)'
             }}>
-              <MapPin size={13} color="#3B82F6" /> {property.name}
+              <MapPin size={14} color="#00F5D4" /> {property.name}
             </div>
           )}
         </header>
@@ -507,35 +561,35 @@ export default function VisitorCall() {
         {status === 'idle' && property && (
           <div className="fade-in" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
             {property.type === 'individual' || property.type === 'house' ? (
-              <div className="visitor-card" style={{ textAlign: 'center', padding: '36px 24px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '2px', display: 'block', marginBottom: '6px' }}>
+              <div className="visitor-card" style={{ textAlign: 'center', padding: '40px 28px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 850, color: '#00F5D4', textTransform: 'uppercase', letterSpacing: '2px', display: 'block', marginBottom: '8px' }}>
                   Residência
                 </span>
-                <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#FFF', marginBottom: '40px', letterSpacing: '-0.3px' }}>
+                <h2 style={{ fontSize: '24px', fontWeight: 900, color: '#FFF', marginBottom: '36px', letterSpacing: '-0.5px', marginTop: 0 }}>
                   Principal
                 </h2>
                 
-                <div className="pulse-button-wrapper" style={{ marginBottom: '40px' }}>
+                <div className="pulse-button-wrapper" style={{ marginBottom: '36px' }}>
                   <button
                     id="btn-tocar-campainha"
                     className="pulse-button"
                     onClick={() => handleCall(property.units[0])}
                   >
-                    <Bell size={38} style={{ animation: 'wiggle 2.5s infinite ease-in-out' }} />
-                    <span style={{ letterSpacing: '1px' }}>TOCAR</span>
+                    <Bell size={40} style={{ animation: 'wiggle 2.5s infinite ease-in-out' }} />
+                    <span style={{ letterSpacing: '2px', fontSize: '15px' }}>TOCAR</span>
                   </button>
                 </div>
                 
-                <p style={{ fontSize: '12px', color: '#64748B', lineHeight: '1.5' }}>
+                <p style={{ fontSize: '13px', color: '#94A3B8', lineHeight: '1.6', margin: 0 }}>
                   Toque no botão para chamar o morador e iniciar o atendimento.
                 </p>
               </div>
             ) : (
-              <div className="visitor-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <p style={{ fontWeight: 800, fontSize: '15px', textAlign: 'center', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                  Para quem é a visita?
+              <div className="visitor-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '36px 28px' }}>
+                <p style={{ fontWeight: 800, fontSize: '14px', textAlign: 'center', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '4px', marginTop: 0 }}>
+                  Selecione a residência para chamar:
                 </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '42vh', overflowY: 'auto', paddingRight: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '42vh', overflowY: 'auto', paddingRight: '4px' }}>
                   {property.units.map(unit => (
                     <button
                       key={unit.id}
@@ -556,48 +610,56 @@ export default function VisitorCall() {
         {/* ── Chamando ──────────────────────────────────────────────────────── */}
         {status === 'calling' && (
           <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
-            <div style={{ position: 'relative', width: '90px', height: '90px', margin: '0 auto 28px' }}>
-              <div style={{ position: 'absolute', inset: 0, border: '4px solid #3B82F6', borderRadius: '50%', animation: 'pulse-ring 2s infinite ease-in-out', opacity: 0.2 }} />
-              <div style={{ position: 'absolute', inset: '8px', background: '#3B82F6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 30px rgba(59, 130, 246, 0.4)' }}>
-                <Bell size={34} color="#FFF" style={{ animation: 'wiggle 1.5s infinite ease-in-out' }} />
+            <div style={{ position: 'relative', width: '96px', height: '96px', margin: '0 auto 32px' }}>
+              <div style={{ position: 'absolute', inset: 0, border: '4px solid #00F5D4', borderRadius: '50%', animation: 'pulse-ring 2s infinite ease-in-out', opacity: 0.3 }} />
+              <div style={{ position: 'absolute', inset: '8px', background: 'linear-gradient(135deg, #00F5D4 0%, #00BBF9 100%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 35px rgba(0, 245, 212, 0.45)' }}>
+                <Bell size={36} color="#070A13" style={{ animation: 'wiggle 1.5s infinite ease-in-out' }} />
               </div>
             </div>
 
-            <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '6px', color: '#FFF' }}>Chamando...</h2>
-            <p style={{ color: '#94A3B8', marginBottom: '28px', fontSize: '14px' }}>
-              Unidade: <span style={{ color: '#FFF', fontWeight: 700 }}>{callingUnit?.name}</span>
+            <h2 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '8px', color: '#FFF', letterSpacing: '-0.5px', marginTop: 0 }}>Chamando...</h2>
+            <p style={{ color: '#94A3B8', marginBottom: '28px', fontSize: '14px', margin: '0 0 28px 0' }}>
+              Residência: <span style={{ color: '#00F5D4', fontWeight: 800 }}>{callingUnit?.name}</span>
             </p>
 
-            <div style={{ display: 'inline-block', padding: '10px 24px', background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '28px' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, color: '#3B82F6', fontFamily: 'monospace' }}>
+            <div style={{ display: 'inline-block', padding: '12px 28px', background: 'rgba(0, 245, 212, 0.04)', borderRadius: '18px', border: '1px solid rgba(0, 245, 212, 0.15)', marginBottom: '28px', boxShadow: 'inset 0 1px 10px rgba(0,245,212,0.05)' }}>
+              <span style={{ fontSize: '32px', fontWeight: 900, color: '#00F5D4', fontFamily: 'monospace', letterSpacing: '1px' }}>
                 00:{countdown.toString().padStart(2, '0')}
               </span>
             </div>
 
-            <p style={{ fontSize: '12px', color: '#64748B', marginBottom: '28px', lineHeight: '1.5' }}>
-              📷 Sua câmera e áudio estão ativos para identificação.
+            <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '28px', lineHeight: '1.6', margin: '0 0 28px 0' }}>
+              📷 Sua câmera e microfone estão ativos temporariamente para identificação.
             </p>
 
             <button
               className="btn-secondary"
               style={{ 
-                background: 'rgba(239,68,68,0.08)', 
-                border: '1px solid rgba(239,68,68,0.2)', 
+                background: 'rgba(239,68,68,0.06)', 
+                border: '1px solid rgba(239,68,68,0.25)', 
                 color: '#F87171', 
-                padding: '12px 24px', 
-                borderRadius: '14px', 
+                padding: '14px 28px', 
+                borderRadius: '16px', 
                 display: 'inline-flex', 
                 alignItems: 'center', 
+                justifyContent: 'center',
                 gap: '8px', 
                 margin: '0 auto',
-                fontWeight: 700,
+                fontWeight: 800,
                 fontSize: '14px',
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                boxShadow: '0 4px 15px rgba(239,68,68,0.05)'
               }}
               onClick={handleHangup}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.14)';
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.06)';
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.25)';
+              }}
             >
               <PhoneOff size={16} /> Cancelar Chamada
             </button>
@@ -606,57 +668,65 @@ export default function VisitorCall() {
 
         {/* ── Chamada ativa (áudio bidirecional + vídeo do morador) ──────── */}
         {status === 'answered' && (
-          <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '28px 20px' }}>
+          <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '32px 24px' }}>
             {/* Vídeo do morador (aparece quando ele ativa a câmera) */}
-            <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#090d16', marginBottom: '20px', minHeight: '200px', position: 'relative', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', objectFit: 'cover', minHeight: '200px' }} />
+            <div style={{ borderRadius: '24px', overflow: 'hidden', background: '#090d16', marginBottom: '24px', minHeight: '220px', position: 'relative', border: '1px solid rgba(255,255,255,0.06)', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
+              <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', objectFit: 'cover', minHeight: '220px' }} />
               <div style={{ 
                 position: 'absolute', 
-                top: '12px', 
-                left: '12px', 
+                top: '14px', 
+                left: '14px', 
                 background: '#10B981', 
-                padding: '4px 10px', 
+                padding: '6px 12px', 
                 borderRadius: '100px', 
-                fontSize: '10px', 
+                fontSize: '11px', 
                 fontWeight: 900, 
                 color: '#FFF', 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '6px',
-                boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+                boxShadow: '0 4px 15px rgba(16,185,129,0.35)',
                 animation: 'subtle-pulse 1.5s infinite'
               }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FFF' }} /> AO VIVO
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FFF' }} /> MORADOR ONLINE
               </div>
             </div>
 
-            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: '#10B981' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '8px', color: '#10B981', letterSpacing: '-0.5px', marginTop: 0 }}>
               Chamada Atendida
             </h2>
-            <p style={{ color: '#94A3B8', lineHeight: 1.5, marginBottom: '24px', fontSize: '13px' }}>
-              O morador está online. Vocês já podem conversar por voz e vídeo!
+            <p style={{ color: '#94A3B8', lineHeight: 1.6, marginBottom: '28px', fontSize: '13px', margin: '0 0 28px 0' }}>
+              O morador está online. Vocês já podem conversar por voz!
             </p>
 
             <button
               className="btn-secondary"
               style={{ 
-                background: 'rgba(239,68,68,0.08)', 
-                border: '1px solid rgba(239,68,68,0.2)', 
+                background: 'rgba(239,68,68,0.06)', 
+                border: '1px solid rgba(239,68,68,0.25)', 
                 color: '#F87171', 
-                padding: '12px 24px', 
-                borderRadius: '14px', 
+                padding: '14px 28px', 
+                borderRadius: '16px', 
                 display: 'inline-flex', 
                 alignItems: 'center', 
+                justifyContent: 'center',
                 gap: '8px', 
                 margin: '0 auto',
-                fontWeight: 700,
+                fontWeight: 800,
                 fontSize: '14px',
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                boxShadow: '0 4px 15px rgba(239,68,68,0.05)'
               }}
               onClick={handleHangup}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.14)';
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.06)';
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.25)';
+              }}
             >
               <PhoneOff size={16} /> Encerrar Conversa
             </button>
@@ -666,37 +736,45 @@ export default function VisitorCall() {
         {/* ── Morador monitorando (furtivo) ──────────────────────────────────── */}
         {status === 'monitored' && (
           <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
-            <div style={{ width: '80px', height: '80px', background: 'rgba(245,158,11,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <div style={{ width: '80px', height: '80px', background: 'rgba(245,158,11,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px', border: '1px solid rgba(245,158,11,0.2)' }}>
               <Video size={36} color="#F59E0B" />
             </div>
 
-            <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: '#F59E0B' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '12px', color: '#F59E0B', letterSpacing: '-0.5px', marginTop: 0 }}>
               Transmitindo...
             </h2>
-            <p style={{ color: '#94A3B8', lineHeight: 1.5, marginBottom: '28px', fontSize: '13px' }}>
+            <p style={{ color: '#94A3B8', lineHeight: 1.6, marginBottom: '28px', fontSize: '13px', margin: '0 0 28px 0' }}>
               Aguarde um momento enquanto o morador responde ao chamado.
             </p>
 
             <button
               className="btn-secondary"
               style={{ 
-                background: 'rgba(239,68,68,0.08)', 
-                border: '1px solid rgba(239,68,68,0.2)', 
+                background: 'rgba(239,68,68,0.06)', 
+                border: '1px solid rgba(239,68,68,0.25)', 
                 color: '#F87171', 
-                padding: '12px 24px', 
-                borderRadius: '14px', 
+                padding: '14px 28px', 
+                borderRadius: '16px', 
                 display: 'inline-flex', 
                 alignItems: 'center', 
+                justifyContent: 'center',
                 gap: '8px', 
                 margin: '0 auto',
-                fontWeight: 700,
+                fontWeight: 800,
                 fontSize: '14px',
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                boxShadow: '0 4px 15px rgba(239,68,68,0.05)'
               }}
               onClick={handleHangup}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.14)';
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(239,68,68,0.06)';
+                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.25)';
+              }}
             >
               <PhoneOff size={16} /> Cancelar Chamada
             </button>
@@ -708,46 +786,46 @@ export default function VisitorCall() {
           <div className="visitor-card fade-in" style={{ 
             textAlign: 'center', 
             padding: '40px 24px', 
-            border: '2px solid #10B981', 
-            background: 'rgba(16,185,129,0.06)',
-            boxShadow: '0 15px 40px rgba(16, 185, 129, 0.15)'
+            border: '2px solid #00F5D4', 
+            background: 'rgba(0, 245, 212, 0.05)',
+            boxShadow: '0 25px 50px rgba(0, 245, 212, 0.15)'
           }}>
             <div style={{ 
-              width: '90px', 
-              height: '90px', 
-              background: '#10B981', 
+              width: '96px', 
+              height: '96px', 
+              background: 'linear-gradient(135deg, #00F5D4 0%, #00BBF9 100%)', 
               borderRadius: '50%', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center', 
               margin: '0 auto 28px', 
-              boxShadow: '0 0 35px rgba(16,185,129,0.4)', 
+              boxShadow: '0 0 35px rgba(0, 245, 212, 0.4)', 
               animation: 'subtle-pulse 1.8s infinite' 
             }}>
-              <KeyRound size={40} color="#000" />
+              <KeyRound size={42} color="#070A13" />
             </div>
-            <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#10B981', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Portão Liberado!</h2>
-            <p style={{ fontSize: '18px', fontWeight: 800, color: '#FFF', marginBottom: '6px' }}>Seja bem-vindo!</p>
-            <p style={{ color: '#94A3B8', fontSize: '13px', lineHeight: '1.5' }}>O morador autorizou sua entrada na residência.</p>
+            <h2 style={{ fontSize: '28px', fontWeight: 900, color: '#00F5D4', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', marginTop: 0 }}>Portão Liberado!</h2>
+            <p style={{ fontSize: '18px', fontWeight: 800, color: '#FFF', marginBottom: '8px', margin: '0 0 8px 0' }}>Seja bem-vindo!</p>
+            <p style={{ color: '#94A3B8', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>O acesso à residência foi autorizado pelo morador.</p>
           </div>
         )}
 
         {/* ── Chamada encerrada ─────────────────────────────────────────────── */}
         {status === 'ended' && (
           <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
-            <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <PhoneOff size={30} color="#94A3B8" />
+            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <PhoneOff size={32} color="#94A3B8" />
             </div>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '10px', color: '#FFF' }}>Chamada Finalizada</h2>
-            <p style={{ color: '#94A3B8', marginBottom: '24px', fontSize: '13px' }}>A chamada foi encerrada pelo morador.</p>
-            <button className="btn-primary" style={{ width: '100%' }} onClick={() => { setStatus('idle'); setCallingUnit(null); }}>Chamar Novamente</button>
+            <h2 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '10px', color: '#FFF', letterSpacing: '-0.5px', marginTop: 0 }}>Chamada Finalizada</h2>
+            <p style={{ color: '#94A3B8', marginBottom: '28px', fontSize: '14px', margin: '0 0 28px 0' }}>A chamada foi encerrada pelo morador.</p>
+            <button className="btn-primary" style={{ width: '100%', fontWeight: 800 }} onClick={() => { setStatus('idle'); setCallingUnit(null); }}>Chamar Novamente</button>
           </div>
         )}
 
         {/* Footer */}
-        <footer style={{ width: '100%', marginTop: '8px' }}>
-          <p style={{ fontSize: '11px', color: '#475569', textAlign: 'center', letterSpacing: '0.5px' }}>
-            Tecnologia Campainha Digital® • Conexão P2P Criptografada
+        <footer style={{ width: '100%', marginTop: '16px', zIndex: 1 }}>
+          <p style={{ fontSize: '11px', color: '#475569', textAlign: 'center', letterSpacing: '0.8px', margin: 0, fontWeight: 700 }}>
+            TECNOLOGIA CAMPAINHA DIGITAL® • CONEXÃO P2P CRIPTOGRAFADA
           </p>
         </footer>
       </div>
