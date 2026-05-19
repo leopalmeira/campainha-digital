@@ -12,6 +12,7 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function MasterAdminDashboard() {
   const [activeTab, setActiveTab] = useState('clients');
+  const [clientsSubTab, setClientsSubTab] = useState('properties'); // 'properties' | 'users'
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showScanner, setShowScanner] = useState(false);
@@ -475,8 +476,7 @@ export default function MasterAdminDashboard() {
         </div>
 
         <nav style={{ padding: '16px', flex: 1, overflowY: 'auto' }}>
-          <SidebarLink icon={Users} label="Gestão de Clientes" active={activeTab === 'clients'} onClick={() => setActiveTab('clients')} />
-          <SidebarLink icon={User} label="Base de Usuários" active={activeTab === 'users'} onClick={() => setActiveTab('users')} count={allUsers.length} />
+          <SidebarLink icon={Users} label="Gestão de Clientes" active={activeTab === 'clients'} onClick={() => { setActiveTab('clients'); setClientsSubTab('properties'); }} />
           <SidebarLink icon={ShieldCheck} label="Solicitações de Gestão" active={activeTab === 'authorizations'} onClick={() => setActiveTab('authorizations')} count={pendingUsers.length} />
           <SidebarLink icon={Plus} label="Novo Registro" active={activeTab === 'register'} onClick={() => setActiveTab('register')} />
           
@@ -514,8 +514,7 @@ export default function MasterAdminDashboard() {
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
           <div>
             <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', letterSpacing: '-1.5px' }}>
-              {activeTab === 'clients' && "Visão Geral de Clientes"}
-              {activeTab === 'users' && "Gestão de Usuários"}
+              {activeTab === 'clients' && (clientsSubTab === 'properties' ? "Visão Geral de Clientes" : "Gestão de Usuários")}
               {activeTab === 'register' && "Registrar Nova Placa"}
               {activeTab === 'authorizations' && "Aguardando Autorização"}
               {activeTab === 'billing' && "Financeiro & Assinaturas"}
@@ -590,7 +589,51 @@ export default function MasterAdminDashboard() {
           
           {activeTab === 'clients' && (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+              {/* Seleção de Sub-abas dentro de Gestão de Clientes */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #E2E8F0', marginBottom: '32px', gap: '24px' }}>
+                <button 
+                  onClick={() => setClientsSubTab('properties')}
+                  style={{
+                    padding: '12px 8px',
+                    border: 'none',
+                    background: 'none',
+                    borderBottom: clientsSubTab === 'properties' ? '3px solid #3B82F6' : '3px solid transparent',
+                    color: clientsSubTab === 'properties' ? '#3B82F6' : '#64748B',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <Building2 size={16} /> Placas e Clientes ({clients.length})
+                </button>
+                <button 
+                  onClick={() => setClientsSubTab('users')}
+                  style={{
+                    padding: '12px 8px',
+                    border: 'none',
+                    background: 'none',
+                    borderBottom: clientsSubTab === 'users' ? '3px solid #3B82F6' : '3px solid transparent',
+                    color: clientsSubTab === 'users' ? '#3B82F6' : '#64748B',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <User size={16} /> Contas de Usuários ({allUsers.length})
+                </button>
+              </div>
+
+              {clientsSubTab === 'properties' ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div style={{ position: 'relative', width: '400px' }}>
                   <Search size={18} color="#94A3B8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
                   <input 
@@ -706,9 +749,7 @@ export default function MasterAdminDashboard() {
                 </table>
               </div>
             </>
-          )}
-
-          {activeTab === 'users' && (
+          ) : (
             <div style={{ padding: '10px' }}>
               <SectionTitle icon={User} title="Todos os Usuários Registrados" />
               <p style={{ color: '#64748B', marginTop: '8px' }}>Todos que fizeram cadastro no sistema. Gerencie papéis e autorizações.</p>
@@ -746,6 +787,8 @@ export default function MasterAdminDashboard() {
               )}
             </div>
           )}
+        </>
+      )}
 
           {activeTab === 'authorizations' && (
             <div style={{ padding: '10px' }}>

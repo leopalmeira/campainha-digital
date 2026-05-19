@@ -200,7 +200,7 @@ export const DEFAULT_CATEGORIES = [
   { id: 'general',  label: '💬 Geral',             messages: ['Volto já!', 'Não estou em casa', 'Um momento, por favor', 'Pode deixar recado'] },
 ];
 
-export function SettingsPanel({ unitName, setUnitName, onSave, unitId, propertyId }) {
+export function SettingsPanel({ unitName, setUnitName, onSave, unitId, propertyId, propertyType }) {
   const [activeCategory, setActiveCategory] = useState('general');
   const [savedMessages, setSavedMessages] = useState(() => {
     try { return JSON.parse(localStorage.getItem('cd_quick_msgs') || 'null') || DEFAULT_CATEGORIES; } catch { return DEFAULT_CATEGORIES; }
@@ -212,6 +212,44 @@ export function SettingsPanel({ unitName, setUnitName, onSave, unitId, propertyI
   const [dndEnabled, setDndEnabled] = useState(false);
   const [dndStart, setDndStart] = useState('22:00');
   const [dndEnd, setDndEnd] = useState('07:00');
+
+  const [mgmtStatus, setMgmtStatus] = useState(null); // { requestedManagement: false, role: 'user' }
+  const [requestingMgmt, setRequestingMgmt] = useState(false);
+
+  useEffect(() => {
+    const fetchMgmtStatus = async () => {
+      if (!unitId || (propertyType !== 'individual' && propertyType !== 'house')) return;
+      try {
+        const r = await fetch(`${API}/api/resident/status/${unitId}`);
+        if (r.ok) {
+          const data = await r.json();
+          setMgmtStatus(data);
+        }
+      } catch (err) { console.error('Error loading management status', err); }
+    };
+    fetchMgmtStatus();
+  }, [unitId, propertyType]);
+
+  const handleRequestManagement = async () => {
+    setRequestingMgmt(true);
+    try {
+      const res = await fetch(`${API}/api/resident/request-management`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unitId })
+      });
+      if (res.ok) {
+        setMgmtStatus(prev => ({ ...prev, requestedManagement: true }));
+        alert('Solicitação de gestão enviada com sucesso! Aguarde a aprovação do administrador do sistema.');
+      } else {
+        alert('Erro ao enviar solicitação.');
+      }
+    } catch {
+      alert('Erro de conexão ao enviar solicitação.');
+    } finally {
+      setRequestingMgmt(false);
+    }
+  };
 
   useEffect(() => {
     // Load current DND settings
@@ -351,6 +389,37 @@ export function SettingsPanel({ unitName, setUnitName, onSave, unitId, propertyI
           <button onClick={addCustom} className="btn-primary" style={{ padding: '10px 16px', fontSize: '13px', width: 'auto', flexShrink: 0 }}>+ Add</button>
         </div>
       </div>
+
+      {/* ── Solicitar Promoção a Gestor (Se for Casa Simples) ── */}
+      {(propertyType === 'individual' || propertyType === 'house') && (
+        <div className="glass-panel" style={{ padding: '20px', marginTop: '16px' }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🏢 Solicitar Gestão de Condomínio
+          </h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '16px' }}>
+            Deseja transformar sua campainha individual em uma Vila ou Condomínio para gerenciar múltiplos moradores e áreas comuns?
+          </p>
+
+          {mgmtStatus?.role === 'manager' ? (
+            <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '12px', padding: '12px', color: '#10B981', fontSize: '13px', fontWeight: 600, textAlign: 'center' }}>
+              ✓ Sua conta já foi promovida a Gestor de Condomínio!
+            </div>
+          ) : mgmtStatus?.requestedManagement ? (
+            <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '12px', padding: '12px', color: '#F59E0B', fontSize: '13px', fontWeight: 600, textAlign: 'center' }}>
+              ⏳ Solicitação de Gestão pendente de aprovação.
+            </div>
+          ) : (
+            <button 
+              className="btn-primary" 
+              onClick={handleRequestManagement} 
+              disabled={requestingMgmt}
+              style={{ width: '100%', padding: '12px', fontSize: '14px', background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', border: 'none', color: '#FFF' }}
+            >
+              {requestingMgmt ? 'Enviando...' : 'Solicitar Upgrade para Gestor'}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

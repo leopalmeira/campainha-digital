@@ -796,7 +796,7 @@ export default function ResidentDashboard() {
       )}
 
       {tab === 'history' && <HistoryPanel unitId={id} propertyId={localStorage.getItem('residentPropertyId')} />}
-      {tab === 'settings' && <SettingsPanel unitName={unitName} setUnitName={setUnitName} onSave={saveSettings} unitId={id} propertyId={localStorage.getItem('residentPropertyId')} />}
+      {tab === 'settings' && <SettingsPanel unitName={unitName} setUnitName={setUnitName} onSave={saveSettings} unitId={id} propertyId={localStorage.getItem('residentPropertyId')} propertyType={propertyType} />}
       {tab === 'support' && <ResidentSupportPanel unitId={id} propertyId={localStorage.getItem('residentPropertyId')} propertyType={propertyType} />}
 
       {showWelcomeModal && (

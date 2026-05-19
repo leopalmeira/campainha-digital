@@ -736,8 +736,15 @@ app.post('/api/auth/link-qr', async (req, res) => {
   user.scannedPropertyId = propertyId;
   if (qrImage) user.qrImage = qrImage;
   if (paymentChoice) user.paymentChoice = paymentChoice; // 'trial' | 'annual'
-  user.status = 'pending'; // Exige aprovação manual do administrador
-  user.role = 'manager'; // Mantém o papel de manager, mas pendente de liberação
+  
+  const isHouse = propertyType === 'house' || propertyType === 'individual';
+  if (isHouse) {
+    user.status = 'active'; // Ativo imediatamente para casas simples
+    user.role = 'user'; // Mantém o papel de usuário simples
+  } else {
+    user.status = 'pending'; // Exige aprovação manual do administrador para condomínios/vilas
+    user.role = 'manager'; // Vira manager, mas pendente de liberação
+  }
   
   // Create property automatically
   if (!existingProp) {
@@ -840,7 +847,22 @@ app.get('/api/admin/all-users', (req, res) => {
 app.get('/api/admin/pending-users', (req, res) => {
   const { adminEmail } = req.query;
   if (adminEmail !== MASTER_ADMIN_EMAIL) return res.status(403).json({ error: 'Unauthorized' });
-  const pending = users.filter(u => u.role === 'user' && u.scannedPropertyId);
+  
+  const pending = users.filter(u => {
+    // Se o status for denied ou approved, ele já foi resolvido, então ignora.
+    if (u.status === 'denied' || u.status === 'approved') return false;
+    
+    const prop = properties.find(p => p.adminEmail?.toLowerCase() === u.email.toLowerCase());
+    const isHouse = prop ? (prop.type === 'individual' || prop.type === 'house') : true;
+    
+    if (isHouse) {
+      // Para casa simples, só aparece se ele explicitamente solicitou gestão e ainda não é gestor
+      return u.requestedManagement === true && u.role !== 'manager';
+    } else {
+      // Para condomínio/vila, exige aprovação se ele estiver pendente ou papel de user/manager pendente
+      return (u.status === 'pending' || u.role === 'user') && u.scannedPropertyId;
+    }
+  });
   res.json(pending);
 });
 
@@ -852,6 +874,7 @@ app.post('/api/admin/authorize-user', async (req, res) => {
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
   if (action === 'deny') {
+    user.requestedManagement = false;
     user.status = 'denied';
     saveUsers();
     return res.json({ success: true, message: 'Usuário recusado.' });
@@ -1622,6 +1645,51 @@ app.post('/api/resident/login-by-code', (req, res) => {
     hasGateFeature: foundProperty.hasGateFeature || false,
     featureNeighborChat: foundProperty.featureNeighborChat || false
   });
+});
+
+app.get('/api/resident/status/:unitId', (req, res) => {
+  const { unitId } = req.params;
+  let foundUnit = null, foundProperty = null;
+  for (const prop of properties) {
+    const unit = prop.units.find(u => u.id === unitId);
+    if (unit) { foundUnit = unit; foundProperty = prop; break; }
+  }
+  if (!foundProperty) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+  
+  const user = users.find(u => u.email.toLowerCase() === foundProperty.adminEmail?.toLowerCase());
+  if (user) {
+    res.json({
+      requestedManagement: user.requestedManagement || false,
+      role: user.role,
+      status: user.status
+    });
+  } else {
+    res.json({
+      requestedManagement: false,
+      role: 'user',
+      status: 'active'
+    });
+  }
+});
+
+app.post('/api/resident/request-management', (req, res) => {
+  const { unitId } = req.body;
+  if (!unitId) return res.status(400).json({ error: 'ID da unidade é obrigatório.' });
+
+  let foundUnit = null, foundProperty = null;
+  for (const prop of properties) {
+    const unit = prop.units.find(u => u.id === unitId);
+    if (unit) { foundUnit = unit; foundProperty = prop; break; }
+  }
+  if (!foundProperty) return res.status(404).json({ error: 'Propriedade não encontrada.' });
+
+  const user = users.find(u => u.email.toLowerCase() === foundProperty.adminEmail?.toLowerCase());
+  if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
+
+  user.requestedManagement = true;
+  saveUsers();
+
+  res.json({ success: true, message: 'Solicitação de gestão enviada com sucesso.' });
 });
 
 const residentSockets = new Map();
