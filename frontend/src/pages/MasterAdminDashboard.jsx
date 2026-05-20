@@ -679,7 +679,7 @@ export default function MasterAdminDashboard() {
                         <td style={{ padding: '20px 16px' }}>
                           <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '15px' }}>{client.clientName || "Nome não informado"}</div>
                           <div style={{ fontSize: '13px', color: '#64748B', marginTop: '2px' }}>{client.clientDocument || "CPF/CNPJ pendente"}</div>
-                          <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px', fontFamily: 'monospace', background: '#F1F5F9', display: 'inline-block', padding: '2px 6px', borderRadius: '4px' }}>{client.id}</div>
+                          <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px', fontFamily: 'monospace', background: '#F1F5F9', display: 'inline-block', padding: '2px 6px', borderRadius: '4px', wordBreak: 'break-all', whiteSpace: 'normal', maxWidth: '300px' }}>{client.id}</div>
                         </td>
                         <td style={{ padding: '20px 16px' }}>
                           <div style={{ fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}><Briefcase size={14} color="#6366F1"/> {client.companyName || "N/A"}</div>
