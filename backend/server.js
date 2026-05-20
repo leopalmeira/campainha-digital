@@ -824,7 +824,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 app.post('/api/auth/link-qr', async (req, res) => {
-  const { userId, propertyId, qrImage, paymentChoice, propertyType, billingModel } = req.body;
+  const { userId, propertyId, qrImage, paymentChoice, propertyType, billingModel, latitude, longitude } = req.body;
   const user = users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
@@ -879,7 +879,9 @@ app.post('/api/auth/link-qr', async (req, res) => {
       plan: 'Trial', // Vai mudar para 'Anual' após confirmação do pagamento
       billingModel: billingModel || 'annual',
       hasGateFeature: false, // Default: disabled
-      featureNeighborChat: isCollective ? true : false
+      featureNeighborChat: isCollective ? true : false,
+      latitude: latitude || null,
+      longitude: longitude || null
     };
     properties.push(prop);
     saveDb();
@@ -891,6 +893,8 @@ app.post('/api/auth/link-qr', async (req, res) => {
     existingProp.clientPhone = user.whatsapp;
     if (propertyType) existingProp.type = propertyType;
     if (billingModel) existingProp.billingModel = billingModel;
+    if (latitude) existingProp.latitude = latitude;
+    if (longitude) existingProp.longitude = longitude;
     saveDb();
   }
 

@@ -30,6 +30,7 @@ export default function AuthPage() {
   const [clientUnitId, setClientUnitId] = useState('');
   const [clientAccessCode, setClientAccessCode] = useState('');
   const [globalConfig, setGlobalConfig] = useState(null);
+  const [clientLocation, setClientLocation] = useState(null);
 
   useEffect(() => {
     fetch(`${API}/api/config`)
@@ -199,21 +200,38 @@ export default function AuthPage() {
   };
 
   const startScanner = async () => {
-    setShowScanner(true);
-    setScanningActive(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute("playsinline", "true");
-        videoRef.current.play();
-        scanLoop();
-      }
-    } catch (err) {
-      alert("Erro ao acessar câmera.");
-      setShowScanner(false);
-      setScanningActive(false);
+    if (!navigator.geolocation) {
+      alert("Seu navegador não suporta geolocalização, que é obrigatória por segurança.");
+      return;
     }
+
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        setClientLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLoading(false);
+        setShowScanner(true);
+        setScanningActive(true);
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.setAttribute("playsinline", "true");
+            videoRef.current.play();
+            scanLoop();
+          }
+        } catch (err) {
+          alert("Erro ao acessar câmera.");
+          setShowScanner(false);
+          setScanningActive(false);
+        }
+      },
+      (err) => {
+        setLoading(false);
+        alert("Por questões de segurança, você precisa permitir a localização (GPS) para ativar a placa no endereço real.");
+      },
+      { enableHighAccuracy: true }
+    );
   };
 
   const stopScanner = () => {
@@ -291,10 +309,23 @@ export default function AuthPage() {
   const submitPlan = async (paymentChoice) => {
     setLoading(true);
     try {
+      const payload = { 
+        userId, 
+        propertyId: scannedId, 
+        qrImage: scannedImage, 
+        paymentChoice, 
+        propertyType, 
+        billingModel 
+      };
+      if (clientLocation) {
+        payload.latitude = clientLocation.lat;
+        payload.longitude = clientLocation.lng;
+      }
+
       const res = await fetch(`${API}/api/auth/link-qr`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, propertyId: scannedId, qrImage: scannedImage, paymentChoice, propertyType, billingModel })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const data = await res.json();

@@ -7,6 +7,25 @@ import Logo from '../components/Logo';
 // ─── Configuração do Socket.io ────────────────────────────────────────────────
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// ─── Haversine Formula ──────────────────────────────────────────────────────
+function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = deg2rad(lat2-lat1);  
+  var dLon = deg2rad(lon2-lon1); 
+  var a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ; 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c; // Distance in km
+  return d * 1000; // Distance in meters
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI/180);
+}
+
 // Configuração ICE com STUN públicos do Google (funcionam em qualquer rede)
 const ICE_CONFIG = {
   iceServers: [
@@ -164,7 +183,39 @@ export default function VisitorCall() {
     try {
       const res  = await fetch(`${API_URL}/api/properties/${id}`);
       const data = await res.json();
-      setProperty(data);
+      
+      if (data.latitude && data.longitude) {
+        setStatus('verifying_location');
+        if (!navigator.geolocation) {
+          setErrorMsg('Seu navegador não suporta geolocalização. Por segurança, a chamada não pode ser completada.');
+          setStatus('error');
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const visitorLat = pos.coords.latitude;
+            const visitorLng = pos.coords.longitude;
+            const distance = getDistanceFromLatLonInM(visitorLat, visitorLng, data.latitude, data.longitude);
+            
+            if (distance > 100) { // 100 metros de tolerância
+              setErrorMsg(`Você precisa estar fisicamente no endereço da placa para tocar a campainha. (Distância atual: ${Math.round(distance)}m)`);
+              setStatus('error');
+            } else {
+              setProperty(data);
+              setStatus('idle');
+            }
+          },
+          (err) => {
+            setErrorMsg('Para tocar a campainha, é necessário permitir o acesso ao GPS do seu celular por segurança.');
+            setStatus('error');
+          },
+          { enableHighAccuracy: true }
+        );
+      } else {
+        setProperty(data);
+        setStatus('idle');
+      }
     } catch (err) {
       console.error('[Fetch] Erro ao buscar propriedade:', err);
       setErrorMsg('Não foi possível carregar os dados. Verifique sua conexão.');
@@ -293,7 +344,9 @@ export default function VisitorCall() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ width: '40px', height: '40px', border: '3px solid rgba(0, 229, 255, 0.1)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'mesh-pulse 1s linear infinite', margin: '0 auto 16px' }} />
-        <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Verificando segurança...</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
+          {status === 'verifying_location' ? 'Verificando sua localização (GPS)...' : 'Verificando segurança...'}
+        </p>
       </div>
     </div>
   );
