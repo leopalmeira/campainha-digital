@@ -777,3 +777,23 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
   - Atualizada a rota `POST /api/properties/:id/activate-annual` (liberação manual de placa pelo Master Admin) para não apenas estender o prazo de vigência e criar o registro financeiro de auditoria (`MANUAL_`), mas também aprovar automaticamente o status do usuário administrador/morador (`user.status = 'approved'`) vinculado a essa placa. Isso elimina a necessidade de intervenção extra, garantindo acesso instantâneo ao painel.
 - **Validação de Produção:**
   - Executada a build de produção local (`npm run build`) com sucesso absoluto em 573ms.
+
+---
+
+## 📱 v3.9.9 — Compartilhamento de Código Único de Familiar, Limite de Dispositivos e Reestruturação de Instalação PWA (20/05/2026)
+
+### 👥 Lógica de Compartilhamento de Código Único e Limite de 4 Familiares Logados
+- **Compartilhamento Consistente:** O código compartilhado com os familiares agora é rigorosamente o mesmo código de acesso único (`clientAccessCode`) do cliente principal/proprietário da unidade. O login do familiar baseia-se diretamente nesse código, com suporte completo para até 4 familiares logados simultaneamente (totalizando no máximo 5 aparelhos ativos no mesmo código).
+- **Backend (`backend/server.js`):** Ajustada a validação do limite de dispositivos na rota `/api/resident/login-by-code` para retornar uma mensagem informativa e elegante: `"Limite de 4 familiares logados atingido para este código único (máximo de 5 aparelhos)."`, proporcionando feedback transparente para os usuários que tentarem exceder o limite contratado.
+
+### 💳 Exibição Premium do Código Pós-Pagamento
+- **Tela de Autenticação (`AuthPage.jsx`):** O código de acesso passa a ser exibido de forma imediata e destacada logo após a confirmação do pagamento ativo (Step 4, se `isPaid === true`).
+- **Card de Código Premium:** Implementado um contêiner refinado com visualização monoespaçada do código, instruções claras sobre como compartilhar com a família (até 4 aparelhos), e botão interativo de cópia rápida com feedback visual flutuante e temporizador para suavidade.
+
+### 📲 Reorganização Estratégica dos Botões PWA
+- **Remoção de PWA no Login:** Removido por completo o botão incondicional de download do PWA que ficava na tela de login aberta (`AuthPage.jsx`). O botão e as instruções de instalação do aplicativo nativo no celular agora ficam exclusivos de áreas logadas e pós-pagamento.
+- **Instalação no Dashboard do Morador (`ResidentDashboard.jsx`):** Integrada a instalação programática do PWA no modal de boas-vindas do morador (`WelcomePwaModal`), que só aparece após o login. Ele intercepta o evento `beforeinstallprompt` e expõe um botão premium de download direto caso o navegador suporte a API.
+- **Painel Administrativo (`AdminPanel.jsx`):** Adicionada uma nova seção de alta qualidade estética ("📲 App no Celular") na Sidebar administrativa. O componente escuta o evento `beforeinstallprompt` e apresenta um botão "Instalar Agora" premium ou um card informativo com as instruções de adição manual para navegadores sem suporte direto.
+
+### 🛡️ Validação e Build do Sistema
+- **Integridade da Compilação:** Executada a build de produção local (`npm run build`) no frontend com sucesso absoluto, assegurando zero erros de compilação JSX/CSS e funcionamento completo de todo o ecossistema.

@@ -938,6 +938,36 @@ export default function ResidentDashboard() {
               </p>
             </div>
 
+            {/* Botão de instalação PWA programático */}
+            {installPrompt && (
+              <button
+                onClick={async () => {
+                  installPrompt.prompt();
+                  const r = await installPrompt.userChoice;
+                  if (r.outcome === 'accepted') setInstallPrompt(null);
+                }}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #10B981, #059669)',
+                  boxShadow: '0 8px 24px rgba(16,185,129,0.25)',
+                  color: '#FFF',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  marginBottom: '20px'
+                }}
+              >
+                <Download size={18} /> Instalar Aplicativo Agora
+              </button>
+            )}
+
             {/* Instruções PWA */}
             <div style={{ textAlign: 'left', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '20px', padding: '16px', marginBottom: '24px' }}>
               <span style={{ fontSize: '12px', fontWeight: 800, color: '#FFF', display: 'block', marginBottom: '12px' }}>

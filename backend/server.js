@@ -1767,7 +1767,7 @@ app.post('/api/resident/login-by-code', (req, res) => {
     const isAlreadyLinked = foundUnit.devices.includes(deviceId);
     if (!isAlreadyLinked) {
       if (foundUnit.devices.length >= 5) {
-        return res.status(403).json({ error: 'Limite de 5 dispositivos logados atingido para este código único.' });
+        return res.status(403).json({ error: 'Limite de 4 familiares logados atingido para este código único (máximo de 5 aparelhos).' });
       }
       foundUnit.devices.push(deviceId);
       saveDb();

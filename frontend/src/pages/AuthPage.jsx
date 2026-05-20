@@ -420,49 +420,6 @@ export default function AuthPage() {
                 </button>
               </p>
             </div>
-
-            {/* Download/Instalar App PWA */}
-            <div style={{ 
-              marginTop: '20px', 
-              paddingTop: '16px', 
-              borderTop: '1px solid #E2E8F0', 
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              width: '100%'
-            }}>
-              <button 
-                onClick={async () => { 
-                  if (installPrompt) {
-                    installPrompt.prompt(); 
-                    const r = await installPrompt.userChoice; 
-                    if (r.outcome === 'accepted') setInstallPrompt(null); 
-                  } else {
-                    alert("Para instalar o aplicativo no celular:\n\n📱 iPhone (Safari): Toque em Compartilhar e selecione 'Adicionar à Tela de Início'.\n\n🤖 Android (Chrome): Abra o menu e escolha 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");
-                  }
-                }}
-                className="btn-primary"
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  borderRadius: '12px', 
-                  fontSize: '13px', 
-                  fontWeight: 800,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  background: 'linear-gradient(135deg, #10B981, #059669)',
-                  border: 'none',
-                  color: '#FFF',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
-                }}
-              >
-                <Download size={16} /> Instalar Aplicativo no Celular
-              </button>
-            </div>
           </>
         )}
 
@@ -684,6 +641,64 @@ export default function AuthPage() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '15px', marginTop: '12px', lineHeight: 1.6 }}>
                   Excelente! O seu plano foi reconhecido e o acesso ao sistema foi <strong>totalmente liberado</strong>!
                 </p>
+
+                {clientAccessCode && (
+                  <div style={{
+                    marginTop: '24px',
+                    padding: '20px',
+                    background: 'rgba(16, 185, 129, 0.05)',
+                    border: '1px dashed rgba(16, 185, 129, 0.3)',
+                    borderRadius: '20px',
+                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)'
+                  }}>
+                    <span style={{
+                      display: 'block',
+                      fontSize: '11px',
+                      color: '#059669',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                      marginBottom: '8px'
+                    }}>
+                      🔑 Seu Código de Acesso Único
+                    </span>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{
+                        fontSize: '26px',
+                        fontWeight: 900,
+                        color: '#0F172A',
+                        fontFamily: 'monospace',
+                        letterSpacing: '3px'
+                      }}>
+                        {clientAccessCode}
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(clientAccessCode);
+                          alert('Código de acesso copiado com sucesso! Compartilhe com seus familiares.');
+                        }}
+                        style={{
+                          background: '#10B981',
+                          border: 'none',
+                          color: '#FFF',
+                          padding: '6px 14px',
+                          borderRadius: '10px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)'
+                        }}
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                    <p style={{ fontSize: '11px', color: '#64748B', marginTop: '10px', lineHeight: 1.4, margin: '8px 0 0' }}>
+                      Compartilhe este mesmo código com seus familiares (suporta o proprietário + até 4 familiares logados).
+                    </p>
+                  </div>
+                )}
+
                 <div style={{ marginTop: '32px', padding: '20px', background: 'rgba(16,185,129,0.05)', borderRadius: '16px', border: '1px dashed #10B981', fontSize: '13px', color: '#0F172A', fontWeight: 600 }}>
                    Plano Ativado com Sucesso! 🛡️
                 </div>

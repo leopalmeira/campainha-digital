@@ -57,6 +57,7 @@ function WhatsAppButton({ code }) {
 
 export default function AdminPanel() {
   const [properties, setProperties] = useState([]);
+  const [installPrompt, setInstallPrompt] = useState(null);
   const [loading, setLoading]       = useState(true);
   const [activeTab, setActiveTab]   = useState('properties'); // 'properties' | 'history'
   const [onboardingStep, setOnboardingStep] = useState(null);
@@ -90,6 +91,15 @@ export default function AdminPanel() {
       .then(res => res.json())
       .then(data => setGlobalConfig(data))
       .catch(err => console.error("Erro ao carregar configuracoes globais:", err));
+  }, []);
+
+  useEffect(() => {
+    const handlePrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handlePrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handlePrompt);
   }, []);
 
   const getPropertyDisplayPrice = (property) => {
@@ -738,6 +748,56 @@ export default function AdminPanel() {
           </a>
 
           <div style={{ flex: 1 }}></div>
+
+          {/* Download/Instalar App PWA no Painel do Administrador */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(6, 182, 212, 0.06))',
+            border: '1px solid rgba(16, 185, 129, 0.15)',
+            borderRadius: '16px',
+            padding: '14px',
+            marginTop: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#10B981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              📲 App no Celular
+            </span>
+            <p style={{ fontSize: '11px', color: '#64748B', margin: 0, lineHeight: 1.3 }}>
+              Instale o painel na sua tela inicial para um gerenciamento ágil.
+            </p>
+            {installPrompt ? (
+              <button 
+                onClick={async () => { 
+                  installPrompt.prompt(); 
+                  const r = await installPrompt.userChoice; 
+                  if (r.outcome === 'accepted') setInstallPrompt(null); 
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: '#10B981',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#FFF',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)'
+                }}
+              >
+                <Download size={12} /> Instalar Agora
+              </button>
+            ) : (
+              <div style={{ fontSize: '10px', color: '#475569', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '6px' }}>
+                Use o menu do navegador para <strong>Adicionar à Tela de Início</strong>.
+              </div>
+            )}
+          </div>
 
           <button onClick={() => { sessionStorage.clear(); window.location.href = '/'; }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 18px', borderRadius: '14px', border: 'none', background: 'transparent', color: '#EF4444', fontWeight: 600, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left', marginTop: '16px' }}>
             <LogOut size={20} /> Sair do Sistema
