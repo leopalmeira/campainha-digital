@@ -508,10 +508,10 @@ export default function MasterAdminDashboard() {
       </aside>
 
       {/* CONTENT AREA */}
-      <main style={{ flex: 1, padding: '40px' }}>
+      <main style={{ flex: 1, padding: '40px', minWidth: 0, overflowX: 'hidden' }}>
         
         {/* HEADER */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px', flexWrap: 'wrap', gap: '20px' }}>
           <div>
             <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#0F172A', letterSpacing: '-1.5px' }}>
               {activeTab === 'clients' && (clientsSubTab === 'properties' ? "Visão Geral de Clientes" : "Gestão de Usuários")}
@@ -568,7 +568,7 @@ export default function MasterAdminDashboard() {
 
         {/* STATS GRID */}
         {activeTab === 'clients' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '40px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '40px' }}>
             {stats.map((s, i) => (
               <div key={i} style={{ background: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -1907,7 +1907,7 @@ function BillingTab({ clients, API, onRefresh, onDeleteClient }) {
       <SectionTitle icon={CreditCard} title="Financeiro & Assinaturas" />
 
       {/* ── KPI CARDS ─────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginTop: '24px', marginBottom: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginTop: '24px', marginBottom: '32px' }}>
         {[
           { label: 'Previsão (ARR)', value: `R$ ${arr}`, sub: `${annualClients.length} assinantes`, bg: 'linear-gradient(135deg, #059669, #10B981)' },
           { label: 'Faturamento Hoje', value: `R$ ${faturamentoHoje}`, sub: `${vendasHoje} vendas confirmadas`, bg: 'linear-gradient(135deg, #1D4ED8, #3B82F6)' },
