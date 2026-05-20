@@ -797,3 +797,44 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ### 🛡️ Validação e Build do Sistema
 - **Integridade da Compilação:** Executada a build de produção local (`npm run build`) no frontend com sucesso absoluto, assegurando zero erros de compilação JSX/CSS e funcionamento completo de todo o ecossistema.
+
+---
+
+## 🏘️ v4.0.0 — Perfil Vila Unificado, Auto-Cadastro de Moradores e Regra Imutável de Geolocalização (20/05/2026)
+
+### 🏠 Perfil Vila Pós-Cadastro Igual ao de Casa Simples
+- **Experiência Unificada:** Após o cadastro, o perfil do cliente do tipo "Vila de Casas" passa a ser idêntico ao perfil de "Casa Simples". O morador de vila tem acesso às mesmas funcionalidades, interface e fluxo de um cliente comum de casa simples.
+- **Placa Sempre Aberta para Novos Cadastros:** A diferença fundamental é que a placa (QR Code) de um cliente do tipo "Vila de Casas" permanece **sempre disponível para novos cadastros**. Isso significa que, a qualquer momento, novas casas ou unidades podem ser vinculadas àquele mesmo endereço/placa, sem restrição de quantidade.
+
+### 👥 Auto-Cadastro de Moradores Ausentes
+- **Fluxo Simplificado para Moradores que Não Estavam em Casa:**
+  1. O morador ausente durante o cadastro inicial **baixa o app** (PWA) no seu celular.
+  2. Realiza o **auto-cadastro** pela tela de registro.
+  3. Vai até o **portão físico** do endereço da vila.
+  4. **Escaneia o QR Code** da placa já instalada.
+  5. Realiza o **pagamento** (Pix) ou **ativa o período de teste gratuito**.
+- **Zero Dependência do Cadastrante Original:** O morador retardatário não precisa de nenhuma ação do morador que fez o cadastro original. Todo o fluxo é autônomo e auto-suficiente.
+
+### 🔒 REGRA IMUTÁVEL DE SEGURANÇA — GEOLOCALIZAÇÃO OBRIGATÓRIA (REGRA GLOBAL DA PLATAFORMA)
+
+> ⚠️ **ESTA É UMA REGRA IMUTÁVEL E INEGOCIÁVEL DO SISTEMA. JAMAIS DEVE SER REMOVIDA, DESABILITADA OU FLEXIBILIZADA SOB NENHUMA CIRCUNSTÂNCIA.**
+
+- **Captura Obrigatória de Localização no Cadastro:** Sempre que um cliente (de qualquer tipo: Casa Simples, Vila ou Condomínio) for cadastrado na plataforma, o sistema **DEVE obrigatoriamente capturar e armazenar a geolocalização (latitude e longitude) do endereço** vinculado à placa/QR Code.
+- **Validação de Presença Física ao Tocar a Campainha:** Quando um visitante escanear o QR Code para tocar a campainha digital, o sistema **DEVE obrigatoriamente verificar se o visitante está fisicamente presente no mesmo endereço** (dentro de um raio de tolerância GPS aceitável) antes de permitir o acionamento da campainha.
+- **Finalidade:** Esta regra existe por questão de **segurança absoluta**. Ela impede que qualquer pessoa, de qualquer lugar do mundo, toque a campainha remotamente apenas tendo acesso ao link/QR Code. O visitante precisa estar **fisicamente no portão** para que a campainha funcione.
+- **Implementação Técnica Necessária:**
+  - `navigator.geolocation.getCurrentPosition()` no momento do cadastro do cliente para salvar `latitude` e `longitude` no registro da propriedade.
+  - `navigator.geolocation.getCurrentPosition()` no momento do escaneamento do QR Code pelo visitante.
+  - Cálculo de distância (fórmula de Haversine) entre a localização salva e a localização atual do visitante.
+  - Raio de tolerância sugerido: **100 metros** (ajustável pelo Admin Master, mas nunca desabilitável).
+  - Se o visitante estiver fora do raio: **bloqueio total** da campainha com mensagem explicativa ("Você precisa estar no endereço para tocar a campainha").
+
+### 📋 Resumo das Regras de Negócio Registradas
+| Regra | Descrição | Tipo |
+|---|---|---|
+| Vila = Casa Simples | Perfil pós-cadastro idêntico, com placa aberta | Regra de Negócio |
+| Placa Vila Sempre Aberta | Novas casas/unidades podem ser adicionadas a qualquer momento | Regra de Negócio |
+| Auto-Cadastro Morador Ausente | Morador baixa app → cadastra → vai ao portão → escaneia → paga | Fluxo de Usuário |
+| Geolocalização no Cadastro | Captura obrigatória de lat/lng ao cadastrar cliente | **REGRA IMUTÁVEL** |
+| Geolocalização ao Tocar | Visitante deve estar no endereço para acionar campainha | **REGRA IMUTÁVEL** |
+| Raio de Tolerância GPS | 100m padrão, ajustável mas nunca desabilitável | **REGRA IMUTÁVEL** |
