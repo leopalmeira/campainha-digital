@@ -145,6 +145,60 @@ const calculatePropertyPrice = (property) => {
   return platformConfig.servicePriceAnnual || 39.90;
 };
 
+// Funções auxiliares para geração dinâmica de Pix Estático (BR Code)
+const formatEMVField = (id, value) => {
+  const len = String(value.length).padStart(2, '0');
+  return id + len + value;
+};
+
+const cleanString = (str) => {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9\s]/g, '')
+    .substring(0, 25);
+};
+
+const generateStaticPix = (key, amount, merchantName = 'Campainha Digital', merchantCity = 'Rio de Janeiro') => {
+  const cleanedName = cleanString(merchantName).trim() || 'Campainha Digital';
+  const cleanedCity = cleanString(merchantCity).trim().substring(0, 15) || 'Rio de Janeiro';
+  const amountStr = Number(amount).toFixed(2);
+  
+  const payloadFormat = formatEMVField('00', '01');
+  
+  const gui = formatEMVField('00', 'br.gov.bcb.pix');
+  const keyField = formatEMVField('01', key.trim());
+  const merchantAccountInfo = formatEMVField('26', gui + keyField);
+  
+  const merchantCategoryCode = formatEMVField('52', '0000');
+  const transactionCurrency = formatEMVField('53', '986');
+  const transactionAmount = formatEMVField('54', amountStr);
+  const countryCode = formatEMVField('58', 'BR');
+  const merchantNameField = formatEMVField('59', cleanedName);
+  const merchantCityField = formatEMVField('60', cleanedCity);
+  const additionalDataField = formatEMVField('62', formatEMVField('05', '***'));
+  
+  let pixCode = payloadFormat + merchantAccountInfo + merchantCategoryCode + transactionCurrency + transactionAmount + countryCode + merchantNameField + merchantCityField + additionalDataField;
+  
+  pixCode += '6304';
+  
+  let crc = 0xFFFF;
+  for (let c = 0; c < pixCode.length; c++) {
+    crc ^= pixCode.charCodeAt(c) << 8;
+    for (let i = 0; i < 8; i++) {
+      if (crc & 0x8000) {
+        crc = (crc << 1) ^ 0x1021;
+      } else {
+        crc = crc << 1;
+      }
+    }
+  }
+  const crcHex = (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+  pixCode += crcHex;
+  
+  return pixCode;
+};
+
 // Função para carregar banco JSON local (Backup/Fallback)
 function loadDbLocal() {
   if (fs.existsSync(dbPath))          properties = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
@@ -406,16 +460,40 @@ app.post('/api/payment/abacate/create', async (req, res) => {
   // Usa preço calculado dinamicamente ou customizado da propriedade
   const servicePrice = calculatePropertyPrice(property);
   const amountInCents = Math.round(servicePrice * 100);
-
+  
   try {
-    // Se o master admin configurou Pix Copia e Cola ou QR Code customizado, retorna imediatamente
-    if (platformConfig.customPixCopiaECola || platformConfig.customPixQrCode || platformConfig.customPixKey) {
-      console.log(`[PAYMENT] Usando PIX/QR Code customizado configurado pelo Admin.`);
+    // Se o master admin configurou uma chave Pix direta, geramos o BR Code Pix e o QR Code de forma 100% dinâmica com o valor correto
+    if (platformConfig.customPixKey && platformConfig.customPixKey.trim() !== '') {
+      console.log(`[PAYMENT] Gerando Pix Estático Dinâmico para chave: ${platformConfig.customPixKey} com valor: R$ ${servicePrice}`);
+      
+      const pixCode = generateStaticPix(
+        platformConfig.customPixKey,
+        servicePrice,
+        platformConfig.companyName || 'Campainha Digital',
+        'Rio de Janeiro'
+      );
+      
+      // Gera a imagem do QR Code em Base64 a partir do código Pix Copia e Cola gerado
+      const qrCodeDataUrl = await QRCode.toDataURL(pixCode, { width: 500, margin: 1 });
+      const cleanQrCodeBase64 = qrCodeDataUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+      
+      return res.json({
+        success: true,
+        paymentId: 'CUSTOM_' + Date.now(),
+        pixQrCode: cleanQrCodeBase64,
+        pixCopiaECola: pixCode,
+        value: servicePrice
+      });
+    }
+
+    // Se o master admin não configurou a chave Pix direta, mas configurou os dados estáticos legados, usa como fallback convencional
+    if (platformConfig.customPixCopiaECola || platformConfig.customPixQrCode) {
+      console.log(`[PAYMENT] Usando PIX/QR Code estático legado configurado pelo Admin.`);
       return res.json({
         success: true,
         paymentId: 'CUSTOM_' + Date.now(),
         pixQrCode: platformConfig.customPixQrCode ? platformConfig.customPixQrCode.replace('data:image/png;base64,', '').replace('data:image/jpeg;base64,', '') : '',
-        pixCopiaECola: platformConfig.customPixCopiaECola || platformConfig.customPixKey || '',
+        pixCopiaECola: platformConfig.customPixCopiaECola || '',
         value: servicePrice
       });
     }

@@ -756,9 +756,29 @@ export default function MasterAdminDashboard() {
                            </div>
                            
                            {client.paymentProof && (
-                             <div style={{ marginTop: '8px', fontSize: '10px', color: '#475569', fontWeight: 700, display: 'flex', flexDirection: 'column', gap: '2px', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '6px 10px', borderRadius: '8px', width: 'fit-content' }}>
-                               <div style={{ fontSize: '8px', color: '#059669', textTransform: 'uppercase', fontWeight: 800 }}>Autenticação Pagamento</div>
-                               <code style={{ fontSize: '9px', fontWeight: 800, color: '#065F46', display: 'block', wordBreak: 'break-all' }}>{client.paymentProof.id}</code>
+                             <div style={{ marginTop: '10px', background: 'linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)', border: '1px solid #86EFAC', padding: '10px 12px', borderRadius: '10px', maxWidth: '220px' }}>
+                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
+                                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 6px rgba(16,185,129,0.5)' }} />
+                                 <span style={{ fontSize: '9px', color: '#059669', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.5px' }}>Comprovante de Pagamento</span>
+                               </div>
+                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px', fontSize: '10px', color: '#065F46' }}>
+                                 <div>
+                                   <div style={{ fontSize: '8px', color: '#6EE7B7', fontWeight: 800 }}>VALOR</div>
+                                   <div style={{ fontWeight: 800 }}>R$ {Number(client.paymentProof.value || 0).toFixed(2).replace('.', ',')}</div>
+                                 </div>
+                                 <div>
+                                   <div style={{ fontSize: '8px', color: '#6EE7B7', fontWeight: 800 }}>DATA</div>
+                                   <div style={{ fontWeight: 700 }}>{new Date(client.paymentProof.date).toLocaleDateString('pt-BR')}</div>
+                                 </div>
+                                 <div style={{ gridColumn: 'span 2' }}>
+                                   <div style={{ fontSize: '8px', color: '#6EE7B7', fontWeight: 800 }}>MÉTODO</div>
+                                   <div style={{ fontWeight: 700 }}>{client.paymentProof.method || 'Pix Automático (Webhook)'}</div>
+                                 </div>
+                                 <div style={{ gridColumn: 'span 2', marginTop: '2px', borderTop: '1px dashed #A7F3D0', paddingTop: '4px' }}>
+                                   <div style={{ fontSize: '8px', color: '#6EE7B7', fontWeight: 800 }}>ID AUTENTICAÇÃO</div>
+                                   <code style={{ fontSize: '8px', fontWeight: 800, color: '#065F46', wordBreak: 'break-all', lineHeight: '1.3' }}>{client.paymentProof.id}</code>
+                                 </div>
+                               </div>
                              </div>
                            )}
                         </td>
