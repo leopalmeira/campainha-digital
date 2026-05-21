@@ -44,12 +44,16 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
     const tabParam = params.get('tab');
+    const signupParam = params.get('signup') || params.get('cadastro');
     
     if (codeParam) {
       setAccessCode(codeParam.toUpperCase());
     }
     if (tabParam === 'code' || codeParam) {
       setLoginType('code');
+    }
+    if (signupParam === 'true') {
+      setIsLogin(false);
     }
   }, []);
 
