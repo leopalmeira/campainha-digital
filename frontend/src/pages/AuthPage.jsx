@@ -6,7 +6,7 @@ import jsQR from 'jsqr';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-export default function AuthPage() {
+export default function AuthPage({ clientOnly = false, defaultLoginType = 'password' }) {
   const [isLogin, setIsLogin] = useState(true);
   const [step, setStep] = useState(1); // 1: Cadastro, 2: Scan QR, 3: Aguardando
   const [name, setName] = useState('');
@@ -19,7 +19,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [accessCode, setAccessCode] = useState('');
-  const [loginType, setLoginType] = useState('password'); // 'password' | 'code'
+  const [loginType, setLoginType] = useState(defaultLoginType); // 'password' | 'code'
   const [error, setError] = useState('');
   const [scanningActive, setScanningActive] = useState(false);
   const [scannedImage, setScannedImage] = useState(null);
@@ -48,10 +48,12 @@ export default function AuthPage() {
     if (codeParam) {
       setAccessCode(codeParam.toUpperCase());
     }
-    if (tabParam === 'code' || codeParam) {
+    if (clientOnly) {
+      setLoginType('code');
+    } else if (tabParam === 'code' || codeParam) {
       setLoginType('code');
     }
-  }, []);
+  }, [clientOnly]);
 
   // Gerencia o prompt de instalação PWA na tela de login
   useEffect(() => {
@@ -409,14 +411,20 @@ export default function AuthPage() {
           <>
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
               <Logo size={36} />
-              <h2 style={{ fontSize: '20px', fontWeight: 800, marginTop: '12px', color: 'var(--text-main)' }}>Acesso Unificado</h2>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Entre com sua senha ou código de morador.</p>
+              <h2 style={{ fontSize: '20px', fontWeight: 800, marginTop: '12px', color: 'var(--text-main)' }}>
+                {clientOnly ? 'Acesso do Cliente' : 'Acesso Unificado'}
+              </h2>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {clientOnly ? 'Digite seu código de morador para acessar.' : 'Entre com sua senha ou código de morador.'}
+              </p>
             </div>
 
-            <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '16px', padding: '4px', marginBottom: '24px' }}>
-              <button onClick={() => { setLoginType('password'); setError(''); }} style={{ flex: 1, padding: '10px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '13px', background: loginType === 'password' ? '#FFF' : 'transparent', color: loginType === 'password' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: loginType === 'password' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}>Senha / E-mail</button>
-              <button onClick={() => { setLoginType('code'); setError(''); }} style={{ flex: 1, padding: '10px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '13px', background: loginType === 'code' ? '#FFF' : 'transparent', color: loginType === 'code' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: loginType === 'code' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}>Código Morador</button>
-            </div>
+            {!clientOnly && (
+              <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '16px', padding: '4px', marginBottom: '24px' }}>
+                <button onClick={() => { setLoginType('password'); setError(''); }} style={{ flex: 1, padding: '10px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '13px', background: loginType === 'password' ? '#FFF' : 'transparent', color: loginType === 'password' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: loginType === 'password' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}>Senha / E-mail</button>
+                <button onClick={() => { setLoginType('code'); setError(''); }} style={{ flex: 1, padding: '10px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '13px', background: loginType === 'code' ? '#FFF' : 'transparent', color: loginType === 'code' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: loginType === 'code' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}>Código Morador</button>
+              </div>
+            )}
 
             {error && <div style={{ background: '#FEE2E2', color: '#EF4444', padding: '12px', borderRadius: '12px', marginBottom: '20px', fontSize: '13px', fontWeight: 600 }}>{error}</div>}
 
@@ -443,14 +451,16 @@ export default function AuthPage() {
               </button>
             </form>
 
-            <div style={{ textAlign: 'center', marginTop: '32px' }}>
-              <p className="text-muted" style={{ fontSize: '14px' }}>
-                Novo por aqui? 
-                <button onClick={() => setIsLogin(false)} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, marginLeft: '8px', cursor: 'pointer' }}>
-                  Criar conta grátis
-                </button>
-              </p>
-            </div>
+            {!clientOnly && (
+              <div style={{ textAlign: 'center', marginTop: '32px' }}>
+                <p className="text-muted" style={{ fontSize: '14px' }}>
+                  Novo por aqui? 
+                  <button onClick={() => setIsLogin(false)} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, marginLeft: '8px', cursor: 'pointer' }}>
+                    Criar conta grátis
+                  </button>
+                </p>
+              </div>
+            )}
           </>
         )}
 

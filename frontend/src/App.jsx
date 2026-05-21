@@ -13,10 +13,10 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/login-cliente" element={<AuthPage clientOnly={true} defaultLoginType="code" />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/master-admin" element={<MasterAdminDashboard />} />
         <Route path="/chamada/:id" element={<VisitorCall />} />
-        <Route path="/morador/:id" element={<ResidentDashboard />} />
         <Route path="/morador/:id" element={<ResidentDashboard />} />
         <Route path="/portaria" element={<PorteiroDashboard />} />
         <Route path="*" element={<Navigate to="/" />} />
