@@ -855,3 +855,21 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 ### 🔒 Validação Restritiva de Placas Vila e Equivalência de Perfis
 - **Restrição de Cadastro**: Ao tentar vincular ou cadastrar uma placa (`propertyId`) que já está registrada como "Vila" (`type: 'village'`), se o usuário tentar selecioná-la como "Casa Simples" (individual/house), o backend rejeita com um erro explícito: `"A placa já está cadastrada como Vila. Tente se cadastrar como Vila."`
 - **Equivalência de Perfil**: Garantido que qualquer novo cadastro realizado como "Vila" seja ativado imediatamente (`status = 'active'`) e atribuído o papel de usuário simples (`role = 'user'`), correspondendo exatamente ao perfil de "Casa Simples".
+
+---
+
+## 🔧 v4.1.1 — Validação Inteligente de QR Code Vila e Preço Unificado para Moradores (24/05/2026)
+
+### 🛡️ Pré-Verificação de Tipo de Placa no Frontend
+- **Endpoint de Verificação (`GET /api/properties/:id/check-type`):** Criado novo endpoint no backend que retorna o tipo (`type`) e modelo de cobrança (`billingModel`) de uma placa já cadastrada, sem expor dados sensíveis. Usado pelo frontend imediatamente após o escaneamento do QR Code.
+- **Detecção Automática no Scanner:** Ao escanear um QR Code que já está cadastrado como "Vila de Casas" (`village`), o frontend agora **detecta automaticamente** o tipo existente e força `propertyType = 'village'` antes de exibir as opções de plano ao usuário.
+- **Aviso Visual Premium:** Caso o QR Code seja de Vila, um banner amarelo de alerta (⚠️) é exibido na tela de ativação (Step 3) com a mensagem: _"Este QR Code já está cadastrado como Vila de Casas. Seu cadastro será realizado como morador desta Vila."_
+
+### 🔒 Bloqueio de Cadastro Incorreto com Auto-Correção
+- **Backend Reforçado:** A mensagem de erro no endpoint `POST /api/auth/link-qr` foi aprimorada para: _"Este QR Code já está cadastrado como Vila de Casas. Você deve se cadastrar como Vila de Casas para continuar."_ O response agora inclui o campo `existingType: 'village'` para o frontend poder reagir programaticamente.
+- **Auto-Correção no Frontend:** Se por algum motivo a pré-verificação falhar e o backend rejeitar a vinculação (ex: usuário escolheu "Casa Simples" para uma placa Vila), o frontend **automaticamente corrige** o tipo para "Vila", exibe o aviso e **volta ao Step 3** sem perder os dados do usuário, permitindo que ele prossiga corretamente.
+
+### 💰 Preço Correto para Moradores Subsequentes de Vila
+- **Preço Unificado:** O preço exibido para qualquer morador que se cadastre em uma Vila já existente será **o mesmo preço configurado para Vila de Casas** (anual ou mensal, conforme `billingModel` já definido pelo primeiro morador), garantindo coerência e transparência de cobrança para todos os residentes do mesmo endereço.
+- **Herança de Modelo de Cobrança:** O `billingModel` (anual/mensal) da placa Vila existente é automaticamente herdado pelo novo morador durante o pré-check, evitando divergências entre residentes do mesmo endereço.
+

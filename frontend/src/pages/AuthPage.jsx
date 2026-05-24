@@ -31,6 +31,7 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
   const [clientAccessCode, setClientAccessCode] = useState('');
   const [globalConfig, setGlobalConfig] = useState(null);
   const [clientLocation, setClientLocation] = useState(null);
+  const [villageWarning, setVillageWarning] = useState('');
 
   useEffect(() => {
     fetch(`${API}/api/config`)
@@ -247,7 +248,7 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
   };
 
   const scanLoop = () => {
-    const doTick = () => {
+    const doTick = async () => {
       if (!videoRef.current || !canvasRef.current) return;
       if (videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
         const canvas = canvasRef.current;
@@ -283,6 +284,24 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
           setScannedId(finalId);
           setScannedImage(qrImageBase64);
           stopScanner();
+
+          // Verificar se a placa já existe como Vila antes de ir ao step 3
+          try {
+            const checkRes = await fetch(`${API}/api/properties/${encodeURIComponent(finalId)}/check-type`);
+            const checkData = await checkRes.json();
+            if (checkData.exists && checkData.type === 'village') {
+              // Forçar tipo Vila e mostrar aviso
+              setPropertyType('village');
+              if (checkData.billingModel) setBillingModel(checkData.billingModel);
+              setVillageWarning('Este QR Code já está cadastrado como Vila de Casas. Seu cadastro será realizado como morador desta Vila.');
+            } else {
+              setVillageWarning('');
+            }
+          } catch (err) {
+            console.warn('Erro ao verificar tipo da placa:', err);
+            setVillageWarning('');
+          }
+
           setStep(3); // Vai para escolha de plano
           return;
         }
@@ -380,7 +399,14 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
         }
       } else {
         const data = await res.json();
-        alert(data.error || 'Erro ao vincular placa e plano.');
+        // Se o backend retornou que a placa é vila, corrigir automaticamente e voltar ao step 3
+        if (data.existingType === 'village') {
+          setPropertyType('village');
+          setVillageWarning('Este QR Code já está cadastrado como Vila de Casas. Seu cadastro deve ser realizado como Vila de Casas. Selecione a opção correta abaixo.');
+          setStep(3);
+        } else {
+          alert(data.error || 'Erro ao vincular placa e plano.');
+        }
       }
     } catch (err) {
       alert('Erro de conexão.');
@@ -631,6 +657,17 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '12px', lineHeight: 1.6 }}>
               Sua placa foi escaneada com sucesso. Ative sua assinatura para começar a usar.
             </p>
+
+            {villageWarning && (
+              <div style={{ marginTop: '16px', padding: '14px 16px', background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '14px', textAlign: 'left', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '20px', lineHeight: 1 }}>⚠️</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 800, color: '#92400E', margin: 0, lineHeight: 1.5 }}>
+                    {villageWarning}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '32px' }}>
               <button 

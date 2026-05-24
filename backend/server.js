@@ -833,7 +833,7 @@ app.post('/api/auth/link-qr', async (req, res) => {
 
   // Placa cadastrada como Vila só aceita cadastro como Vila
   if (existingProp && existingProp.type === 'village' && propertyType !== 'village') {
-    return res.status(400).json({ error: 'A placa já está cadastrada como Vila. Tente se cadastrar como Vila.' });
+    return res.status(400).json({ error: 'Este QR Code já está cadastrado como Vila de Casas. Você deve se cadastrar como Vila de Casas para continuar.', existingType: 'village' });
   }
 
   // Bloqueia APENAS se a placa tem um dono DIFERENTE do usuário atual
@@ -1174,6 +1174,12 @@ app.get('/api/properties', (req, res) => {
   // Filter by adminEmail OR doormanEmail
   const filtered = properties.filter(p => p.adminEmail === email || p.doormanEmail === email);
   res.json(filtered);
+});
+
+app.get('/api/properties/:id/check-type', (req, res) => {
+  const prop = properties.find(p => p.id && p.id.toLowerCase() === req.params.id.toLowerCase());
+  if (!prop) return res.json({ exists: false });
+  return res.json({ exists: true, type: prop.type, billingModel: prop.billingModel || 'annual' });
 });
 
 app.get('/api/properties/:id', (req, res) => {
