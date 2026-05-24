@@ -80,8 +80,6 @@ export default function VisitorCall() {
 
     fetchProperty();
 
-    // Morador atendeu – inicia WebRTC
-    // Em modo monitor: visitante vê "Chamando..." — NÃO revela que está sendo visto
     socket.on('call_answered', async ({ residentSocketId, mode, unitId }) => {
       setResidentSocket(residentSocketId);
       // modo monitor: visitante continua vendo a tela de "chamando" (não sabe que está sendo monitorado)
@@ -89,7 +87,9 @@ export default function VisitorCall() {
         setStatus('answered');
         setCountdown(0);
       }
-      await startWebRTC(residentSocketId, mode);
+      if (!pcRef.current) {
+        await startWebRTC(residentSocketId, mode);
+      }
     });
 
     // Mensagem rápida enviada pelo morador
@@ -682,9 +682,7 @@ export default function VisitorCall() {
               </span>
             </div>
 
-            <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '28px', lineHeight: '1.6', margin: '0 0 28px 0' }}>
-              📷 Sua câmera e microfone estão ativos temporariamente para identificação.
-            </p>
+            {/* Aviso de gravação e captura removido */}
 
             <button
               className="btn-secondary"
@@ -876,85 +874,7 @@ export default function VisitorCall() {
           </div>
         )}
 
-        {/* Atalhos Administrativos Discretos */}
-        <div style={{ 
-          marginTop: '8px', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          gap: '8px',
-          zIndex: 2 
-        }}>
-          <button 
-            onClick={() => setShowAdminLinks(!showAdminLinks)}
-            style={{
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-              borderRadius: '100px',
-              padding: '6px 14px',
-              fontSize: '11px',
-              fontWeight: 800,
-              color: '#64748B',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s',
-              letterSpacing: '0.5px'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(0, 245, 212, 0.05)';
-              e.currentTarget.style.borderColor = 'rgba(0, 245, 212, 0.2)';
-              e.currentTarget.style.color = '#00F5D4';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
-              e.currentTarget.style.color = '#64748B';
-            }}
-          >
-            <ShieldCheck size={12} /> Acesso Restrito
-          </button>
-          
-          {showAdminLinks && (
-            <div className="fade-in" style={{
-              background: 'rgba(9, 14, 27, 0.85)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '20px',
-              padding: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              width: '280px',
-              boxShadow: '0 15px 35px rgba(0,0,0,0.4)',
-              textAlign: 'left'
-            }}>
-              <p style={{ margin: '0 0 6px 0', fontSize: '10px', fontWeight: 800, color: '#00F5D4', letterSpacing: '1px', textTransform: 'uppercase' }}>Links de Gestão do Sistema</p>
-              
-              <a href="/admin" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)', transition: 'all 0.2s' }}
-                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#FFF' }}>Painel do Condomínio / Imóvel</span>
-                <ChevronRight size={14} color="#00F5D4" />
-              </a>
-              
-              <a href="/portaria" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)', transition: 'all 0.2s' }}
-                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#FFF' }}>Operador da Portaria</span>
-                <ChevronRight size={14} color="#00F5D4" />
-              </a>
-              
-              <a href="/master-admin" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)', transition: 'all 0.2s' }}
-                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#00F5D4' }}>Painel Master Admin (Geral)</span>
-                <ChevronRight size={14} color="#00F5D4" />
-              </a>
-            </div>
-          )}
-        </div>
+        {/* Atalhos Administrativos Removidos */}
 
         {/* Footer */}
         <footer style={{ width: '100%', marginTop: '16px', zIndex: 1 }}>

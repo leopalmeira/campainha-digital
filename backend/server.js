@@ -830,6 +830,12 @@ app.post('/api/auth/link-qr', async (req, res) => {
 
   // Check if propertyId is already linked to someone else
   const existingProp = properties.find(p => p.id === propertyId);
+
+  // Placa cadastrada como Vila só aceita cadastro como Vila
+  if (existingProp && existingProp.type === 'village' && propertyType !== 'village') {
+    return res.status(400).json({ error: 'A placa já está cadastrada como Vila. Tente se cadastrar como Vila.' });
+  }
+
   // Bloqueia APENAS se a placa tem um dono DIFERENTE do usuário atual
   if (existingProp && existingProp.adminEmail && existingProp.adminEmail.toLowerCase() !== user.email.toLowerCase()) {
     return res.status(400).json({ error: 'Esta placa já está vinculada a outro administrador. Contate o suporte se for sua placa.' });
@@ -839,12 +845,13 @@ app.post('/api/auth/link-qr', async (req, res) => {
   if (qrImage) user.qrImage = qrImage;
   if (paymentChoice) user.paymentChoice = paymentChoice; // 'trial' | 'annual'
   
-  const isHouse = propertyType === 'house' || propertyType === 'individual';
-  if (isHouse) {
-    user.status = 'active'; // Ativo imediatamente para casas simples
-    user.role = 'user'; // Mantém o papel de usuário simples
+  // Regra: Vila (village) tem o mesmo perfil de Casa Simples (house / individual)
+  const isHouseOrVillage = propertyType === 'house' || propertyType === 'individual' || propertyType === 'village';
+  if (isHouseOrVillage) {
+    user.status = 'active'; // Ativo imediatamente
+    user.role = 'user'; // Papel de usuário simples
   } else {
-    user.status = 'pending'; // Exige aprovação manual do administrador para condomínios/vilas
+    user.status = 'pending'; // Exige aprovação manual do administrador para condomínios
     user.role = 'manager'; // Vira manager, mas pendente de liberação
   }
   
@@ -2117,4 +2124,23 @@ cron.schedule('0 0 * * *', () => {
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
+
+  // ─── ROBOT DE PING INTEGRADO (KEEP-ALIVE PARA O RENDER) ──────────────────
+  try {
+    const axios = require('axios');
+    const RENDER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+    console.log(`[Ping Robot] Iniciando robô keep-alive integrado em ${RENDER_URL}/api/ping...`);
+    
+    // Intervalo de 8 minutos
+    setInterval(async () => {
+      try {
+        const response = await axios.get(`${RENDER_URL}/api/ping`);
+        console.log(`[Ping Robot] Resposta do keep-alive recebida:`, response.data);
+      } catch (err) {
+        console.warn(`[Ping Robot] Falha no ping de keep-alive:`, err.message);
+      }
+    }, 8 * 60 * 1000);
+  } catch (err) {
+    console.warn(`[Ping Robot] Não foi possível iniciar o robô de ping integrado:`, err.message);
+  }
 });

@@ -94,6 +94,18 @@ export default function ResidentDashboard() {
   const pcRef = useRef(null);
   const socketRef = useRef(null);
 
+  // Refs para escuta ativa dos estados no WebRTC sem stale closures
+  const statusRef = useRef(status);
+  const isMutedRef = useRef(isMuted);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+  }, [isMuted]);
+
   useEffect(() => {
     // Busca informações salvas localmente para evitar consultas inseguras
     const savedCode = localStorage.getItem('residentAccessCode');
@@ -262,6 +274,13 @@ export default function ResidentDashboard() {
     // Morador envia APENAS áudio (câmera oculta por padrão)
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     localStreamRef.current = stream;
+    
+    // Se estiver em modo anônimo (monitoramento), inicia com o microfone mutado
+    const audioTrack = stream.getAudioTracks()[0];
+    if (audioTrack && (statusRef.current === 'monitoring' || isMutedRef.current)) {
+      audioTrack.enabled = false;
+    }
+    
     stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
     pc.ontrack = (e) => { if (remoteVideoRef.current && e.streams[0]) { remoteVideoRef.current.srcObject = e.streams[0]; remoteVideoRef.current.play().catch(() => {}); } };
@@ -278,6 +297,13 @@ export default function ResidentDashboard() {
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     localStreamRef.current = stream;
+    
+    // Se for modo monitor/anônimo, mutar track de áudio
+    const audioTrack = stream.getAudioTracks()[0];
+    if (audioTrack && (mode === 'monitor' || statusRef.current === 'monitoring' || isMutedRef.current)) {
+      audioTrack.enabled = false;
+    }
+    
     stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
     pc.ontrack = (e) => {
@@ -297,13 +323,26 @@ export default function ResidentDashboard() {
   }, []);
 
   const handleMonitor = () => {
-    stopRing(); setStatus('monitoring'); setCamOn(false);
+    stopRing(); 
+    setStatus('monitoring'); 
+    setCamOn(false);
+    setIsMuted(true); // Silencia o microfone do morador
     // Pede apenas áudio para criar a conexão WebRTC (recebe vídeo do visitante)
     socketRef.current.emit('answer_call', { visitorSocketId: call.visitorSocketId, mode: 'monitor', unitId: id });
   };
 
   const handleAnswer = async () => {
-    stopRing(); setStatus('active'); setCamOn(false);
+    stopRing(); 
+    setStatus('active'); 
+    setCamOn(false);
+    
+    // Reativa o microfone se ele estava mutado (ao clicar em Falar no Modo Anônimo)
+    const audioTrack = localStreamRef.current?.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = true;
+    }
+    setIsMuted(false);
+    
     // Sempre atende SÓ com áudio — câmera do morador fica oculta até clicar no botão
     socketRef.current.emit('answer_call', { visitorSocketId: call.visitorSocketId, mode: 'active', unitId: id });
   };
@@ -709,7 +748,7 @@ export default function ResidentDashboard() {
               {/* Botões de atender */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                 <button onClick={handleMonitor} style={{ padding: '16px', borderRadius: '14px', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.03)', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13px' }}>
-                  <EyeOff size={22} color="var(--primary)" />Modo Oculto
+                  <EyeOff size={22} color="var(--primary)" />Modo Anônimo
                 </button>
                 <button onClick={() => handleAnswer()} className="btn-primary" style={{ padding: '16px', borderRadius: '14px', background: '#10B981', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13px', boxShadow: '0 8px 24px rgba(16,185,129,0.35)' }}>
                   <Phone size={22} />Atender
@@ -726,11 +765,11 @@ export default function ResidentDashboard() {
           {status === 'monitoring' && call && (
             <div style={{ padding: '16px 24px' }}>
               <div style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '14px', padding: '10px 16px', display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
-                <EyeOff size={16} color="#F59E0B" /><span style={{ color: '#F59E0B', fontWeight: 700, fontSize: '13px' }}>Modo Oculto Ativo — visitante não sabe que você está vendo</span>
+                <EyeOff size={16} color="#F59E0B" /><span style={{ color: '#F59E0B', fontWeight: 700, fontSize: '13px' }}>Modo Anônimo Ativo — microfone do morador silenciado</span>
               </div>
               <div style={{ borderRadius: '20px', overflow: 'hidden', background: '#000', position: 'relative', marginBottom: '16px', minHeight: '220px' }}>
                 <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(245,158,11,0.9)', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 800, color: '#000' }}>👁 OCULTO</div>
+                <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(245,158,11,0.9)', padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 800, color: '#000' }}>👁 ANÔNIMO</div>
               </div>
 
               {/* Mensagens rápidas */}

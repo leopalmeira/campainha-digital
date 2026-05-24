@@ -838,3 +838,20 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 | Geolocalização no Cadastro | Captura obrigatória de lat/lng ao cadastrar cliente | **REGRA IMUTÁVEL** |
 | Geolocalização ao Tocar | Visitante deve estar no endereço para acionar campainha | **REGRA IMUTÁVEL** |
 | Raio de Tolerância GPS | 100m padrão, ajustável mas nunca desabilitável | **REGRA IMUTÁVEL** |
+
+---
+
+## 🏘️ v4.1.0 — Modo Anônimo Silencioso, Robô Keep-Alive e Validação Restritiva de Placa Vila (24/05/2026)
+
+### 🎛️ Modo Anônimo Silencioso (Privacidade Total do Morador)
+- **Silenciamento Padrão de Microfone**: Ao atender uma chamada em "Modo Anônimo" (antigo "Modo Oculto"), o morador conecta-se via WebRTC com o seu microfone mutado por padrão.
+- **Visualização Oculta**: Para o visitante, nada muda; ele continua visualizando a tela de "Chamando..." com o cronômetro rodando, sem saber que o morador já o está ouvindo e observando.
+- **Transição de Áudio Transparente**: Se o morador decidir falar, ele simplesmente clica no botão "Falar" (Modo Ativo) que altera o status do visitante para "Atendida", interrompe a contagem e abre instantaneamente o canal de áudio bidirecional sem reiniciar a conexão P2P.
+
+### 🤖 Robô de Ping Keep-Alive (Uptime 100% no Render)
+- **Robô Integrado no Servidor**: Implementado um loop interno no `server.js` que realiza um ping via requisição HTTP externa para `${RENDER_EXTERNAL_URL}/api/ping` a cada 8 minutos.
+- **Stand-alone Robot (`ping-robot.js`)**: Criado um script leve e independente em Node.js (`backend/ping-robot.js`) que pode ser executado em qualquer servidor/VPS externo para enviar pings frequentes e garantir que a instância do Render nunca entre em estado de hibernação (sleep).
+
+### 🔒 Validação Restritiva de Placas Vila e Equivalência de Perfis
+- **Restrição de Cadastro**: Ao tentar vincular ou cadastrar uma placa (`propertyId`) que já está registrada como "Vila" (`type: 'village'`), se o usuário tentar selecioná-la como "Casa Simples" (individual/house), o backend rejeita com um erro explícito: `"A placa já está cadastrada como Vila. Tente se cadastrar como Vila."`
+- **Equivalência de Perfil**: Garantido que qualquer novo cadastro realizado como "Vila" seja ativado imediatamente (`status = 'active'`) e atribuído o papel de usuário simples (`role = 'user'`), correspondendo exatamente ao perfil de "Casa Simples".
