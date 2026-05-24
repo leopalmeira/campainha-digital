@@ -750,15 +750,48 @@ app.post('/api/admin/login', (req, res) => {
       return res.status(403).json({ error: 'Seu cadastro foi recusado pelo administrador.' });
     }
     
-    // If approved, check if they have a property linked
-    const prop = properties.find(p => p.adminEmail.toLowerCase() === rawEmail);
+    // Check if they have a property linked directly (as administrator)
+    let prop = properties.find(p => p.adminEmail.toLowerCase() === rawEmail);
+    let unitId = null;
+    let accessCode = null;
+
+    if (!prop) {
+      // If not directly an admin, search if they are a resident of any unit
+      for (const p of properties) {
+        if (p.units) {
+          const unit = p.units.find(u => u.userId === user.id);
+          if (unit) {
+            prop = p;
+            unitId = unit.id;
+            accessCode = unit.accessCode;
+            break;
+          }
+        }
+      }
+    } else {
+      // If they are directly the admin, populate unitId and accessCode for simple houses
+      if ((prop.type === 'individual' || prop.type === 'house') && prop.units && prop.units.length > 0) {
+        unitId = prop.units[0].id;
+        accessCode = prop.units[0].accessCode;
+      } else if (prop.type === 'village' && prop.units) {
+        // If they are admin of a village, try to find their own unit
+        const unit = prop.units.find(u => u.userId === user.id);
+        if (unit) {
+          unitId = unit.id;
+          accessCode = unit.accessCode;
+        }
+      }
+    }
+
     return res.json({
       success: true, 
       role: user.role === 'manager' ? 'sindico' : 'user', 
       email: user.email,
       propertyId: prop ? prop.id : null,
       propertyName: prop ? prop.name : null,
-      clientCode: prop ? prop.clientCode : null
+      clientCode: prop ? prop.clientCode : (accessCode || null),
+      unitId: unitId || null,
+      accessCode: accessCode || null
     });
   }
 
@@ -836,9 +869,11 @@ app.post('/api/auth/link-qr', async (req, res) => {
     return res.status(400).json({ error: 'Este QR Code já está cadastrado como Vila de Casas. Você deve se cadastrar como Vila de Casas para continuar.', existingType: 'village' });
   }
 
-  // Bloqueia APENAS se a placa tem um dono DIFERENTE do usuário atual
+  // Bloqueia se a placa tem um dono diferente do usuário atual, EXCETO se for Vila de Casas (village)
   if (existingProp && existingProp.adminEmail && existingProp.adminEmail.toLowerCase() !== user.email.toLowerCase()) {
-    return res.status(400).json({ error: 'Esta placa já está vinculada a outro administrador. Contate o suporte se for sua placa.' });
+    if (existingProp.type !== 'village') {
+      return res.status(400).json({ error: 'Esta placa já está vinculada a outro administrador. Contate o suporte se for sua placa.' });
+    }
   }
 
   user.scannedPropertyId = propertyId;
@@ -893,16 +928,56 @@ app.post('/api/auth/link-qr', async (req, res) => {
     properties.push(prop);
     saveDb();
   } else {
-    // Link existing prop to this user if it was orphaned or just updating
-    existingProp.adminEmail = user.email;
-    existingProp.adminPassword = user.password;
-    existingProp.clientName = user.name;
-    existingProp.clientPhone = user.whatsapp;
-    if (propertyType) existingProp.type = propertyType;
-    if (billingModel) existingProp.billingModel = billingModel;
-    if (latitude) existingProp.latitude = latitude;
-    if (longitude) existingProp.longitude = longitude;
-    saveDb();
+    // Link existing prop to this user if it was orphaned or just updating, but only if not a village or if they are already the admin
+    const isAlreadyAdmin = existingProp.adminEmail && existingProp.adminEmail.toLowerCase() === user.email.toLowerCase();
+    if (existingProp.type !== 'village' || isAlreadyAdmin) {
+      existingProp.adminEmail = user.email;
+      existingProp.adminPassword = user.password;
+      existingProp.clientName = user.name;
+      existingProp.clientPhone = user.whatsapp;
+      if (propertyType) existingProp.type = propertyType;
+      if (billingModel) existingProp.billingModel = billingModel;
+      if (latitude) existingProp.latitude = latitude;
+      if (longitude) existingProp.longitude = longitude;
+      saveDb();
+    }
+  }
+
+  // Create a unit automatically for a resident of an existing village
+  let unitId = null;
+  let accessCode = null;
+
+  if (existingProp && existingProp.type === 'village') {
+    let existingUnit = existingProp.units.find(u => u.userId === user.id);
+    if (!existingUnit) {
+      unitId = uuidv4();
+      accessCode = generateAccessCode();
+      existingUnit = {
+        id: unitId,
+        name: user.name,
+        accessCode: accessCode,
+        userId: user.id
+      };
+      existingProp.units.push(existingUnit);
+      saveDb();
+
+      // Also register in residents list for legacy compatibility
+      const resExisting = residents.find(r => r.email === user.email && r.unitId === unitId);
+      if (!resExisting) {
+        residents.push({
+          email: user.email,
+          unitId: unitId,
+          unitName: user.name,
+          propertyId: existingProp.id,
+          propertyName: existingProp.name,
+          createdAt: new Date().toISOString()
+        });
+        saveResidents();
+      }
+    } else {
+      unitId = existingUnit.id;
+      accessCode = existingUnit.accessCode;
+    }
   }
 
   saveUsers();
@@ -919,11 +994,17 @@ app.post('/api/auth/link-qr', async (req, res) => {
   }
 
   const targetProp = existingProp || properties.find(p => p.id === propertyId);
-  let unitId = null;
-  let accessCode = null;
-  if (targetProp && (targetProp.type === 'individual' || targetProp.type === 'house') && targetProp.units && targetProp.units.length > 0) {
-    unitId = targetProp.units[0].id;
-    accessCode = targetProp.units[0].accessCode;
+  if (!unitId || !accessCode) {
+    if (targetProp && (targetProp.type === 'individual' || targetProp.type === 'house') && targetProp.units && targetProp.units.length > 0) {
+      unitId = targetProp.units[0].id;
+      accessCode = targetProp.units[0].accessCode;
+    } else if (targetProp && targetProp.type === 'village' && targetProp.units) {
+      const adminUnit = targetProp.units.find(u => u.userId === user.id);
+      if (adminUnit) {
+        unitId = adminUnit.id;
+        accessCode = adminUnit.accessCode;
+      }
+    }
   }
 
   res.json({ success: true, message: 'Placa vinculada com sucesso! Você já pode acessar seu painel.', propertyId, role: user.role, propertyType: targetProp ? targetProp.type : 'individual', unitId, accessCode });

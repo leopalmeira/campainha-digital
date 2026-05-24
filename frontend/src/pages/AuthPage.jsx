@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle2, Phone, Building2, Download } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle2, Phone, Building2, Download, AlertTriangle } from 'lucide-react';
 import Logo from '../components/Logo';
 import jsQR from 'jsqr';
 
@@ -32,6 +32,7 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
   const [globalConfig, setGlobalConfig] = useState(null);
   const [clientLocation, setClientLocation] = useState(null);
   const [villageWarning, setVillageWarning] = useState('');
+  const [showVillageModal, setShowVillageModal] = useState(false);
 
   useEffect(() => {
     fetch(`${API}/api/config`)
@@ -158,6 +159,12 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
             sessionStorage.setItem('cd_admin_role', 'sindico');
             if (data.propertyId) sessionStorage.setItem('cd_admin_propertyId', data.propertyId);
             navigate('/admin');
+          } else if (data.unitId) {
+            sessionStorage.setItem('residentUnitId', data.unitId);
+            sessionStorage.setItem('residentName', data.clientName || 'Morador');
+            sessionStorage.setItem('residentPropertyId', data.propertyId || '');
+            sessionStorage.setItem('residentAccessCode', data.accessCode || '');
+            navigate(`/morador/${data.unitId}`);
           } else {
             sessionStorage.setItem('cd_admin_role', 'client');
             if (data.propertyId) sessionStorage.setItem('cd_admin_propertyId', data.propertyId);
@@ -181,6 +188,16 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
       // Validate WhatsApp minimum length roughly
       if (whatsapp.length < 14) {
         alert('Por favor, informe um WhatsApp válido com DDD.');
+        setLoading(false);
+        return;
+      }
+
+      if (userId) {
+        if (scannedId) {
+          setStep(3); // Se já foi escaneado, avança para seleção de planos/teste
+        } else {
+          setStep(2);
+        }
         setLoading(false);
         return;
       }
@@ -294,15 +311,16 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
               setPropertyType('village');
               if (checkData.billingModel) setBillingModel(checkData.billingModel);
               setVillageWarning('Este QR Code já está cadastrado como Vila de Casas. Seu cadastro será realizado como morador desta Vila.');
+              setShowVillageModal(true); // Exibe o modal de aviso
             } else {
               setVillageWarning('');
+              setStep(3); // Vai para escolha de plano (fluxo normal)
             }
           } catch (err) {
             console.warn('Erro ao verificar tipo da placa:', err);
             setVillageWarning('');
+            setStep(3);
           }
-
-          setStep(3); // Vai para escolha de plano
           return;
         }
       }
@@ -367,7 +385,8 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
         
         if (paymentChoice === 'trial') {
           setIsPaid(true);
-          if ((propertyType === 'house' || propertyType === 'individual') && data.unitId) {
+          const isSingleOrVillage = propertyType === 'house' || propertyType === 'individual' || propertyType === 'village';
+          if (isSingleOrVillage && data.unitId) {
             navigate(`/morador/${data.unitId}?new=true`);
           } else {
             setStep(4);
@@ -399,11 +418,11 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
         }
       } else {
         const data = await res.json();
-        // Se o backend retornou que a placa é vila, corrigir automaticamente e voltar ao step 3
+        // Se o backend retornou que a placa é vila, corrigir automaticamente e mostrar modal de aviso
         if (data.existingType === 'village') {
           setPropertyType('village');
-          setVillageWarning('Este QR Code já está cadastrado como Vila de Casas. Seu cadastro deve ser realizado como Vila de Casas. Selecione a opção correta abaixo.');
-          setStep(3);
+          setVillageWarning('Este QR Code já está cadastrado como Vila de Casas. Seu cadastro deve ser realizado como Vila de Casas.');
+          setShowVillageModal(true);
         } else {
           alert(data.error || 'Erro ao vincular placa e plano.');
         }
@@ -949,6 +968,31 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
                 <button type="button" onClick={() => setShowTerms(false)} className="btn-primary" style={{ padding: '12px 32px', borderRadius: '12px', fontSize: '14px', fontWeight: 800 }}>Li e Entendi</button>
              </div>
            </div>
+        </div>
+      )}
+      {showVillageModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="fade-in" style={{ background: '#FFF', width: '100%', maxWidth: '400px', borderRadius: '20px', padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', border: '2px solid #F59E0B' }}>
+              <AlertTriangle size={32} color="#D97706" />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>Placa já Cadastrada</h3>
+            <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.6, margin: 0 }}>
+              Esta placa já está cadastrada. O cadastro para esta placa só pode ser realizado como <strong>Vila de Casas</strong>.
+            </p>
+            <button 
+              type="button" 
+              onClick={() => {
+                setShowVillageModal(false);
+                setPropertyType('village');
+                setStep(1); // Volta para selecionar Vila
+              }} 
+              className="btn-primary" 
+              style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '15px', fontWeight: 800, marginTop: '24px' }}
+            >
+              OK, entendi!
+            </button>
+          </div>
         </div>
       )}
     </div>
