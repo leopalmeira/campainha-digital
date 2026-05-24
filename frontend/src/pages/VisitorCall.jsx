@@ -353,15 +353,14 @@ export default function VisitorCall() {
 
   return (
     <div style={{ 
-      minHeight: '100vh', 
+      position: 'fixed',
+      inset: 0,
       background: '#070A13', 
       color: '#F8FAFC', 
-      padding: '40px 20px', 
+      padding: '20px 16px', 
       display: 'flex', 
       flexDirection: 'column', 
       alignItems: 'center', 
-      justifyContent: 'center',
-      position: 'relative',
       fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif',
       boxSizing: 'border-box',
       overflow: 'hidden'
@@ -876,13 +875,17 @@ export default function VisitorCall() {
 
         {/* Atalhos Administrativos Removidos */}
 
-        {/* Footer */}
-        <footer style={{ width: '100%', marginTop: '16px', zIndex: 1 }}>
-          <p style={{ fontSize: '11px', color: '#475569', textAlign: 'center', letterSpacing: '0.8px', margin: 0, fontWeight: 700 }}>
-            TECNOLOGIA CAMPAINHA DIGITAL® • CONEXÃO P2P CRIPTOGRAFADA
-          </p>
-        </footer>
       </div>
+
+      {/* Footer */}
+      <footer style={{ width: '100%', padding: '16px 0', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+        <p style={{ fontSize: '11px', color: '#475569', textAlign: 'center', letterSpacing: '0.8px', margin: 0, fontWeight: 700 }}>
+          TECNOLOGIA CAMPAINHA DIGITAL® • CONEXÃO P2P CRIPTOGRAFADA
+        </p>
+        <a href="https://wa.me/5521995879170?text=Ol%C3%A1%21%20Gostaria%20de%20saber%20mais%20sobre%20como%20ter%20a%20minha%20Campainha%20Digital." target="_blank" rel="noreferrer" style={{ fontSize: '13px', color: '#00F5D4', textDecoration: 'none', fontWeight: 800, padding: '8px 16px', border: '1px solid rgba(0, 245, 212, 0.3)', borderRadius: '8px', background: 'rgba(0, 245, 212, 0.05)', textAlign: 'center' }}>
+          Tenha a sua campainha digital também
+        </a>
+      </footer>
     </div>
   );
 }
