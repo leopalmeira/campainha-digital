@@ -2216,37 +2216,4 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
 
-  // ─── ROBOT DE PING INTEGRADO (KEEP-ALIVE PARA O RENDER) ──────────────────
-  try {
-    const axios = require('axios');
-    const RENDER_URL = process.env.RENDER_EXTERNAL_URL || 'https://campainha-digital.onrender.com';
-    console.log(`[Ping Robot] Iniciando robô keep-alive integrado em ${RENDER_URL}/api/ping...`);
-    
-    const sendPing = async () => {
-      try {
-        const response = await axios.get(`${RENDER_URL}/api/ping`);
-        console.log(`[Ping Robot] Resposta do keep-alive recebida de ${RENDER_URL}:`, response.data);
-      } catch (err) {
-        console.warn(`[Ping Robot] Falha no ping de keep-alive para ${RENDER_URL}:`, err.message);
-        
-        // Fallback to the official production URL if RENDER_URL is different
-        if (RENDER_URL !== 'https://campainha-digital.onrender.com') {
-          try {
-            const fallbackRes = await axios.get('https://campainha-digital.onrender.com/api/ping');
-            console.log(`[Ping Robot] Resposta do keep-alive de fallback recebida:`, fallbackRes.data);
-          } catch (fallbackErr) {
-            console.warn(`[Ping Robot] Falha no ping de keep-alive de fallback:`, fallbackErr.message);
-          }
-        }
-      }
-    };
-
-    // Run immediately on startup
-    sendPing();
-
-    // Set interval for every 8 minutes
-    setInterval(sendPing, 8 * 60 * 1000);
-  } catch (err) {
-    console.warn(`[Ping Robot] Não foi possível iniciar o robô de ping integrado:`, err.message);
-  }
 });
