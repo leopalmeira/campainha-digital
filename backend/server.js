@@ -803,11 +803,13 @@ app.post('/api/admin/login', (req, res) => {
      p.clientCode === rawPassword || 
      (p.adminPassword && p.adminPassword === rawPassword))
   );
+  if (propAdmin) {
     return res.json({
       success: true, role: 'sindico', email: propAdmin.adminEmail,
       propertyId: propAdmin.id, propertyName: propAdmin.name,
       clientCode: propAdmin.clientCode
     });
+  }
 
   // 4. Doorman - aceita doormanCode OU password
   const doorCode = (doormanCode || password || '').trim().toUpperCase();
@@ -857,7 +859,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 app.post('/api/auth/link-qr', async (req, res) => {
-  const { userId, propertyId, qrImage, paymentChoice, propertyType, billingModel, latitude, longitude } = req.body;
+  const { userId, propertyId, qrImage, paymentChoice, propertyType, billingModel, latitude, longitude, houseNumber } = req.body;
   const user = users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
@@ -893,7 +895,7 @@ app.post('/api/auth/link-qr', async (req, res) => {
   // Create property automatically
   if (!existingProp) {
     const clientCode = generateAccessCode();
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://campainha-digital.netlify.app';
     const url = `${frontendUrl}/chamada/${propertyId}`;
     const qrCodeDataUrl = await QRCode.toDataURL(url, { width: 500 });
 
@@ -952,9 +954,11 @@ app.post('/api/auth/link-qr', async (req, res) => {
     if (!existingUnit) {
       unitId = uuidv4();
       accessCode = generateAccessCode();
+      // Usa o número/nome da casa fornecido pelo morador; fallback para o nome completo
+      const unitName = (houseNumber && houseNumber.trim()) ? houseNumber.trim() : user.name;
       existingUnit = {
         id: unitId,
-        name: user.name,
+        name: unitName,
         accessCode: accessCode,
         userId: user.id
       };
@@ -1176,7 +1180,7 @@ app.post('/api/properties', async (req, res) => {
     return res.status(400).json({ error: 'Este QR Code / ID já está em uso por outro cliente.' });
   }
 
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://campainha-digital.netlify.app';
   const url = `${frontendUrl}/chamada/${id}`;
 
   const qrCodeDataUrl = await QRCode.toDataURL(url, {

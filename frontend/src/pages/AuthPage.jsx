@@ -33,6 +33,7 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
   const [clientLocation, setClientLocation] = useState(null);
   const [villageWarning, setVillageWarning] = useState('');
   const [showVillageModal, setShowVillageModal] = useState(false);
+  const [houseNumber, setHouseNumber] = useState(''); // Número/nome da casa na Vila
 
   useEffect(() => {
     fetch(`${API}/api/config`)
@@ -356,7 +357,8 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
         qrImage: scannedImage, 
         paymentChoice, 
         propertyType, 
-        billingModel 
+        billingModel,
+        houseNumber: houseNumber.trim() || undefined
       };
       if (clientLocation) {
         payload.latitude = clientLocation.lat;
@@ -976,21 +978,52 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', border: '2px solid #F59E0B' }}>
               <AlertTriangle size={32} color="#D97706" />
             </div>
-            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>Placa já Cadastrada</h3>
-            <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.6, margin: 0 }}>
-              Esta placa já está cadastrada. O cadastro para esta placa só pode ser realizado como <strong>Vila de Casas</strong>.
+            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0F172A', marginBottom: '12px' }}>Placa de Vila Detectada</h3>
+            <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.6, margin: '0 0 20px 0' }}>
+              Esta placa já está cadastrada como <strong>Vila de Casas</strong>. Para identificar sua casa na lista de interfones, informe seu número ou identificação.
             </p>
+
+            {/* Campo obrigatório: número ou nome da casa */}
+            <div style={{ width: '100%', marginBottom: '20px', textAlign: 'left' }}>
+              <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
+                🏠 Número / Identificação da sua Casa
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: Casa 3, Ap 101, Fundos..."
+                value={houseNumber}
+                onChange={e => setHouseNumber(e.target.value)}
+                className="input-glass"
+                style={{ width: '100%', boxSizing: 'border-box', textAlign: 'center', fontWeight: 700, fontSize: '16px', letterSpacing: '1px' }}
+                autoFocus
+              />
+              <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px', lineHeight: 1.4 }}>
+                Este nome aparecerá para o visitante escolher qual casa chamar.
+              </p>
+            </div>
+
             <button 
               type="button" 
               onClick={() => {
+                if (!houseNumber.trim()) {
+                  alert('Por favor, informe o número ou nome da sua casa.');
+                  return;
+                }
                 setShowVillageModal(false);
                 setPropertyType('village');
-                setStep(1); // Volta para selecionar Vila
+                setStep(3); // Avança direto para escolha de plano
               }} 
               className="btn-primary" 
-              style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '15px', fontWeight: 800, marginTop: '24px' }}
+              style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '15px', fontWeight: 800, marginTop: '8px' }}
             >
-              OK, entendi!
+              Confirmar e Continuar <ArrowRight size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowVillageModal(false); setScannedId(''); setHouseNumber(''); setStep(2); }}
+              style={{ marginTop: '12px', background: 'none', border: 'none', color: '#94A3B8', fontSize: '13px', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Cancelar — escanear outra placa
             </button>
           </div>
         </div>
