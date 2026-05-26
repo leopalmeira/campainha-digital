@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: campainha-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: FRONTEND_URL
+        value: https://campainha-digital.netlify.app
+      - key: DATABASE_URL
+        sync: false
+      - key: ASAAS_API_KEY
+        sync: false
+      - key: ASAAS_API_URL
+        value: https://api.asaas.com/v3
