@@ -12,7 +12,7 @@ services:
         value: 3001
       - key: FRONTEND_URL
         value: https://campainha-digital.netlify.app
-      - key: ASAAS_API_KEY
-        value: $aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjcxYTFiOTdiLTliNzUtNDRhYy1hMDRiLTc1ZWUyZTE2YTIwODo6JGFhY2hfYTQ0YTk0YzktMjhjZS00ZDU3LTkwYWItZTk0MTc5NGY3MTA1
-      - key: ASAAS_API_URL
-        value: https://api.asaas.com/v3
+      - key: ABACATE_API_KEY
+        sync: false
+      - key: ABACATE_WEBHOOK_SECRET
+        sync: false
