@@ -41,6 +41,10 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use('/contracts', express.static(path.join(__dirname, 'contracts')));
 
+app.get('/', (req, res) => {
+  res.send('🔔 Campainha Digital API - Online (v4.2.1)');
+});
+
 // Middleware global de sincronismo em tempo real com o banco de dados
 app.use(async (req, res, next) => {
   if (req.path && req.path.startsWith('/api/')) {

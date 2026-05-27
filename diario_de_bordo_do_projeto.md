@@ -875,7 +875,7 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ---
 
-## ☁️ v4.2.0 — Migração para Fly.io, Persistência de Dados e Correção de Binding (27/05/2026)
+## ☁️ v4.2.1 — Migração para Fly.io, Persistência de Dados e Rota de Status (27/05/2026)
 
 ### 🚀 Migração do Backend para Fly.io (gru - São Paulo)
 - **Infraestrutura Própria:** Configuração completa para deploy do backend no Fly.io, reduzindo a latência para os usuários no Brasil utilizando a região `gru`.
@@ -888,6 +888,9 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 
 ### 🔌 Correção do Endereço de Escuta (Binding 0.0.0.0)
 - **Acessibilidade do Proxy:** Corrigido o `server.listen` para escutar explicitamente em `0.0.0.0`, assegurando que o Fly Proxy consiga rotear o tráfego de fora do contêiner de forma confiável para a porta 3001.
+
+### 🌐 Rota de Status Inicial (Root Route)
+- **Feedback Positivo:** Adicionada rota inicial (`GET /`) que responde com a mensagem `"🔔 Campainha Digital API - Online (v4.2.1)"`, evitando o erro padrão `"Cannot GET /"` do Express que causava confusão ao acessar a URL no navegador.
 
 ### 🔒 Variáveis de Ambiente & Secrets
 - **Secrets Configurados:** Vinculadas as chaves de integração do Asaas (`ASAAS_API_KEY`, `ASAAS_API_URL`) e `FRONTEND_URL` como secrets criptografados diretamente na plataforma do Fly.io, garantindo total segurança de chaves.
