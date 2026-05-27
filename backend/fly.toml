@@ -1,0 +1,23 @@
+app = "campainha-digital"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3001"
+  DATA_DIR = "/data"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_rollback = true
+
+[mounts]
+  source = "campainha_data"
+  destination = "/data"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

@@ -52,14 +52,18 @@ app.use(async (req, res, next) => {
 });
 
 // ─── Paths dos bancos JSON ────────────────────────────────────────────────────
-const dbPath           = path.join(__dirname, 'db.json');
-const residentsDbPath  = path.join(__dirname, 'residents.json');
-const visitorsDbPath   = path.join(__dirname, 'visitors.json');
-const messagesDbPath   = path.join(__dirname, 'messages.json');
-const usersDbPath      = path.join(__dirname, 'users.json');
-const subscriptionsDbPath = path.join(__dirname, 'subscriptions.json');
-const supportDbPath    = path.join(__dirname, 'support.json');
-const configDbPath     = path.join(__dirname, 'platform_config.json');
+const dataDir = process.env.DATA_DIR || __dirname;
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+const dbPath           = path.join(dataDir, 'db.json');
+const residentsDbPath  = path.join(dataDir, 'residents.json');
+const visitorsDbPath   = path.join(dataDir, 'visitors.json');
+const messagesDbPath   = path.join(dataDir, 'messages.json');
+const usersDbPath      = path.join(dataDir, 'users.json');
+const subscriptionsDbPath = path.join(dataDir, 'subscriptions.json');
+const supportDbPath    = path.join(dataDir, 'support.json');
+const configDbPath     = path.join(dataDir, 'platform_config.json');
 
 let properties = [];
 let residents  = [];
@@ -2213,7 +2217,7 @@ cron.schedule('0 0 * * *', () => {
 });
 
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
 
 });

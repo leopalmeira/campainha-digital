@@ -873,3 +873,23 @@ O login do morador pedia e-mail + código para TODOS os tipos, tornando o proces
 - **Preço Unificado:** O preço exibido para qualquer morador que se cadastre em uma Vila já existente será **o mesmo preço configurado para Vila de Casas** (anual ou mensal, conforme `billingModel` já definido pelo primeiro morador), garantindo coerência e transparência de cobrança para todos os residentes do mesmo endereço.
 - **Herança de Modelo de Cobrança:** O `billingModel` (anual/mensal) da placa Vila existente é automaticamente herdado pelo novo morador durante o pré-check, evitando divergências entre residentes do mesmo endereço.
 
+---
+
+## ☁️ v4.2.0 — Migração para Fly.io, Persistência de Dados e Correção de Binding (27/05/2026)
+
+### 🚀 Migração do Backend para Fly.io (gru - São Paulo)
+- **Infraestrutura Própria:** Configuração completa para deploy do backend no Fly.io, reduzindo a latência para os usuários no Brasil utilizando a região `gru`.
+- **Dockerfile Personalizado (`backend/Dockerfile`):** Criada receita Docker otimizada baseada no Node.js 20-alpine para empacotar o backend da aplicação de forma isolada e performática.
+- **Configuração Fly.io (`backend/fly.toml`):** Configurado para usar a porta 3001 e provisionado com 256MB de RAM (ideal para a fatia gratuita do Fly.io).
+
+### 💾 Persistência de Dados via Volume no Fly.io
+- **Fim da Perda de Dados:** Provisionado e configurado um volume persistente de 1GB (`campainha_data`) montado em `/data`.
+- **Adaptação do Código (`backend/server.js`):** Implementada a variável de ambiente `DATA_DIR`. O backend agora detecta automaticamente se há uma pasta de dados persistente configurada e salva os bancos JSON locais (`db.json`, `residents.json`, etc.) nessa pasta se o PostgreSQL não estiver ativo. Isso previne perda de cadastros durante re-deploys ou reinicializações do contêiner.
+
+### 🔌 Correção do Endereço de Escuta (Binding 0.0.0.0)
+- **Acessibilidade do Proxy:** Corrigido o `server.listen` para escutar explicitamente em `0.0.0.0`, assegurando que o Fly Proxy consiga rotear o tráfego de fora do contêiner de forma confiável para a porta 3001.
+
+### 🔒 Variáveis de Ambiente & Secrets
+- **Secrets Configurados:** Vinculadas as chaves de integração do Asaas (`ASAAS_API_KEY`, `ASAAS_API_URL`) e `FRONTEND_URL` como secrets criptografados diretamente na plataforma do Fly.io, garantindo total segurança de chaves.
+
+
