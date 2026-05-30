@@ -11,6 +11,9 @@ services:
       - key: PORT
         value: 3001
 
+      - key: DATABASE_URL
+        sync: false
+
       - key: ABACATE_API_KEY
         sync: false
       - key: ABACATE_WEBHOOK_SECRET
