@@ -2229,7 +2229,7 @@ if (fs.existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
   
   // Roteamento SPA (Single Page Application): Qualquer rota não capturada vai para o index.html
-  app.get('*', (req, res) => {
+  app.get(/.*/, (req, res) => {
     // Evita loop infinito se a rota for de API
     if (!req.path.startsWith('/api/')) {
       res.sendFile(path.join(frontendDistPath, 'index.html'));
