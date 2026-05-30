@@ -6,7 +6,7 @@ import Logo from '../components/Logo';
 import { useNavigate } from 'react-router-dom';
 import jsQR from 'jsqr';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 
 

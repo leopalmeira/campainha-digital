@@ -2221,6 +2221,26 @@ cron.schedule('0 0 * * *', () => {
 });
 
 const PORT = process.env.PORT || 3001;
+
+// ─── SERVIR FRONTEND ESTÁTICO (PRODUÇÃO) ───────────────────────────────────
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  console.log(`[SERVER] Diretório frontend/dist encontrado. Servindo arquivos estáticos.`);
+  app.use(express.static(frontendDistPath));
+  
+  // Roteamento SPA (Single Page Application): Qualquer rota não capturada vai para o index.html
+  app.get('*', (req, res) => {
+    // Evita loop infinito se a rota for de API
+    if (!req.path.startsWith('/api/')) {
+      res.sendFile(path.join(frontendDistPath, 'index.html'));
+    } else {
+      res.status(404).json({ error: 'Endpoint da API não encontrado' });
+    }
+  });
+} else {
+  console.log(`[SERVER] Diretório frontend/dist não encontrado. Servindo apenas a API.`);
+}
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
 

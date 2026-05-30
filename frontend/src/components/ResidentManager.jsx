@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserX, Shield, ShieldOff, Plus, Trash2, Mail, Key, Copy, Check, RefreshCw, MessageCircle } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 function CopyBtn({ text }) {
   const [c, setC] = useState(false);

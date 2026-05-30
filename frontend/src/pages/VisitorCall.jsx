@@ -5,7 +5,7 @@ import { Bell, CheckCircle, ShieldCheck, MapPin, ChevronRight, Mic, Video, Phone
 import Logo from '../components/Logo';
 
 // ─── Configuração do Socket.io ────────────────────────────────────────────────
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 // ─── Haversine Formula ──────────────────────────────────────────────────────
 function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {

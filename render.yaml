@@ -4,14 +4,13 @@ services:
     env: node
     plan: free
     region: oregon
-    rootDir: backend
-    buildCommand: npm install
-    startCommand: node server.js
+    rootDir: .
+    buildCommand: npm run build
+    startCommand: npm start
     envVars:
       - key: PORT
         value: 3001
-      - key: FRONTEND_URL
-        value: https://campainha-digital.netlify.app
+
       - key: ABACATE_API_KEY
         sync: false
       - key: ABACATE_WEBHOOK_SECRET

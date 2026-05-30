@@ -7,7 +7,7 @@ import BroadcastPanel from '../components/BroadcastPanel';
 import ResidentManager from '../components/ResidentManager';
 import ChatBot from '../components/ChatBot';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 function fmtDate(ts) {
   const d = new Date(ts);

@@ -4,7 +4,7 @@ import { Mail, Lock, User, ArrowRight, ShieldCheck, Home, Camera, X, CheckCircle
 import Logo from '../components/Logo';
 import jsQR from 'jsqr';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 export default function AuthPage({ clientOnly = false, defaultLoginType = 'password' }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -124,7 +124,12 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
             deviceId
           })
         });
-        const data = await res.json();
+        let data;
+        try {
+          data = await res.json();
+        } catch (e) {
+          throw new Error('A URL da API configurada no Render não está respondendo como uma API válida (retornou HTML ou erro de sintaxe). Verifique a variável VITE_API_URL.');
+        }
         if (res.ok) {
           if (data.role === 'doorman') {
             sessionStorage.setItem('cd_admin_role', 'doorman');
@@ -146,7 +151,12 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password, clientCode: password })
         });
-        const data = await res.json();
+        let data;
+        try {
+          data = await res.json();
+        } catch (e) {
+          throw new Error('A URL da API configurada no Render não está respondendo como uma API válida (retornou HTML ou erro de sintaxe). Verifique a variável VITE_API_URL.');
+        }
         if (res.ok) {
           sessionStorage.setItem('cd_admin_email', data.email);
           if (data.role === 'master') {
@@ -176,7 +186,11 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
         }
       }
     } catch (err) {
-      setError('Erro ao conectar com o servidor.');
+      if (err.message && err.message.includes('API')) {
+        setError(err.message);
+      } else {
+        setError('Erro ao conectar com o servidor. Verifique sua conexão e se a API está online.');
+      }
     } finally {
       setLoading(false);
     }
@@ -196,6 +210,13 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
       if (userId) {
         if (scannedId) {
           setStep(3); // Se já foi escaneado, avança para seleção de planos/teste
+        } else if (countdown === 0 && status === 'calling') {
+          // Usar a função de estado de forma segura ou atualizar estado assincronamente se necessário
+          setTimeout(() => {
+            setStatus('idle');
+            setCallingUnit(null);
+            stopAll();
+          }, 0);
         } else {
           setStep(2);
         }
@@ -220,9 +241,9 @@ export default function AuthPage({ clientOnly = false, defaultLoginType = 'passw
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const startScanner = async () => {
+  async function startScanner() {
     if (!navigator.geolocation) {
       alert("Seu navegador não suporta geolocalização, que é obrigatória por segurança.");
       return;

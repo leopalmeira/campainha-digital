@@ -1,0 +1,12 @@
+{
+  "name": "campainha-digital-fullstack",
+  "version": "1.0.0",
+  "description": "Campainha Digital Fullstack Deploy",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build && cd ../backend && npm install",
+    "start": "cd backend && node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

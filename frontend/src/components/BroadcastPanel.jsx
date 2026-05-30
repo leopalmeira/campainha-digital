@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Send, MessageSquare, AlertTriangle, Clock, CheckCheck, Users } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 function fmt(ts) {
   const d = new Date(ts);

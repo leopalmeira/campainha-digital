@@ -8,7 +8,7 @@ import MessagesPanel from '../components/resident/MessagesPanel';
 import IntercomPanel from '../components/resident/IntercomPanel';
 import ServicesPanel from '../components/resident/ServicesPanel';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
