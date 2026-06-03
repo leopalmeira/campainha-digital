@@ -99,6 +99,8 @@ Campainha Digital transforma um QR Code em uma campainha inteligente com **video
 
 ## 🌐 Deploy no Render
 
+Última atualização do repositório: 03 de Junho de 2026.
+
 ### Backend — Web Service
 | Campo | Valor |
 |-------|-------|
