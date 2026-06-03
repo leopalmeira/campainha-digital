@@ -37,7 +37,16 @@ const io = new Server(server, {
   transports: ['websocket', 'polling']
 });
 
-app.use(cors());
+const corsOptions = {
+  origin: '*', // Em produção, você pode restringir para o seu domínio frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Habilita pre-flight para todas as rotas
 app.use(express.json({ limit: '10mb' }));
 app.use('/contracts', express.static(path.join(__dirname, 'contracts')));
 
