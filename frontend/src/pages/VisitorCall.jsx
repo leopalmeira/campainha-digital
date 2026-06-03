@@ -876,6 +876,68 @@ export default function VisitorCall() {
           </div>
         )}
 
+        <footer style={{ marginTop: '40px', textAlign: 'center', paddingBottom: '20px' }}>
+          <p style={{ color: '#475569', fontSize: '12px', fontWeight: 600, letterSpacing: '0.5px', margin: '0 0 12px 0' }}>
+            &copy; 2026 CAMPAINHA DIGITAL &bull; TECNOLOGIA P2P REAL
+          </p>
+          <a 
+            href="/" 
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              color: '#00F5D4', 
+              textDecoration: 'none', 
+              fontSize: '14px', 
+              fontWeight: 800,
+              padding: '10px 20px',
+              borderRadius: '12px',
+              background: 'rgba(0, 245, 212, 0.08)',
+              border: '1px solid rgba(0, 245, 212, 0.2)',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(0, 245, 212, 0.15)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(0, 245, 212, 0.08)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            Peça já a sua campainha <ArrowRight size={16} />
+          </a>
+        </footer>
+              background: 'linear-gradient(135deg, #00F5D4 0%, #00BBF9 100%)', 
+              borderRadius: '50%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              margin: '0 auto 28px', 
+              boxShadow: '0 0 35px rgba(0, 245, 212, 0.4)', 
+              animation: 'subtle-pulse 1.8s infinite' 
+            }}>
+              <KeyRound size={42} color="#070A13" />
+            </div>
+            <h2 style={{ fontSize: '28px', fontWeight: 900, color: '#00F5D4', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', marginTop: 0 }}>Portão Liberado!</h2>
+            <p style={{ fontSize: '18px', fontWeight: 800, color: '#FFF', marginBottom: '8px', margin: '0 0 8px 0' }}>Seja bem-vindo!</p>
+            <p style={{ color: '#94A3B8', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>O acesso à residência foi autorizado pelo morador.</p>
+          </div>
+        )}
+
+        {/* ── Chamada encerrada ─────────────────────────────────────────────── */}
+        {status === 'ended' && (
+          <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
+            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <PhoneOff size={32} color="#94A3B8" />
+            </div>
+            <h2 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '10px', color: '#FFF', letterSpacing: '-0.5px', marginTop: 0 }}>Chamada Finalizada</h2>
+            <p style={{ color: '#94A3B8', marginBottom: '28px', fontSize: '14px', margin: '0 0 28px 0' }}>A chamada foi encerrada pelo morador.</p>
+            <button className="btn-primary" style={{ width: '100%', fontWeight: 800 }} onClick={() => { setStatus('idle'); setCallingUnit(null); }}>Chamar Novamente</button>
+          </div>
+        )}
+
         {/* Atalhos Administrativos Discretos */}
         <div style={{ 
           marginTop: '8px', 
