@@ -1,3 +1,4 @@
+// Backend Campainha Digital - v3.4.1 (CORS Fix)
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
