@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { Bell, CheckCircle, ShieldCheck, MapPin, ChevronRight, Mic, Video, PhoneOff, WifiOff, KeyRound } from 'lucide-react';
+import { Bell, CheckCircle, ShieldCheck, MapPin, ChevronRight, Mic, Video, PhoneOff, WifiOff, KeyRound, ArrowRight } from 'lucide-react';
 import Logo from '../components/Logo';
 
 // ─── Configuração do Socket.io ────────────────────────────────────────────────
@@ -68,106 +68,6 @@ export default function VisitorCall() {
   const pcRef           = useRef(null);   // RTCPeerConnection
   const localStreamRef  = useRef(null);
 
-  // ─── Inicialização do Socket.io ─────────────────────────────────────────
-  useEffect(() => {
-    const socket = io(API_URL, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 2000,
-      reconnectionAttempts: 10
-    });
-    socketRef.current = socket;
-
-    fetchProperty();
-
-    // Morador atendeu – inicia WebRTC
-    // Em modo monitor: visitante vê "Chamando..." — NÃO revela que está sendo visto
-    socket.on('call_answered', async ({ residentSocketId, mode, unitId }) => {
-      setResidentSocket(residentSocketId);
-      // modo monitor: visitante continua vendo a tela de "chamando" (não sabe que está sendo monitorado)
-      if (mode !== 'monitor') {
-        setStatus('answered');
-        setCountdown(0);
-      }
-      await startWebRTC(residentSocketId, mode);
-    });
-
-    // Mensagem rápida enviada pelo morador
-    socket.on('quick_message', ({ message }) => {
-      setQuickMessage(message);
-      setTimeout(() => setQuickMessage(''), 5000);
-    });
-
-    // Recebe answer do morador
-    socket.on('webrtc_answer', async ({ answer }) => {
-      if (pcRef.current && pcRef.current.signalingState !== 'stable') {
-        try {
-          await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-        } catch (e) {
-          console.error('[WebRTC] Erro ao aplicar answer:', e);
-        }
-      }
-    });
-
-    // Recebe ICE candidate do morador
-    socket.on('webrtc_ice_candidate', async ({ candidate }) => {
-      if (pcRef.current && candidate) {
-        try {
-          await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (e) {
-          console.warn('[WebRTC] Erro ao adicionar ICE candidate:', e);
-        }
-      }
-    });
-
-    // Chamada encerrada pelo morador
-    socket.on('call_ended', () => {
-      setStatus('ended');
-      stopAll();
-    });
-
-    // Renegociação: morador ativou/desativou a câmera — aceitar novo offer
-    socket.on('webrtc_offer', async ({ sender, offer }) => {
-      const pc = pcRef.current;
-      if (!pc) return;
-      try {
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socket.emit('webrtc_answer', { target: sender, answer: pc.localDescription });
-      } catch (e) { console.warn('[WebRTC] Renegociação falhou:', e); }
-    });
-
-    // Portão liberado pelo morador
-    socket.on('entry_authorized', () => {
-      setStatus('authorized');
-      setTimeout(() => {
-        setStatus('idle');
-        setCallingUnit(null);
-        stopAll();
-      }, 8000); // Back to idle after 8s
-    });
-
-    return () => {
-      socket.disconnect();
-      stopAll();
-    };
-  }, [id]);
-
-  // ─── Countdown ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    let timer;
-    if (countdown > 0 && status === 'calling') {
-      timer = setTimeout(() => setCountdown(c => c - 1), 1000);
-    } else if (countdown === 0 && status === 'calling') {
-      setStatus('idle');
-      setCallingUnit(null);
-      stopAll();
-    }
-    return () => clearTimeout(timer);
-  }, [countdown, status]);
-
-  // ─── Helpers ────────────────────────────────────────────────────────────
   const stopAll = () => {
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(t => t.stop());
@@ -183,7 +83,7 @@ export default function VisitorCall() {
     try {
       const res  = await fetch(`${API_URL}/api/properties/${id}`);
       const data = await res.json();
-      
+
       if (data.latitude && data.longitude) {
         setStatus('verifying_location');
         if (!navigator.geolocation) {
@@ -197,7 +97,7 @@ export default function VisitorCall() {
             const visitorLat = pos.coords.latitude;
             const visitorLng = pos.coords.longitude;
             const distance = getDistanceFromLatLonInM(visitorLat, visitorLng, data.latitude, data.longitude);
-            
+
             if (distance > 100) { // 100 metros de tolerância
               setErrorMsg(`Você precisa estar fisicamente no endereço da placa para tocar a campainha. (Distância atual: ${Math.round(distance)}m)`);
               setStatus('error');
@@ -252,7 +152,7 @@ export default function VisitorCall() {
     return null;
   };
 
-  // ─── WebRTC: Visitante cria a oferta ────────────────────────────────────
+  // ─── WebRTC: Visitante cria a oferta ───────────────────────────────────
   const startWebRTC = useCallback(async (residentSocketId, mode) => {
     if (!localStreamRef.current) return;
 
@@ -268,52 +168,126 @@ export default function VisitorCall() {
     pc.ontrack = (event) => {
       const stream = event.streams[0];
       if (!stream) return;
-      // Áudio
-      if (remoteAudioRef.current) {
-        remoteAudioRef.current.srcObject = stream;
-        remoteAudioRef.current.play().catch(e => console.warn('[Audio] autoplay bloqueado:', e));
-      }
-      // Vídeo do morador (quando ele ativar a câmera)
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = stream;
-        remoteVideoRef.current.play().catch(() => {});
+
+      if (stream.getVideoTracks().length > 0) {
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = stream;
+      } else {
+        if (remoteAudioRef.current) remoteAudioRef.current.srcObject = stream;
       }
     };
 
-    // Envia ICE candidates para o morador
+    // Candidatos ICE
     pc.onicecandidate = (event) => {
-      if (event.candidate && socketRef.current) {
-        socketRef.current.emit('webrtc_ice_candidate', {
-          target: residentSocketId,
+      if (event.candidate) {
+        socketRef.current.emit('ice_candidate', {
+          to: residentSocketId,
           candidate: event.candidate
         });
       }
     };
 
-    pc.onconnectionstatechange = () => {
-      console.log('[WebRTC] Estado:', pc.connectionState);
-      if (pc.connectionState === 'failed') {
-        setErrorMsg('Conexão P2P falhou. Verifique sua rede.');
-      }
-    };
-
-    // Cria e envia offer
+    // Criar oferta
     try {
-      const offer = await pc.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: mode !== 'monitor' // morador ativo manda vídeo/áudio de volta
-      });
+      const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-
-      socketRef.current.emit('webrtc_offer', {
-        target: residentSocketId,
-        offer: pc.localDescription
+      socketRef.current.emit('call_offer', {
+        to: residentSocketId,
+        offer,
+        mode
       });
     } catch (err) {
-      console.error('[WebRTC] Erro ao criar offer:', err);
-      setErrorMsg('Erro ao iniciar videochamada.');
+      console.error('[WebRTC] Erro ao criar oferta:', err);
     }
   }, []);
+
+  // ─── Inicialização do Socket.io ─────────────────────────────────────────
+  useEffect(() => {
+    const socket = io(API_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 2000,
+      reconnectionAttempts: 10
+    });
+    socketRef.current = socket;
+
+    fetchProperty();
+
+    // Morador atendeu – inicia WebRTC
+    // Em modo monitor: visitante vê "Chamando..." — NÃO revela que está sendo visto
+    socket.on('call_answered', async ({ residentSocketId, mode, unitId }) => {
+      setResidentSocket(residentSocketId);
+      // modo monitor: visitante continua vendo a tela de "chamando" (não sabe que está sendo monitorado)
+      if (mode !== 'monitor') {
+        setStatus('answered');
+        setCountdown(0);
+      }
+      await startWebRTC(residentSocketId, mode);
+    });
+
+    // Mensagem rápida enviada pelo morador
+    socket.on('quick_message', ({ message }) => {
+      setQuickMessage(message);
+      setTimeout(() => setQuickMessage(''), 5000);
+    });
+
+    // Candidato ICE recebido
+    socket.on('ice_candidate', async ({ candidate }) => {
+      if (pcRef.current) {
+        await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+      }
+    });
+
+    // Resposta WebRTC
+    socket.on('call_answer', async ({ answer }) => {
+      if (pcRef.current) {
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+      }
+    });
+
+    // Chamada encerrada
+    socket.on('call_ended', () => {
+      setStatus('ended');
+      stopAll();
+    });
+
+    // Renegociação: morador ativou/desativou a câmera — aceitar novo offer
+    socket.on('renegotiate_offer', async ({ offer }) => {
+      if (pcRef.current) {
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pcRef.current.createAnswer();
+        await pcRef.current.setLocalDescription(answer);
+        socket.emit('renegotiate_answer', { to: residentSocket, answer });
+      }
+    });
+
+    // Portão liberado pelo morador
+    socket.on('entry_authorized', () => {
+      setStatus('authorized');
+      setTimeout(() => {
+        setStatus('idle');
+        setCallingUnit(null);
+        stopAll();
+      }, 8000); // Back to idle after 8s
+    });
+
+    return () => {
+      socket.disconnect();
+      stopAll();
+    };
+  }, [id, residentSocket, startWebRTC]);
+
+  // ─── Countdown ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    let timer;
+    if (countdown > 0 && status === 'calling') {
+      timer = setTimeout(() => setCountdown(c => c - 1), 1000);
+    } else if (countdown === 0 && status === 'calling') {
+      setStatus('idle');
+      setCallingUnit(null);
+      stopAll();
+    }
+    return () => clearTimeout(timer);
+  }, [countdown, status]);
 
   // ─── Tocar campainha ────────────────────────────────────────────────────
   const handleCall = async (unit) => {
@@ -909,34 +883,6 @@ export default function VisitorCall() {
             Peça já a sua campainha <ArrowRight size={16} />
           </a>
         </footer>
-              background: 'linear-gradient(135deg, #00F5D4 0%, #00BBF9 100%)', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              margin: '0 auto 28px', 
-              boxShadow: '0 0 35px rgba(0, 245, 212, 0.4)', 
-              animation: 'subtle-pulse 1.8s infinite' 
-            }}>
-              <KeyRound size={42} color="#070A13" />
-            </div>
-            <h2 style={{ fontSize: '28px', fontWeight: 900, color: '#00F5D4', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', marginTop: 0 }}>Portão Liberado!</h2>
-            <p style={{ fontSize: '18px', fontWeight: 800, color: '#FFF', marginBottom: '8px', margin: '0 0 8px 0' }}>Seja bem-vindo!</p>
-            <p style={{ color: '#94A3B8', fontSize: '13px', lineHeight: '1.6', margin: 0 }}>O acesso à residência foi autorizado pelo morador.</p>
-          </div>
-        )}
-
-        {/* ── Chamada encerrada ─────────────────────────────────────────────── */}
-        {status === 'ended' && (
-          <div className="visitor-card fade-in" style={{ textAlign: 'center', padding: '40px 24px' }}>
-            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <PhoneOff size={32} color="#94A3B8" />
-            </div>
-            <h2 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '10px', color: '#FFF', letterSpacing: '-0.5px', marginTop: 0 }}>Chamada Finalizada</h2>
-            <p style={{ color: '#94A3B8', marginBottom: '28px', fontSize: '14px', margin: '0 0 28px 0' }}>A chamada foi encerrada pelo morador.</p>
-            <button className="btn-primary" style={{ width: '100%', fontWeight: 800 }} onClick={() => { setStatus('idle'); setCallingUnit(null); }}>Chamar Novamente</button>
-          </div>
-        )}
 
         {/* Atalhos Administrativos Discretos */}
         <div style={{ 

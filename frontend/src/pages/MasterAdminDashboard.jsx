@@ -71,23 +71,6 @@ export default function MasterAdminDashboard() {
 
   const [supportTickets, setSupportTickets] = useState([]);
 
-  useEffect(() => {
-    const role = sessionStorage.getItem('cd_admin_role');
-    if (role !== 'master') {
-      navigate('/auth');
-      return;
-    }
-    const loadAll = (hideLoading = false) => {
-      fetchClients(hideLoading);
-      fetchPendingUsers();
-      fetchAllUsers();
-      fetchSupportTickets();
-    };
-    loadAll(false);
-    const interval = setInterval(() => { loadAll(true); }, 1200000); // Atualiza silenciosamente a cada 20 minutos
-    return () => clearInterval(interval);
-  }, [navigate]);
-
   const fetchSupportTickets = async () => {
     try {
       const email = sessionStorage.getItem('cd_admin_email');
@@ -158,6 +141,23 @@ export default function MasterAdminDashboard() {
       if (!hideLoading) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const role = sessionStorage.getItem('cd_admin_role');
+    if (role !== 'master') {
+      navigate('/auth');
+      return;
+    }
+    const loadAll = (hideLoading = false) => {
+      fetchClients(hideLoading);
+      fetchPendingUsers();
+      fetchAllUsers();
+      fetchSupportTickets();
+    };
+    loadAll(false);
+    const interval = setInterval(() => { loadAll(true); }, 1200000); // Atualiza silenciosamente a cada 20 minutos
+    return () => clearInterval(interval);
+  }, [navigate]);
 
   const startScanner = async () => {
     setShowScanner(true);
@@ -2213,10 +2213,6 @@ function GlobalSettingsTab({ API }) {
   const [activeTooltip, setActiveTooltip] = useState(null); // ID do tooltip ativo para o tour explicativo
   const [showTour, setShowTour] = useState(true); // Exibe o guia interativo no topo
 
-  useEffect(() => {
-    fetchConfig();
-  }, []);
-
   const fetchConfig = async () => {
     try {
       const res = await fetch(`${API}/api/config`);
@@ -2228,6 +2224,10 @@ function GlobalSettingsTab({ API }) {
       console.error('Erro ao buscar config', e);
     }
   };
+
+  useEffect(() => {
+    fetchConfig();
+  }, []);
 
   const handleChange = (key, value) => {
     setConfig(prev => ({ ...prev, [key]: value }));

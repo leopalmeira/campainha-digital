@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Download, Trash2, Home, Building2, TreePine, X, ShieldCheck, LogOut, ChevronRight, Settings, Camera, ScanLine, Clock, User, RefreshCw, Copy, Check, MessageCircle, CreditCard, Users, Send, Zap, FileText, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
@@ -80,88 +80,51 @@ export default function AdminPanel() {
   const [globalConfig, setGlobalConfig] = useState(null);
   const videoRef = useRef(null);
 
-  useEffect(() => {
-    fetchProperties();
-    const interval = setInterval(() => { fetchProperties(true); }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    fetch(`${API}/api/config`)
-      .then(res => res.json())
-      .then(data => setGlobalConfig(data))
-      .catch(err => console.error("Erro ao carregar configuracoes globais:", err));
-  }, []);
-
-  useEffect(() => {
-    const handlePrompt = (e) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handlePrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handlePrompt);
-  }, []);
-
-  const getPropertyDisplayPrice = (property) => {
-    if (!property) return 39.90;
-    if (property.customPrice !== undefined && property.customPrice !== null && property.customPrice > 0) {
-      return Number(property.customPrice);
-    }
-    if (!globalConfig) return 39.90;
-    
-    const type = property.type || 'house';
-    const numUnits = property.units ? property.units.length : 0;
-    
-    // Faturamento Mensal
-    if (property.billingModel === 'monthly') {
-      if (type === 'condo') {
-        const base = globalConfig.condoMonthlyBasePrice !== undefined ? Number(globalConfig.condoMonthlyBasePrice) : 159.90;
-        const add = globalConfig.condoMonthlyAdditionalPrice !== undefined ? Number(globalConfig.condoMonthlyAdditionalPrice) : 1.55;
-        return numUnits <= 100 ? base : base + (numUnits - 100) * add;
+  // Reordered functions to avoid TDZ errors
+  const fetchProperties = async (hideLoading = false) => {
+    if (!hideLoading) setLoading(true);
+    try {
+      const adminEmail = sessionStorage.getItem('cd_admin_email');
+      const adminRole = sessionStorage.getItem('cd_admin_role');
+      const url = (adminRole === 'master' || !adminEmail) 
+        ? `${API}/api/properties` 
+        : `${API}/api/properties?email=${encodeURIComponent(adminEmail)}`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      
+      setProperties(data);
+ 
+      // Auto-seleciona propriedade salva no login ou a primeira disponível
+      const savedPropertyId = sessionStorage.getItem('cd_admin_propertyId');
+      if (data.length === 0) {
+        const savedType = sessionStorage.getItem('cd_property_type');
+        if (savedType) {
+          const mappedType = savedType === 'house' ? 'individual' : savedType;
+          setPropertyType(mappedType);
+          setPropertyName(mappedType === 'individual' ? 'Minha Casa' : '');
+          setUnitsList([{ name: '' }]);
+          setOnboardingStep(mappedType === 'individual' ? 'scan' : 'config');
+        } else {
+          setOnboardingStep('type');
+        }
+      } else {
+        const toSelect = savedPropertyId && data.find(p => p.id === savedPropertyId)
+          ? savedPropertyId
+          : data[0].id;
+        setSelectedProperty(toSelect);
       }
-      if (type === 'village') {
-        const base = globalConfig.villaMonthlyBasePrice !== undefined ? Number(globalConfig.villaMonthlyBasePrice) : 99.90;
-        const add = globalConfig.villaMonthlyAdditionalPrice !== undefined ? Number(globalConfig.villaMonthlyAdditionalPrice) : 1.20;
-        return numUnits <= 100 ? base : base + (numUnits - 100) * add;
-      }
-    }
-    
-    // Faturamento Anual (ou fallback)
-    if (type === 'house' || type === 'individual') {
-      return globalConfig.servicePriceAnnualSimple !== undefined ? Number(globalConfig.servicePriceAnnualSimple) : (globalConfig.servicePriceAnnual || 39.90);
-    }
-    if (type === 'village') {
-      return globalConfig.servicePriceAnnualVilla !== undefined ? Number(globalConfig.servicePriceAnnualVilla) : 99.90;
-    }
-    if (type === 'condo') {
-      return globalConfig.servicePriceAnnualCondo !== undefined ? Number(globalConfig.servicePriceAnnualCondo) : 159.90;
-    }
-    return globalConfig.servicePriceAnnual || 39.90;
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
-  // Polling para checar se o Pix foi pago enquanto o modal de pagamento está aberto
-  useEffect(() => {
-    const targetId = paymentPropertyId || scannedId;
-    if ((!showPaymentModal && onboardingStep !== 'pay_qr') || !targetId || isPaid) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`${API}/api/properties/${encodeURIComponent(targetId.trim().toLowerCase())}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.plan === 'Anual') {
-            setIsPaid(true);
-            fetchProperties();
-            clearInterval(interval);
-          }
-        }
-      } catch (err) {
-        console.error("Erro no polling de confirmacao no AdminPanel:", err);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [showPaymentModal, onboardingStep, paymentPropertyId, scannedId, isPaid]);
+  const fetchTickets = async () => {
+    try {
+      const email = sessionStorage.getItem('cd_admin_email');
+      const res = await fetch(`${API}/api/support?email=${encodeURIComponent(email)}&role=manager`);
+      const data = await res.json();
+      setSupportTickets(data);
+    } catch(e) { console.error(e); }
+  };
 
   const handleOpenPayment = async (propertyId) => {
     setPaymentPropertyId(propertyId);
@@ -228,55 +191,92 @@ export default function AdminPanel() {
     }
   };
 
-
-
-  const fetchTickets = async () => {
-    try {
-      const email = sessionStorage.getItem('cd_admin_email');
-      const res = await fetch(`${API}/api/support?email=${encodeURIComponent(email)}&role=manager`);
-      const data = await res.json();
-      setSupportTickets(data);
-    } catch(e) { console.error(e); }
+  const getPropertyDisplayPrice = (property) => {
+    if (!property) return 39.90;
+    if (property.customPrice !== undefined && property.customPrice !== null && property.customPrice > 0) {
+      return Number(property.customPrice);
+    }
+    if (!globalConfig) return 39.90;
+    
+    const type = property.type || 'house';
+    const numUnits = property.units ? property.units.length : 0;
+    
+    // Faturamento Mensal
+    if (property.billingModel === 'monthly') {
+      if (type === 'condo') {
+        const base = globalConfig.condoMonthlyBasePrice !== undefined ? Number(globalConfig.condoMonthlyBasePrice) : 159.90;
+        const add = globalConfig.condoMonthlyAdditionalPrice !== undefined ? Number(globalConfig.condoMonthlyAdditionalPrice) : 1.55;
+        return numUnits <= 100 ? base : base + (numUnits - 100) * add;
+      }
+      if (type === 'village') {
+        const base = globalConfig.villaMonthlyBasePrice !== undefined ? Number(globalConfig.villaMonthlyBasePrice) : 99.90;
+        const add = globalConfig.villaMonthlyAdditionalPrice !== undefined ? Number(globalConfig.villaMonthlyAdditionalPrice) : 1.20;
+        return numUnits <= 100 ? base : base + (numUnits - 100) * add;
+      }
+    }
+    
+    // Faturamento Anual (ou fallback)
+    if (type === 'house' || type === 'individual') {
+      return globalConfig.servicePriceAnnualSimple !== undefined ? Number(globalConfig.servicePriceAnnualSimple) : (globalConfig.servicePriceAnnual || 39.90);
+    }
+    if (type === 'village') {
+      return globalConfig.servicePriceAnnualVilla !== undefined ? Number(globalConfig.servicePriceAnnualVilla) : 99.90;
+    }
+    if (type === 'condo') {
+      return globalConfig.servicePriceAnnualCondo !== undefined ? Number(globalConfig.servicePriceAnnualCondo) : 159.90;
+    }
+    return globalConfig.servicePriceAnnual || 39.90;
   };
+
+  useEffect(() => {
+    fetchProperties();
+    const interval = setInterval(() => { fetchProperties(true); }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API}/api/config`)
+      .then(res => res.json())
+      .then(data => setGlobalConfig(data))
+      .catch(err => console.error("Erro ao carregar configuracoes globais:", err));
+  }, []);
+
+  useEffect(() => {
+    const handlePrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handlePrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handlePrompt);
+  }, []);
+
+  // Polling para checar se o Pix foi pago enquanto o modal de pagamento está aberto
+  useEffect(() => {
+    const targetId = paymentPropertyId || scannedId;
+    if ((!showPaymentModal && onboardingStep !== 'pay_qr') || !targetId || isPaid) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/properties/${encodeURIComponent(targetId.trim().toLowerCase())}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.plan === 'Anual') {
+            setIsPaid(true);
+            fetchProperties();
+            clearInterval(interval);
+          }
+        }
+      } catch (err) {
+        console.error("Erro no polling de confirmacao no AdminPanel:", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [showPaymentModal, onboardingStep, paymentPropertyId, scannedId, isPaid]);
 
   useEffect(() => {
     if (activeTab === 'support') fetchTickets();
   }, [activeTab]);
-
-  const fetchProperties = async () => {
-    try {
-      const adminEmail = sessionStorage.getItem('cd_admin_email');
-      const adminRole = sessionStorage.getItem('cd_admin_role');
-      const url = (adminRole === 'master' || !adminEmail) 
-        ? `${API}/api/properties` 
-        : `${API}/api/properties?email=${encodeURIComponent(adminEmail)}`;
-      const res  = await fetch(url);
-      const data = await res.json();
-      
-      setProperties(data);
- 
-      // Auto-seleciona propriedade salva no login ou a primeira disponível
-      const savedPropertyId = sessionStorage.getItem('cd_admin_propertyId');
-      if (data.length === 0) {
-        const savedType = sessionStorage.getItem('cd_property_type');
-        if (savedType) {
-          const mappedType = savedType === 'house' ? 'individual' : savedType;
-          setPropertyType(mappedType);
-          setPropertyName(mappedType === 'individual' ? 'Minha Casa' : '');
-          setUnitsList([{ name: '' }]);
-          setOnboardingStep(mappedType === 'individual' ? 'scan' : 'config');
-        } else {
-          setOnboardingStep('type');
-        }
-      } else {
-        const toSelect = savedPropertyId && data.find(p => p.id === savedPropertyId)
-          ? savedPropertyId
-          : data[0].id;
-        setSelectedProperty(toSelect);
-      }
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  };
 
   const fetchVisitors = async (propertyId) => {
     setLoadingVisitors(true);
@@ -999,206 +999,208 @@ export default function AdminPanel() {
                 <form onSubmit={submitTicket} style={{ background: '#FFF', padding: '20px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Abrir Novo Ticket</h3>
                   <div style={{ marginBottom: '12px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '4px' }}>Assunto</label>
-                    <input value={newTicket.title} onChange={e => setNewTicket({...newTicket, title: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Ex: Dúvida sobre plano" required />
+                    <label style={{ display: 'block', fontSize: '12px', color: '#64748B', marginBottom: '4px' }}>Título</label>
+                    <input type="text" value={newTicket.title} onChange={e => setNewTicket({...newTicket, title: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }} placeholder="Ex: Problema no QR Code" />
                   </div>
                   <div style={{ marginBottom: '16px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '4px' }}>Mensagem</label>
-                    <textarea value={newTicket.message} onChange={e => setNewTicket({...newTicket, message: e.target.value})} rows={4} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', resize: 'vertical' }} placeholder="Descreva sua dúvida ou problema..." required />
+                    <label style={{ display: 'block', fontSize: '12px', color: '#64748B', marginBottom: '4px' }}>Mensagem</label>
+                    <textarea value={newTicket.message} onChange={e => setNewTicket({...newTicket, message: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '100px' }} placeholder="Descreva seu problema..." />
                   </div>
-                  <button type="submit" style={{ width: '100%', padding: '12px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>
-                    ENVIAR TICKET
-                  </button>
+                  <button type="submit" className="btn-primary" style={{ width: '100%' }}>ENVIAR TICKET</button>
                 </form>
               </div>
             </div>
           </div>
         )}
 
-        {/* ── ABA: MENSAGENS ── */}
-        {activeTab === 'broadcast' && selectedProperty && (
-          <BroadcastPanel propertyId={selectedProperty} adminEmail={sessionStorage.getItem('cd_admin_email')} />
-        )}
-
         {/* ── ABA: HISTÓRICO ── */}
-        {activeTab === 'history' && (
-          <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-              <div>
-                <h2 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-1px' }}>Histórico de Visitantes</h2>
-                <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Registro de todas as visitas com foto e horário</p>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                {properties.length > 1 && (
-                  <select value={selectedProperty || ''} onChange={e => setSelectedProperty(e.target.value)} className="input-glass" style={{ padding: '10px 16px', fontSize: '14px' }}>
-                    {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                )}
-                <button className="btn-secondary" style={{ padding: '10px 16px', fontSize: '13px' }} onClick={() => selectedProperty && fetchVisitors(selectedProperty)}>
-                  <RefreshCw size={16} /> Atualizar
-                </button>
-              </div>
+        {activeTab === 'history' && selectedProperty && (
+          <div style={{ padding: '20px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Histórico de Visitantes</h2>
+              <button className="btn-secondary" onClick={() => fetchVisitors(selectedProperty)} disabled={loadingVisitors}>
+                <RefreshCw size={16} className={loadingVisitors ? 'spin' : ''} /> Atualizar
+              </button>
             </div>
 
             {loadingVisitors ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '60px' }}>Carregando histórico...</p>
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Carregando histórico...</p>
             ) : visitors.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '80px 24px' }}>
-                <User size={48} color="var(--text-muted)" style={{ opacity: 0.3, marginBottom: '16px' }} />
-                <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>Nenhum visitante registrado ainda.</p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '8px' }}>As visitas aparecerão aqui assim que alguém tocar a campainha.</p>
+              <div style={{ textAlign: 'center', padding: '60px', background: '#FFF', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                <Clock size={48} color="#CBD5E1" style={{ marginBottom: '16px' }} />
+                <p style={{ color: '#64748B', fontWeight: 600 }}>Nenhum visitante registrado recentemente.</p>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
-                {visitors.map(v => (
-                  <div key={v.id} className="premium-card" style={{ padding: '0', overflow: 'hidden' }}>
-                    <div style={{ height: '160px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                      {v.photo
-                        ? <img src={v.photo} alt="Visitante" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <User size={48} color="var(--text-muted)" style={{ opacity: 0.3 }} />
-                      }
-                    </div>
-                    <div style={{ padding: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '11px', marginBottom: '4px' }}>
-                        <Clock size={11} /> {fmtDate(v.timestamp)}
-                      </div>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--primary)' }}>
-                        {properties.find(p => p.id === selectedProperty)?.units.find(u => u.id === v.unitId)?.name || 'Unidade'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              <div className="glass-panel" style={{ overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+                      <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Data / Hora</th>
+                      <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Unidade</th>
+                      <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Status</th>
+                      <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Foto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visitors.map(v => (
+                      <tr key={v.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{fmtDate(v.createdAt)}</td>
+                        <td style={{ padding: '16px 24px', fontSize: '14px', color: '#475569' }}>{v.unitName}</td>
+                        <td style={{ padding: '16px 24px' }}>
+                          <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '100px', fontWeight: 700, background: v.status === 'answered' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: v.status === 'answered' ? '#10B981' : '#EF4444' }}>
+                            {v.status === 'answered' ? 'ATENDIDO' : 'PERDIDO'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px 24px' }}>
+                          {v.photoUrl ? (
+                            <img src={v.photoUrl} alt="V" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #E2E8F0' }} onClick={() => window.open(v.photoUrl, '_blank')} />
+                          ) : (
+                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={16} color="#CBD5E1" /></div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
-          </>
+          </div>
+        )}
+
+        {/* ── ABA: AVISOS ── */}
+        {activeTab === 'broadcast' && selectedProperty && (
+           <BroadcastPanel propertyId={selectedProperty} />
         )}
 
         {/* ── ABA: CONFIGURAÇÕES ── */}
         {activeTab === 'settings' && selectedProperty && (
-          <div style={{ padding: '20px 0', maxWidth: '600px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>Configurações do Condomínio</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>Configure a conta do WhatsApp do seu condomínio para envios de convites automáticos aos moradores.</p>
+          <div style={{ padding: '20px 0' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '24px' }}>Configurações da Propriedade</h2>
             
-            <form onSubmit={(e) => { e.preventDefault(); saveWhatsappConfig(selectedProperty, whatsappForm.instance, whatsappForm.token); }} style={{ background: '#FFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                 <MessageCircle size={24} color="#25D366" />
-                 <h3 style={{ margin: 0, fontWeight: 700, fontSize: '18px' }}>Instância de WhatsApp (Gestor)</h3>
-               </div>
-               
-               <div style={{ marginBottom: '16px' }}>
-                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>Instância de Disparo (Evolution API / Z-API)</label>
-                 <input value={whatsappForm.instance} onChange={e => setWhatsappForm({...whatsappForm, instance: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Ex: condominio-flores" required />
-               </div>
-               <div style={{ marginBottom: '24px' }}>
-                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>Token da Instância</label>
-                 <input type="password" value={whatsappForm.token} onChange={e => setWhatsappForm({...whatsappForm, token: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Seu token de acesso..." required />
-               </div>
-               
-               <button type="submit" style={{ width: '100%', padding: '14px', background: '#10B981', color: '#FFF', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '15px' }}>
-                 SALVAR CONFIGURAÇÃO
-               </button>
-            </form>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
+              
+              {/* Integração WhatsApp */}
+              <div className="premium-card" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(37,211,102,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <MessageCircle size={24} color="#25D366" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Notificações via WhatsApp</h3>
+                    <p style={{ fontSize: '12px', color: '#64748B' }}>Integração com API de Mensagens</p>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Instance ID</label>
+                    <input type="text" className="input-glass" placeholder="Ex: 3B7..." value={whatsappForm.instance} onChange={e => setWhatsappForm({...whatsappForm, instance: e.target.value})} style={{ width: '100%', color: '#0F172A', background: '#FFF' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Token</label>
+                    <input type="password" className="input-glass" placeholder="Token da API" value={whatsappForm.token} onChange={e => setWhatsappForm({...whatsappForm, token: e.target.value})} style={{ width: '100%', color: '#0F172A', background: '#FFF' }} />
+                  </div>
+                  <button onClick={() => saveWhatsappConfig(selectedProperty, whatsappForm.instance, whatsappForm.token)} className="btn-primary" style={{ background: '#25D366', color: '#FFF' }}>
+                    SALVAR INTEGRAÇÃO
+                  </button>
+                  <p style={{ fontSize: '11px', color: '#64748B', marginTop: '8px', lineHeight: 1.4 }}>
+                    Essa configuração permite enviar o link da chamada diretamente para o WhatsApp do morador caso ele não tenha o app instalado ou esteja offline.
+                  </p>
+                </div>
+              </div>
+
+              {/* Mais configurações aqui... */}
+            </div>
           </div>
         )}
+
       </main>
 
-      <ChatBot />
-
-      <footer style={{ padding: '24px', textAlign: 'center', background: '#FFFFFF', color: '#64748B', fontSize: '13px', borderTop: '1px solid #E2E8F0', marginTop: 'auto' }}>
-        <strong style={{ fontSize: '14px', color: '#0F172A', display: 'block', marginBottom: '8px' }}>CAMPAINHA DIGITAL INOVA SIMPLES (I.S.)</strong>
-        CNPJ: 65.628.833/0001-47 <br />
-        Suporte: <a href="https://wa.me/5521995879170" target="_blank" rel="noreferrer" style={{ color: '#3B82F6', textDecoration: 'none', fontWeight: 700 }}>(21) 99587-9170</a>
-      </footer>
       </div>
 
+      {/* Modal de Pagamento */}
       {showPaymentModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="fade-in" style={{ background: '#FFF', padding: '32px', borderRadius: '24px', maxWidth: '440px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', border: '1px solid #E2E8F0', color: '#0F172A', position: 'relative' }}>
-            <button onClick={() => setShowPaymentModal(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}><X size={20} /></button>
-            
-            {isPaid ? (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '2px solid #10B981' }}>
-                  <Check size={40} color="#10B981" />
-                </div>
-                <h3 style={{ fontSize: '22px', fontWeight: 900, color: '#10B981' }}>Pagamento Confirmado!</h3>
-                <p style={{ color: '#64748B', fontSize: '14px', marginTop: '12px', lineHeight: 1.5 }}>
-                  Sua assinatura foi ativada com sucesso para a placa <strong>{paymentPropertyId}</strong>!
-                </p>
-                <button onClick={() => setShowPaymentModal(false)} className="btn-primary w-full" style={{ marginTop: '24px', background: '#10B981', color: '#FFF' }}>
-                  Fechar
-                </button>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center' }}>
-                <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px' }}>Ativação de Assinatura</h3>
-                <p style={{ color: '#64748B', fontSize: '13px', marginBottom: '24px' }}>Imóvel: <strong>{paymentPropertyId}</strong></p>
-                
-                {loading && !pixData ? (
-                  <p style={{ color: '#64748B', padding: '40px' }}>Gerando cobrança PIX...</p>
-                ) : pixData ? (
-                  <>
-                    <strong style={{ display: 'block', fontSize: '15px', color: '#0F172A', marginBottom: '16px' }}>Escaneie o QR Code PIX (R$ {Number(pixData.value || getPropertyDisplayPrice(properties.find(p => p.id === paymentPropertyId))).toFixed(2).replace('.', ',')})</strong>
-                    <div style={{ width: '200px', height: '200px', margin: '0 auto', border: '2px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFF' }}>
-                      <img 
-                        src={pixData.pixQrCode && (pixData.pixQrCode.startsWith('http') || pixData.pixQrCode.startsWith('data:')) ? pixData.pixQrCode : `data:image/png;base64,${pixData.pixQrCode}`} 
-                        alt="QR Code PIX" 
-                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
-                      />
-                    </div>
-                    
-                    {pixData.pixCopiaECola && (
-                      <div style={{ marginTop: '20px', textAlign: 'left' }}>
-                        <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', marginBottom: '6px' }}>PIX Copia e Cola</span>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="fade-in" style={{ background: '#FFF', borderRadius: '24px', width: '100%', maxWidth: '450px', padding: '32px', textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', color: '#0F172A' }}>
+             <button onClick={() => setShowPaymentModal(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}><X size={24} /></button>
+             
+             {isPaid ? (
+               <div className="fade-in">
+                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                   <Check size={40} color="#10B981" />
+                 </div>
+                 <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#10B981' }}>Pagamento Confirmado!</h2>
+                 <p style={{ color: '#64748B', marginTop: '12px' }}>Sua assinatura foi ativada com sucesso. Obrigado!</p>
+                 <button onClick={() => setShowPaymentModal(false)} className="btn-primary w-full" style={{ marginTop: '24px' }}>FECHAR</button>
+               </div>
+             ) : (
+               <>
+                 <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '8px' }}>Ativar Assinatura</h2>
+                 <p style={{ color: '#64748B', fontSize: '14px', marginBottom: '24px' }}>Realize o pagamento via PIX para liberar todas as funções.</p>
+                 
+                 {loading ? (
+                    <div style={{ padding: '40px' }}><RefreshCw size={32} className="spin" color="var(--primary)" /></div>
+                 ) : pixData ? (
+                   <div className="fade-in">
+                      <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #E2E8F0', marginBottom: '20px' }}>
+                        <img src={`data:image/png;base64,${pixData.pixQrCode}`} alt="QR Code" style={{ width: '180px', height: '180px' }} />
+                      </div>
+                      <div style={{ marginBottom: '20px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '8px' }}>PIX Copia e Cola</span>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <input type="text" value={pixData.pixCopiaECola} readOnly style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', background: '#F8FAFC', outline: 'none' }} />
-                          <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Pix copiado!'); }} style={{ padding: '0 12px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px' }}>
-                            Copiar
-                          </button>
+                           <input type="text" value={pixData.pixCopiaECola} readOnly style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0', fontSize: '12px', background: '#F1F5F9' }} />
+                           <button onClick={() => { navigator.clipboard.writeText(pixData.pixCopiaECola); alert('Pix copiado!'); }} style={{ padding: '0 16px', background: '#3B82F6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 700 }}>Copiar</button>
                         </div>
                       </div>
-                    )}
-                    
-                    {/* Botão do WhatsApp para Comprovante */}
-                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #E2E8F0' }}>
-                      <a 
-                        href={`https://wa.me/${globalConfig?.supportWhatsApp || '5521995879170'}?text=Olá!%20Realizei%20o%20pagamento%20Pix%20para%20a%20minha%20placa%20do%20Campainha%20Digital.%20ID%20da%20Placa:%20${encodeURIComponent(paymentPropertyId)}`} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        style={{ 
-                          width: '100%', 
-                          padding: '10px', 
-                          borderRadius: '10px', 
-                          fontSize: '12px', 
-                          fontWeight: 800,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          background: '#25D366',
-                          border: 'none',
-                          color: '#FFF',
-                          textDecoration: 'none',
-                          cursor: 'pointer',
-                          boxShadow: '0 4px 10px rgba(37, 211, 102, 0.2)'
-                        }}
-                      >
-                        💬 Já paguei! Enviar comprovante no WhatsApp
-                      </a>
-                    </div>
-                    
-                    <p style={{ fontSize: '11px', color: '#64748B', marginTop: '16px', lineHeight: 1.4 }}>
-                      O sistema detectará o pagamento de forma automática em até 1 minuto após a transferência.
-                    </p>
-                  </>
-                ) : (
-                  <p style={{ color: '#EF4444' }}>Não foi possível carregar o QR Code do pagamento.</p>
-                )}
-              </div>
-            )}
+                      <div style={{ background: 'rgba(59,130,246,0.05)', padding: '12px', borderRadius: '12px', fontSize: '12px', color: '#3B82F6', fontWeight: 600 }}>
+                         Aguardando confirmação do pagamento...
+                      </div>
+                   </div>
+                 ) : (
+                    <p style={{ color: '#EF4444' }}>Erro ao gerar Pix. Tente novamente.</p>
+                 )}
+               </>
+             )}
           </div>
         </div>
       )}
+
+      {/* Paywall Modal */}
+      {showPaywall && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px', backdropFilter: 'blur(4px)' }}>
+          <div className="fade-in" style={{ background: '#FFF', borderRadius: '32px', width: '100%', maxWidth: '500px', padding: '40px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', color: '#0F172A', position: 'relative' }}>
+             <button onClick={() => setShowPaywall(false)} style={{ position: 'absolute', top: '24px', right: '24px', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#64748B', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
+             
+             <div style={{ width: '72px', height: '72px', borderRadius: '20px', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+               <Zap size={36} color="#3B82F6" />
+             </div>
+             
+             <h2 style={{ fontSize: '26px', fontWeight: 900, marginBottom: '12px', letterSpacing: '-0.5px' }}>Plano Profissional Necessário</h2>
+             <p style={{ color: '#64748B', fontSize: '15px', lineHeight: 1.6, marginBottom: '32px' }}>Você atingiu o limite de 1 placa no plano grátis. Para gerenciar múltiplas propriedades, atualize para o Plano Condomínio/Vila.</p>
+             
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+               {[
+                 'Gerencie múltiplas placas no mesmo painel',
+                 'Avisos e comunicados ilimitados',
+                 'Suporte prioritário via WhatsApp',
+                 'Histórico completo de visitantes'
+               ].map((item, i) => (
+                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', fontSize: '14px', fontWeight: 600, color: '#475569' }}>
+                   <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                     <Check size={12} color="#15803D" />
+                   </div>
+                   {item}
+                 </div>
+               ))}
+             </div>
+             
+             <button onClick={() => { setShowPaywall(false); window.open('https://wa.me/5511999999999', '_blank'); }} className="btn-primary w-full" style={{ padding: '18px', fontSize: '16px', fontWeight: 800 }}>
+               Falar com Consultor Comercial
+             </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
