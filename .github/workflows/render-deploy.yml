@@ -1,0 +1,28 @@
+name: Render Auto-Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deployment (Backend)
+        if: success()
+        run: |
+          if [ -n "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}" ]; then
+            curl -X GET "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}"
+          else
+            echo "RENDER_BACKEND_DEPLOY_HOOK not set, skipping backend trigger."
+          fi
+
+      - name: Trigger Render Deployment (Frontend)
+        if: success()
+        run: |
+          if [ -n "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}" ]; then
+            curl -X GET "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}"
+          else
+            echo "RENDER_FRONTEND_FRONTEND_DEPLOY_HOOK not set, skipping frontend trigger."
+          fi
