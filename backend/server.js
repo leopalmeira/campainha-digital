@@ -80,11 +80,17 @@ let subscriptions = [];
 const { Pool } = require('pg');
 
 let pool = null;
-if (process.env.DATABASE_URL) {
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim() !== "") {
+  try {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    });
+    console.log("[DATABASE] Pool do PostgreSQL criado com sucesso.");
+  } catch (err) {
+    console.error("[DATABASE] Erro ao criar pool do PostgreSQL:", err.message);
+    pool = null;
+  }
 }
 
 let supportTickets = [];
