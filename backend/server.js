@@ -1550,7 +1550,7 @@ app.post('/api/properties/:propId/mass-invite', async (req, res) => {
       try {
         // Usa as credenciais do gestor (prop.whatsappConfig.instance / token)
         console.log(`Enviando via Instância ${prop.whatsappConfig.instance}...`);
-        await whatsappService.simulateWhatsAppApiCall(unit.whatsapp, messageBody);
+        await WhatsAppService.simulateWhatsAppApiCall(unit.whatsapp, messageBody);
         sentCount++;
       } catch (err) {
         console.error(`Falha ao enviar WhatsApp para ${unit.whatsapp}:`, err);
